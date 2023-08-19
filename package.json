@@ -6,10 +6,11 @@
   "scripts": {
     "test": "nodemon ./src/test.ts",
     "start": "nodemon ./src/server.ts",
+    "start_prop": "set DEV_MODE=production node ./dist/server.js",
     "compile": "tsc",
     "build": "tsc && pm2 start ecosystem.config.js --env production",
     "reload": "tsc && pm2 reload clinic-dashboard-api --env production",
-    "restart": "tsc && pm2 restart clinic-dashboard-api ----env production"
+    "restart": "tsc && pm2 restart clinic-dashboard-api --env production"
   },
   "keywords": [],
   "author": "",
