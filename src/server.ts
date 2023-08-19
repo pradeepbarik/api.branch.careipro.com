@@ -46,7 +46,9 @@ if (DEV_MODE === 'development') {
 } else {
     const key = fs.readFileSync(SSL_KEY_FILE);
     const cert = fs.readFileSync(SSL_CERT_FILE);
-    const SERVER: Server = https.createServer({ key, cert }, APP);
+    const SERVER: Server = https.createServer({ key, cert }, APP).listen(PORT, () => {
+        console.log(`server is running on https port ${PORT}`);
+    });
     process.on('SIGINT', () => {
         console.log("SIGINT signal received")
         SERVER.close(() => {
