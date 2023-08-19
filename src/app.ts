@@ -9,7 +9,7 @@ const APP: Application = express();
 APP.use(compression({ filter: shouldCompress,level:1 }))
 APP.use(express.json());
 APP.use(cors({
-    origin: ['http://localhost:3000','http://localhost:3001','https://branch.careipro.com/'],
+    origin: ['http://localhost:3000','http://localhost:3001','https://branch.careipro.com'],
     optionsSuccessStatus: 200
 }))
 APP.use(responseTime);
