@@ -1,0 +1,13 @@
+{
+    "verbose": true,
+    "ignore": [
+        "*.test.js",
+        "**/fixtures/**"
+    ],
+    "env":{
+        "PORT":3004,
+        "NODE_ENV": "development",
+        "TZ": "Asia/Calcutta",
+        "MAIN_APP_API":"http://localhost:8080/doctorapp/webservice/v1/"
+    }
+}

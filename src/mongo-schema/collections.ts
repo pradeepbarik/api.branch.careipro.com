@@ -1,0 +1,1 @@
+export const coll_doctor_tbl_change_logs='coll_doctor_tbl_change_logs';

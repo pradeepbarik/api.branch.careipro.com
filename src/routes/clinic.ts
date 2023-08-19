@@ -1,0 +1,10 @@
+import {Router} from 'express';
+import {apiRateLimit,handelError,employeeValidation} from '../middleware';
+import clinicController from '../controller/clinic';
+const clinicRoutes=Router();
+clinicRoutes.get('/clinic-list',[apiRateLimit(1,4)],handelError(clinicController.getClinicList));
+clinicRoutes.get('/get-doctors-list',[apiRateLimit(1,4)],handelError(clinicController.getDoctorsList));
+clinicRoutes.get('/doctor-complete-details',[apiRateLimit(1,3)],handelError(clinicController.doctorCompleteDetails));
+clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.approveDoctor));
+clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));
+export default clinicRoutes;
