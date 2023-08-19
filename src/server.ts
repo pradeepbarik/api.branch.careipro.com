@@ -38,14 +38,14 @@ const SERVER = APP.listen(PORT, () => {
 process.on('SIGINT',()=>{
     console.log("SIGINT signal received")
     SERVER.close(()=>{
-        DB.close_db();
+        //DB.close_db();
         process.exit(0);
     })
 })
 process.on('SIGTERM',()=>{
     console.log("SIGTERM signal received")
     SERVER.close(()=>{
-        DB.close_db();
+        //DB.close_db();
         process.exit(0);
     })
 })
