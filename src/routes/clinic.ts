@@ -7,4 +7,5 @@ clinicRoutes.get('/get-doctors-list',[apiRateLimit(1,4)],handelError(clinicContr
 clinicRoutes.get('/doctor-complete-details',[apiRateLimit(1,3)],handelError(clinicController.doctorCompleteDetails));
 clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.approveDoctor));
 clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));
+clinicRoutes.get('/clinic-banners',[apiRateLimit(1,3)],handelError(clinicController.clinicBanners));
 export default clinicRoutes;

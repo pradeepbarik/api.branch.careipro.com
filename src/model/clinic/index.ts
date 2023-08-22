@@ -1,6 +1,6 @@
 import { ILoggedinEmpInfo } from '../../types';
 import { get_current_datetime } from '../../services/datetime';
-import { Iresponse, unauthorizedResponse, successResponse } from '../../services/response';
+import { Iresponse, unauthorizedResponse, successResponse, internalServerError } from '../../services/response';
 import { doctorprofileChangeLogModel } from '../../mongo-schema/coll_doctor_tbl_change_log';
 export const getDoctors = async (branch_id: number, clinic_id: number) => {
     let rows: any = await DB.get_rows("select t1.id as service_loc_id,t1.service_charge as consulting_fee,doctor.id,doctor.name,doctor.gender,doctor.experience,doctor.image,doctor.position,doctor.rating,doctor.active,doctor.clinic_id,group_concat(spl.name SEPARATOR ', ') as specialist from (SELECT * FROM `doctor_service_location` WHERE  clinic_id=?) as t1 join (select * from doctor where branch_id=? and clinic_id=?) as doctor on t1.`doctor_id`=doctor.id left join service_location_specialization as slp on t1.id=slp.service_location left join specialists as spl on slp.specialist_id=spl.id group by t1.id", [clinic_id, branch_id, clinic_id]);
@@ -146,18 +146,18 @@ export const changeDoctorActiveStatus = async (params: TchangeDoctorActiveStatus
         if (params.active === 0 && doctor.active === 0) {
             throw new Error("Already doctor profile is in-active");
         }
-        let activity='';
-        let log_message='';
+        let activity = '';
+        let log_message = '';
         if (params.active === 1) {
             await DB.query("update doctor set active=1 where id=?", [params.doctor_id]);
             await DB.query("update doctor_service_location set active=1 where id=? and doctor_id=?", [params.service_location_id, params.doctor_id]);
-            activity='profile_activate';
-            log_message='Doctor profile made activate'
+            activity = 'profile_activate';
+            log_message = 'Doctor profile made activate'
         } else if (params.active === 0) {
             await DB.query("update doctor set active=0 where id=?", [params.doctor_id]);
             await DB.query("update doctor_service_location set active=0 where id=? and doctor_id=?", [params.service_location_id, params.doctor_id]);
-            activity='profile_deactivate'
-            log_message='Doctor profile made deactivate'
+            activity = 'profile_deactivate'
+            log_message = 'Doctor profile made deactivate'
         }
         let now = get_current_datetime();
         let logdocument = await doctorprofileChangeLogModel.findOne({
@@ -184,7 +184,7 @@ export const changeDoctorActiveStatus = async (params: TchangeDoctorActiveStatus
                     activity_log: activitylog
                 }
             }).exec();
-        }else{
+        } else {
             logdocument = new doctorprofileChangeLogModel({
                 doctor_id: params.doctor_id,
                 clinic_id: params.clinic_id,
@@ -196,10 +196,23 @@ export const changeDoctorActiveStatus = async (params: TchangeDoctorActiveStatus
         if (params.active === 1) {
             return successResponse({ active: 1 }, "Doctor profile activated Successfully")
         } else {
-            return successResponse({ active: 0}, "Doctor profile de-activated Successfully")
+            return successResponse({ active: 0 }, "Doctor profile de-activated Successfully")
         }
 
     } catch (err: any) {
         return unauthorizedResponse(err.message)
+    }
+}
+export const getClinicBanners = async (params: {
+    clinic_id: number,
+    banner_id?: number
+}) => {
+    try {
+        let sql = "select id,image,display_order,user_id as clinic_id from banners where user_id=? and user_type='clinic'";
+        let sql_params = [params.clinic_id];
+        let rows = await DB.get_rows(sql, sql_params);
+        return successResponse(rows,"succes")
+    } catch (err: any) {
+        return internalServerError(err.message)
     }
 }

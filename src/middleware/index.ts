@@ -5,7 +5,7 @@ import rateLimit from 'express-rate-limit';
 import { rateLimitErrorResponse, unauthorizedResponse, internalServerError } from '../services/response';
 import { decrypt } from '../services/encryption';
 import { get_current_datetime } from '../services/datetime';
-import {ILoggedinEmpInfo} from '../types';
+import {ILoggedinEmpInfo,ITokenInfo} from '../types';
 export const responseTime = (req: Request, res: Response, next: NextFunction) => {
     let start = Date.now();
     res.on('finish', () => {
@@ -43,13 +43,9 @@ export const xApiKeyValidation = (req: Request, res: Response, next: NextFunctio
         if (token) {
             let decodeddata = decrypt(typeof token === 'string' ? token : token[0]);
             if (decodeddata) {
-                let tokenData = JSON.parse(decodeddata);
+                let tokenData:ITokenInfo = JSON.parse(decodeddata);
                 if (tokenData.log_ip !== ip) {
                     unauthorizedResponse("invalid api key (ip mismatched)", res);
-                    return;
-                }
-                if (moment(tokenData.et).diff(moment(get_current_datetime())) < 0) {
-                    unauthorizedResponse("Login session expired! Please login again", res);
                     return;
                 }
                 res.locals.tokenInfo = tokenData;

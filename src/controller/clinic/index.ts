@@ -1,7 +1,7 @@
 import {Request,Response} from 'express';
 import Joi,{ValidationResult} from 'joi';
-import {parameterMissingResponse,successResponse} from '../../services/response';
-import {getDoctors,getDoctorCompleteDetails,approveDoctor,changeDoctorActiveStatus} from '../../model/clinic';
+import {parameterMissingResponse,successResponse,unauthorizedResponse} from '../../services/response';
+import {getDoctors,getDoctorCompleteDetails,approveDoctor,changeDoctorActiveStatus,getClinicBanners} from '../../model/clinic';
 const requestParams={
     getClinicList:Joi.object({
         page:Joi.number().required()
@@ -24,6 +24,10 @@ const requestParams={
         doctor_id:Joi.number().required(),
         service_loc_id:Joi.number().required(),
         active:Joi.number().required()
+    }),
+    clinicBanners:Joi.object({
+        clinic_id:Joi.number().required(),
+        banner_id:Joi.number().allow('')
     })
 }
 const clinicController={
@@ -35,6 +39,10 @@ const clinicController={
             return;
         }
         const {tokenInfo}=res.locals;
+        if(typeof tokenInfo === 'undefined'){
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
         const perpage=20;
         let lower_limit = (query.page - 1) * perpage;
         let q = `select id,name,email,mobile,location,city,locality,location_lat,location_lng,status,approved,verified,active,logo,rating,seo_url,branch_id,wallet_balance,is_prime,prime_rank from clinics where branch_id=? limit ?,?`;
@@ -52,6 +60,10 @@ const clinicController={
             return;
         }
         const {tokenInfo}=res.locals;
+        if(typeof tokenInfo === 'undefined'){
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
         let result = await getDoctors(tokenInfo.bid,query.clinic_id);
         res.json(successResponse(result))
     },
@@ -63,6 +75,10 @@ const clinicController={
             return;
         }
         const {tokenInfo}=res.locals;
+        if(typeof tokenInfo === 'undefined'){
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
         let result = await getDoctorCompleteDetails(tokenInfo.bid,query.clinic_id,query.doctor_id,query.service_loc_id);
         res.json(successResponse(result))
     },
@@ -98,6 +114,23 @@ const clinicController={
             emp_info:emp_info
         });
         res.status(result.code).json(result);
+    },
+    clinicBanners:async(req:Request,res:Response)=>{
+        const {query}:{query:any} = req;
+        const validation: ValidationResult = requestParams.clinicBanners.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const {tokenInfo}=res.locals;
+        if(typeof tokenInfo === 'undefined'){
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+        let response = await getClinicBanners({
+            clinic_id:query.clinic_id
+        })
+        res.status(response.code).json(response);
     }
 }
 export default clinicController;

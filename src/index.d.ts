@@ -1,7 +1,7 @@
 import 'express';
-import {ILoggedinEmpInfo} from './types';
+import {ILoggedinEmpInfo,ITokenInfo} from './types';
 interface ILocals {
-    tokenInfo?: any;
+    tokenInfo?: ITokenInfo;
     emp_info?:ILoggedinEmpInfo;
   }
   
