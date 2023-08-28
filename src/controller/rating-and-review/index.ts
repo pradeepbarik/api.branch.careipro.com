@@ -7,7 +7,7 @@ import {
 const requestParams={
     getAppointmentRatingandReviews:Joi.object({
         from_date:Joi.string().allow(''),
-        to_date:Joi.string().allow(),
+        to_date:Joi.string().allow(''),
         clinic_id:Joi.number().allow(''),
         doctor_id:Joi.number().allow(''),
         user_id:Joi.number().allow(''),

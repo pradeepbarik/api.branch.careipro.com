@@ -216,3 +216,15 @@ export const getClinicBanners = async (params: {
         return internalServerError(err.message)
     }
 }
+export const getClinicSpecialization=async (params:{
+    clinic_id: number
+})=>{
+    try {
+        let sql = "select t1.*,t2.name as specialization_name from (SELECT * FROM `clinic_specialization` WHERE clinic_id=?) as t1 left join specialists as t2 on t1.specialist_id=t2.id";
+        let sql_params = [params.clinic_id];
+        let rows = await DB.get_rows(sql, sql_params);
+        return successResponse(rows,"succes")
+    } catch (err: any) {
+        return internalServerError(err.message)
+    }
+}

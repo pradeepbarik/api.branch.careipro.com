@@ -1,8 +1,17 @@
 import {Request,Response} from 'express';
 import Joi,{ValidationResult} from 'joi';
 import {parameterMissingResponse,successResponse,unauthorizedResponse} from '../../services/response';
-import {getDoctors,getDoctorCompleteDetails,approveDoctor,changeDoctorActiveStatus,getClinicBanners} from '../../model/clinic';
+import {getDoctors,getDoctorCompleteDetails,approveDoctor,changeDoctorActiveStatus,getClinicBanners,getClinicSpecialization} from '../../model/clinic';
 const requestParams={
+    addNewClinic:Joi.object({
+        clinic_name:Joi.string().required(),
+        clinic_seo_url:Joi.string().required(),
+        contact_no:Joi.string().required(),
+        contact_email:Joi.string().allow(''),
+        state:Joi.string().required(),
+        dist:Joi.string().required(),
+        dist_city:Joi.string().required()
+    }),
     getClinicList:Joi.object({
         page:Joi.number().required()
     }),
@@ -28,9 +37,26 @@ const requestParams={
     clinicBanners:Joi.object({
         clinic_id:Joi.number().required(),
         banner_id:Joi.number().allow('')
+    }),
+    clinicSpecializations:Joi.object({
+        clinic_id:Joi.number().required(),
     })
 }
 const clinicController={
+    addNewClinic:async (req:Request,res:Response)=>{
+        const {body}:{body:any} = req;
+        const validation: ValidationResult = requestParams.addNewClinic.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const {tokenInfo}=res.locals;
+        if(typeof tokenInfo === 'undefined'){
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+
+    },
     getClinicList:async (req:Request,res:Response)=>{
         const {query}:{query:any} = req;
         const validation: ValidationResult = requestParams.getClinicList.validate(query);
@@ -128,6 +154,23 @@ const clinicController={
             return
         }
         let response = await getClinicBanners({
+            clinic_id:query.clinic_id
+        })
+        res.status(response.code).json(response);
+    },
+    clinicSpecializations:async (req:Request,res:Response)=>{
+        const {query}:{query:any} = req;
+        const validation: ValidationResult = requestParams.clinicSpecializations.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const {tokenInfo}=res.locals;
+        if(typeof tokenInfo === 'undefined'){
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+        let response = await getClinicSpecialization({
             clinic_id:query.clinic_id
         })
         res.status(response.code).json(response);
