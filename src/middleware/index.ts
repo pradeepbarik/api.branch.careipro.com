@@ -65,15 +65,19 @@ export const employeeValidation = (level: number=0) => {// level 0 = just employ
     return async (req: Request, res: Response, next: NextFunction) => {
         const { tokenInfo } = res.locals;
         try{
+            if(!tokenInfo){
+                unauthorizedResponse("invalid api key", res);
+                return;
+            }
             let employee:any = await DB.get_row("select id,first_name,last_name,emp_code,branch_id,department_id,status from employee where id=? and emp_code=? and branch_id=? and department_id=?", [tokenInfo.eid,tokenInfo.ec,tokenInfo.bid,tokenInfo.did]);
-            const empinfo:ILoggedinEmpInfo={
-                id:employee.id,
-                first_name:employee.first_name,
-                emp_code:employee.emp_code,
-                branch_id:employee.branch_id,
-                department_id:employee.department_id
-            };
             if(employee){
+                const empinfo:ILoggedinEmpInfo={
+                    id:employee.id,
+                    first_name:employee.first_name,
+                    emp_code:employee.emp_code,
+                    branch_id:employee.branch_id,
+                    department_id:employee.department_id
+                };
                 if(level===1){
                     if(employee.status==='active'){
                         res.locals.emp_info=empinfo;
