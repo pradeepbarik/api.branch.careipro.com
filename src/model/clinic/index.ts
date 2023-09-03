@@ -2,6 +2,77 @@ import { ILoggedinEmpInfo } from '../../types';
 import { get_current_datetime } from '../../services/datetime';
 import { Iresponse, unauthorizedResponse, successResponse, internalServerError } from '../../services/response';
 import { doctorprofileChangeLogModel } from '../../mongo-schema/coll_doctor_tbl_change_log';
+import { clinicprofileChangeLogModel } from '../../mongo-schema/coll_clinic_tbl_chnage_logs';
+type TaddNewClinicParams = {
+    branch_id: number,
+    clinic_name: string,
+    clinic_seo_url: string,
+    contact_no: number,
+    alt_contact_no: number,
+    contact_email: string,
+    state: string,
+    dist: string,
+    market: string,
+    area_name: string,
+    location: string,
+    latitude: number,
+    longitude: number,
+    user_name: string,
+    password: string,
+    emp_info:ILoggedinEmpInfo
+}
+const clinicModel = {
+    checkClinicSeourlAvailability: async (seourl: string, city: string) => {
+        let row = await DB.get_row("select seo_url,city from clinics where seo_url=? and city=?", [seourl, city]);
+        if (row) {
+            return false
+        }
+        return true;
+    },
+    checkClinicMobileUnique: async (mobile: number) => {
+        let row = await DB.get_row("select seo_url,city from clinics where mobile=?", [mobile]);
+        if (row) {
+            return false
+        }
+        return true;
+    },
+    checkClinicloginUserNameUnique: async (user_name: string) => {
+        let row = await DB.get_row("select seo_url,city from clinics where username=?", [user_name]);
+        if (row) {
+            return false
+        }
+        return true;
+    },
+    addNewClinic: async (params: TaddNewClinicParams) => {
+        let q = 'insert into clinics set name=?,username=?,password=md5(?),email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?';
+        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market]);
+        if (insertRes.affectedRows >= 1) {
+            let clinic_id = insertRes.insertId;
+            let now = get_current_datetime();
+            q = 'insert into clinic_detail (clinic_id,register_date) values (?,?)';
+            DB.query(q, [clinic_id, now]);
+            new clinicprofileChangeLogModel({
+                clinic_id: clinic_id,
+                activity_log: [{
+                    activity: 'registered',
+                    activity_by: 'branch_employee',
+                    activity_time: now,
+                    log_message: 'registered as a new clinic',
+                    emp_info: {
+                        emp_id: params.emp_info.id,
+                        emp_code: params.emp_info.emp_code,
+                        branch_id: params.emp_info.branch_id,
+                        department_id: params.emp_info.department_id,
+                        first_name: params.emp_info.first_name,
+                    }
+                }]
+            }).save()
+            return successResponse(null, "Clinic registered successfully");
+        } else {
+            return internalServerError("something went wrong! try again");
+        }
+    }
+}
 export const getDoctors = async (branch_id: number, clinic_id: number) => {
     let rows: any = await DB.get_rows("select t1.id as service_loc_id,t1.service_charge as consulting_fee,doctor.id,doctor.name,doctor.gender,doctor.experience,doctor.image,doctor.position,doctor.rating,doctor.active,doctor.clinic_id,group_concat(spl.name SEPARATOR ', ') as specialist from (SELECT * FROM `doctor_service_location` WHERE  clinic_id=?) as t1 join (select * from doctor where branch_id=? and clinic_id=?) as doctor on t1.`doctor_id`=doctor.id left join service_location_specialization as slp on t1.id=slp.service_location left join specialists as spl on slp.specialist_id=spl.id group by t1.id", [clinic_id, branch_id, clinic_id]);
     let activeDoctors = [];
@@ -211,20 +282,21 @@ export const getClinicBanners = async (params: {
         let sql = "select id,image,display_order,user_id as clinic_id from banners where user_id=? and user_type='clinic'";
         let sql_params = [params.clinic_id];
         let rows = await DB.get_rows(sql, sql_params);
-        return successResponse(rows,"succes")
+        return successResponse(rows, "succes")
     } catch (err: any) {
         return internalServerError(err.message)
     }
 }
-export const getClinicSpecialization=async (params:{
+export const getClinicSpecialization = async (params: {
     clinic_id: number
-})=>{
+}) => {
     try {
         let sql = "select t1.*,t2.name as specialization_name from (SELECT * FROM `clinic_specialization` WHERE clinic_id=?) as t1 left join specialists as t2 on t1.specialist_id=t2.id";
         let sql_params = [params.clinic_id];
         let rows = await DB.get_rows(sql, sql_params);
-        return successResponse(rows,"succes")
+        return successResponse(rows, "succes")
     } catch (err: any) {
         return internalServerError(err.message)
     }
 }
+export default clinicModel;

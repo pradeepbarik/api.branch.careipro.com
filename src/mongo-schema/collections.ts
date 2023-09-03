@@ -1,1 +1,3 @@
 export const coll_doctor_tbl_change_logs='coll_doctor_tbl_change_logs';
+export const coll_clinic_tbl_change_logs='coll_clinic_tbl_change_logs';
+export const coll_clinic_markets='coll_clinic_markets';
