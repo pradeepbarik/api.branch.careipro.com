@@ -13,4 +13,6 @@ clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],ha
 clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));
 clinicRoutes.get('/clinic-banners',[apiRateLimit(1,3)],handelError(clinicController.clinicBanners));
 clinicRoutes.get('/clinic-specialization',[apiRateLimit(1,3)],handelError(clinicController.clinicSpecializations));
+clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
+clinicRoutes.post('/add-clinic-staff',[apiRateLimit(1,10)],handelError(clinicController.addClinicStaff));
 export default clinicRoutes;

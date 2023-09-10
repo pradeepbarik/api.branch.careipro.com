@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
 import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable } from '../../services/response';
 import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization } from '../../model/clinic';
+import { addClinicStaff, staffList } from '../../model/clinic-staff';
 const requestParams = {
     checkClinicSeourlAvailability: Joi.object({
         seourl: Joi.string().required(),
@@ -22,10 +23,10 @@ const requestParams = {
         state: Joi.string().required(),
         dist: Joi.string().required(),
         market: Joi.string().required(),
-        area_name:Joi.string().required(),
+        area_name: Joi.string().required(),
         location: Joi.string().required(),
-        latitude:Joi.number().allow(''),
-        longitude:Joi.number().allow(''),
+        latitude: Joi.number().allow(''),
+        longitude: Joi.number().allow(''),
         user_name: Joi.string().required(),
         password: Joi.string().required()
     }),
@@ -57,6 +58,29 @@ const requestParams = {
     }),
     clinicSpecializations: Joi.object({
         clinic_id: Joi.number().required(),
+    }),
+    getClinicStaffs: Joi.object({
+        clinic_id: Joi.number().required(),
+    }),
+    addClinicStaff: Joi.object({
+        clinic_id: Joi.number().required(),
+        mobile_no: Joi.number().required(),
+        email: Joi.string().allow(''),
+        name: Joi.string().required(),
+        status: Joi.string().required(),
+        password: Joi.string().required(),
+        role: Joi.string().required(),
+        clinic_staff_type:Joi.string().required()
+    }),
+    addClinicStaffNonRegistered:Joi.object({
+        clinic_id: Joi.number().required(),
+        mobile_no: Joi.number().required(),
+        name: Joi.string().required(),
+        email: Joi.string().allow(''),
+        status: Joi.string().allow(''),
+        password: Joi.string().allow(''),
+        role: Joi.string().allow(''),
+        clinic_staff_type:Joi.string().required()
     })
 }
 const clinicController = {
@@ -124,9 +148,9 @@ const clinicController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
-        const { tokenInfo,emp_info } = res.locals;
-        if (typeof tokenInfo === 'undefined' || typeof emp_info==='undefined') {
-            unauthorizedResponse("permission denied! Please login to access",res);
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
         let seoUrlAvailable = await cliniModel.checkClinicSeourlAvailability(body.clinic_seo_url, body.dist);
@@ -144,23 +168,23 @@ const clinicController = {
             serviceNotAcceptable("Username is already exit", res);
             return;
         }
-       let addres = await cliniModel.addNewClinic({
-            branch_id:tokenInfo.bid,
+        let addres = await cliniModel.addNewClinic({
+            branch_id: tokenInfo.bid,
             clinic_name: body.clinic_name,
             clinic_seo_url: body.clinic_seo_url,
             contact_no: body.contact_no,
-            alt_contact_no: body.alt_contact_no?body.alt_contact_no:'',
-            contact_email: body.contact_email?body.contact_email:'',
+            alt_contact_no: body.alt_contact_no ? body.alt_contact_no : '',
+            contact_email: body.contact_email ? body.contact_email : '',
             state: body.state,
             dist: body.dist,
             market: body.market,
-            area_name:body.area_name,
+            area_name: body.area_name,
             location: body.location,
-            latitude:body.latitude,
-            longitude:body.longitude,
+            latitude: body.latitude,
+            longitude: body.longitude,
             user_name: body.user_name,
             password: body.password,
-            emp_info:emp_info
+            emp_info: emp_info
         });
         res.status(addres.code).json(addres);
     },
@@ -281,6 +305,56 @@ const clinicController = {
             clinic_id: query.clinic_id
         })
         res.status(response.code).json(response);
+    },
+    getClinicStaffs: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.getClinicStaffs.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+        let response = await staffList({
+            branch_id: tokenInfo.bid,
+            clinic_id: query.clinic_id
+        })
+        res.status(response.code).json(response);
+    },
+    addClinicStaff: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        if(body.clinic_staff_type==='registered'){
+            const validation: ValidationResult = requestParams.addClinicStaff.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+        }else{
+            const validation: ValidationResult = requestParams.addClinicStaffNonRegistered.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+        let resonse = await addClinicStaff({
+            clinic_id:body.clinic_id,
+            mobile_no:body.mobile_no,
+            name:body.name,
+            email:body.email?body.email:'',
+            status:body.status?body.status:null,
+            role:body.role?body.role:null,
+            password:body.password?body.password:'',
+            clinic_staff_type:body.clinic_staff_type
+        });
+        res.status(resonse.code).json(resonse);
     }
 }
 export default clinicController;

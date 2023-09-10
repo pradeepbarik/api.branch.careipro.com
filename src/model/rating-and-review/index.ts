@@ -45,3 +45,30 @@ export const getApointmentRatingAndReviews = async (params: {
         return internalServerError(err.message)
     }
 }
+type TverifiedReviewParams={
+    id:number
+}
+export const verifiedReview =async (params:TverifiedReviewParams) => {
+    let updateRes:any = await DB.query("update booking_review set status='verified' where id=?",[params.id]);
+    if(updateRes.affectedRows>=1){
+        return successResponse(null,"verified successfully")
+    }else{
+        return internalServerError("something went wrong")
+    }
+}
+export const rejectReview=async (params:TverifiedReviewParams)=>{
+    let updateRes:any = await DB.query("update booking_review set status='rejected' where id=?",[params.id]);
+    if(updateRes.affectedRows>=1){
+        return successResponse(null,"Rejected successfully")
+    }else{
+        return internalServerError("something went wrong")
+    }
+}
+export const deleteReview =async (params:TverifiedReviewParams) => {
+    let updateRes:any = await DB.query("delete from booking_review where id=? limit 1",[params.id]);
+    if(updateRes.affectedRows>=1){
+        return successResponse(null,"Deleted successfully")
+    }else{
+        return internalServerError("something went wrong")
+    }
+}
