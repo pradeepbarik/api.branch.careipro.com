@@ -8,6 +8,7 @@ clinicRoutes.get('/username-unique-check',[apiRateLimit(5,20)],handelError(clini
 clinicRoutes.post('/add-new-clinic',[apiRateLimit(1,4),employeeValidation(1)],handelError(clinicController.addNewClinic));
 clinicRoutes.get('/clinic-list',[apiRateLimit(1,4)],handelError(clinicController.getClinicList));
 clinicRoutes.get('/get-doctors-list',[apiRateLimit(1,4)],handelError(clinicController.getDoctorsList));
+clinicRoutes.get('/get-doctors-for-drop-down',[apiRateLimit(30,60)],handelError(clinicController.getDoctorsForDropDown));
 clinicRoutes.get('/doctor-complete-details',[apiRateLimit(1,3)],handelError(clinicController.doctorCompleteDetails));
 clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.approveDoctor));
 clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));

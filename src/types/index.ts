@@ -1,3 +1,8 @@
+import {Request} from 'express';
+import {Files} from 'formidable';
+export interface FormdataRequest extends Request{
+    files?:any;
+}
 export interface ILoggedinEmpInfo{
     id:number,
     first_name:string,

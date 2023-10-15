@@ -71,6 +71,10 @@ const clinicModel = {
         } else {
             return internalServerError("something went wrong! try again");
         }
+    },
+    getDoctorsForDropdown:async (branch_id: number, clinic_id: number)=>{
+        let doctors = await DB.get_rows("select id as value,name from doctor where branch_id=? and clinic_id=? and active=1", [branch_id,clinic_id]);
+        return successResponse(doctors, "success");
     }
 }
 export const getDoctors = async (branch_id: number, clinic_id: number) => {

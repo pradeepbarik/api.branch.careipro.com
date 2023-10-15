@@ -31,7 +31,8 @@ const requestParams = {
         password: Joi.string().required()
     }),
     getClinicList: Joi.object({
-        page: Joi.number().required()
+        page: Joi.number().required(),
+        case:Joi.string().allow('')
     }),
     getDoctorsList: Joi.object({
         clinic_id: Joi.number().required()
@@ -81,6 +82,9 @@ const requestParams = {
         password: Joi.string().allow(''),
         role: Joi.string().allow(''),
         clinic_staff_type:Joi.string().required()
+    }),
+    getDoctorsForDropDown:Joi.object({
+        clinic_id:Joi.number().required()
     })
 }
 const clinicController = {
@@ -200,6 +204,21 @@ const clinicController = {
             unauthorizedResponse("permission denied! Please login to access");
             return
         }
+        if(query.case === 'clinic_list_for_ddl'){
+            let q="select id,name,market_name,category from clinics where branch_id=?";
+            let rows = await DB.get_rows(q,[tokenInfo.bid]);
+            res.json(successResponse({
+                clinics: rows,
+            }))
+            return;
+        }else if(query.case === 'all' ){
+            let q = `select id,name,email,mobile,location,city,locality,location_lat,location_lng,status,approved,verified,active,logo,rating,seo_url,branch_id,wallet_balance,is_prime,prime_rank from clinics where branch_id=?`;
+            let rows = await DB.get_rows(q,[tokenInfo.bid]);
+            res.json(successResponse({
+                clinics: rows,
+            }))
+            return;
+        }
         const perpage = 20;
         let lower_limit = (query.page - 1) * perpage;
         let q = `select id,name,email,mobile,location,city,locality,location_lat,location_lng,status,approved,verified,active,logo,rating,seo_url,branch_id,wallet_balance,is_prime,prime_rank from clinics where branch_id=? limit ?,?`;
@@ -223,6 +242,21 @@ const clinicController = {
         }
         let result = await getDoctors(tokenInfo.bid, query.clinic_id);
         res.json(successResponse(result))
+    },
+    getDoctorsForDropDown:async (req: Request, res: Response)=>{
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.getDoctorsForDropDown.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+       let result = await cliniModel.getDoctorsForDropdown(tokenInfo.bid,query.clinic_id);
+       res.status(result.code).json(result);
     },
     doctorCompleteDetails: async (req: Request, res: Response) => {
         const { query }: { query: any } = req;

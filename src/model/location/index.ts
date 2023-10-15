@@ -69,7 +69,6 @@ const locationModel = {
         let district = params.district.toLowerCase();
         let sub_district = params.sub_district.toLowerCase();
         let village = params.village.toLowerCase();
-        console.log(state, district, sub_district, village)
         let document = await villageMongoModel.aggregate([
             {
                 $match: {
