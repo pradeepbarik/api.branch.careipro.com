@@ -7,6 +7,7 @@ import authenticationRoutes from './routes/authentication';
 import clinicRoutes from './routes/clinic';
 import ratingRoutes from './routes/rating';
 import settingsRoutes from './routes/settings';
+import cacheRoutes from './routes/cache';
 const APP: Application = express();
 APP.use(compression({ filter: shouldCompress,level:1 }))
 APP.use(express.json());
@@ -19,5 +20,6 @@ APP.use('/open-api',routes);
 APP.use('/authentication', authenticationRoutes);
 APP.use('/clinic',[xApiKeyValidation],clinicRoutes);
 APP.use('/rating-and-review',[xApiKeyValidation],ratingRoutes);
-APP.use('/settings',[xApiKeyValidation],settingsRoutes)
+APP.use('/settings',[xApiKeyValidation],settingsRoutes);
+APP.use('/cache',[xApiKeyValidation],cacheRoutes);
 export default APP;

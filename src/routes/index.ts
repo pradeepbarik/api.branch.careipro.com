@@ -5,4 +5,5 @@ const routes=Router();
 routes.get('/get-branches',[apiRateLimit(1,5)],handelError(homeController.branches));
 routes.get('/get-state-list',[apiRateLimit(10,30)],handelError(homeController.getStateList));
 routes.get('/get-districts-list',[apiRateLimit(10,30)],handelError(homeController.getDistricts));
+routes.post('/update-clinic-info-change-tracker',handelError(homeController.updateClinicInfoChangeTracker));
 export default routes;
