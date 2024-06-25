@@ -13,5 +13,6 @@ settingsRoutes.post('/add-clinic-available-market',[apiRateLimit(1,5)],handelErr
 settingsRoutes.get('/popular-doctors',[apiRateLimit(1,3)],handelError(popularDoctorController.getDoctorsList));
 settingsRoutes.post('/update-popular-doctor',[apiRateLimit(10,60)],handelError(popularDoctorController.updatePopularDoctor));
 settingsRoutes.get('/popular-clinics',[apiRateLimit(15,60)],handelError(popularClinicController.getClinicList));
-settingsRoutes.post('/update-popular-clinic',[apiRateLimit(5,60),parseFormData],handelError(popularClinicController.updatePopularClinic))
+settingsRoutes.post('/update-popular-clinic',[apiRateLimit(5,60),parseFormData],handelError(popularClinicController.updatePopularClinic));
+settingsRoutes.post('/set-nearby-city',[apiRateLimit(5,10)],handelError(locationController.setNearByCity));
 export default settingsRoutes;

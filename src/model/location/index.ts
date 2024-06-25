@@ -1,6 +1,7 @@
 import { internalServerError, serviceNotAcceptable, successResponse } from '../../services/response';
 import { clinicMarketsModel } from '../../mongo-schema/coll_clinic_markets';
 import villageMongoModel from '../../mongo-schema/col_village_lists';
+import citySettingsModel from '../../mongo-schema/coll_city_pincodes';
 export const getMissingVillageList = async ({ state = '', district }: {
     state: '' | string,
     district: string
@@ -108,17 +109,67 @@ const locationModel = {
                     }
                 }
             }).exec();
-            DB.query("delete from tbl_villages_not_listed where state=? and district=? and sub_district=? and village=?",[state,district,sub_district,village]);
+            DB.query("delete from tbl_villages_not_listed where state=? and district=? and sub_district=? and village=?", [state, district, sub_district, village]);
             return successResponse(null, "success");
-        }else{
+        } else {
             return serviceNotAcceptable("please add state,district and sub district first");
         }
     },
-    rejectAddareaRequest:async (params:{
+    rejectAddareaRequest: async (params: {
         state: string, district: string, sub_district: string, village: string
-    })=>{
-       await DB.query("delete from tbl_villages_not_listed where state=? and district=? and sub_district=? and village=?",[params.state,params.district,params.sub_district,params.village]);
-       return successResponse(null, "Removed successfully");
+    }) => {
+        await DB.query("delete from tbl_villages_not_listed where state=? and district=? and sub_district=? and village=?", [params.state, params.district, params.sub_district, params.village]);
+        return successResponse(null, "Removed successfully");
+    },
+    setNearByCity: async (params: { state: string, city: string, nearByState: string, nearByCity: string }) => {
+       if(params.city.toLowerCase()===params.nearByCity.toLowerCase()){
+        return serviceNotAcceptable("Target city and nearby city should not be same");
+       }
+        let document:any = await citySettingsModel.aggregate([
+            {
+                $match: {
+                    state: params.state.toLowerCase(),
+                    city: params.city.toLowerCase()
+                }
+            },
+            {
+                $project:{
+                    _id:1,
+                    state:1,
+                    city:1,
+                    nearbyCities:{
+                        $filter:{
+                            input:"$nearbyCities",
+                            as:"nearbyCities",
+                            cond:{
+                                $eq:["$$nearbyCities.city",params.nearByCity.toLowerCase()]
+                            }
+                        }
+                    }
+                }
+            }
+        ]);
+        console.log('document',document)
+        if(document.length>0 && document[0].nearbyCities && document[0].nearbyCities.length>0){
+            return serviceNotAcceptable("City Already exist");
+        }else if(document.length===0){
+            let newCitySetting=new citySettingsModel({
+                state:params.state.toLowerCase(),
+                city:params.city.toLowerCase(),
+                pincodes:[],
+                nearbyCities:[{state:params.nearByState.toLowerCase(),city:params.nearByCity.toLowerCase()}]
+            });
+            newCitySetting.save();
+        }else if(document[0].nearbyCities===null){
+          let updateRes = citySettingsModel.findByIdAndUpdate({_id:document[0]._id},{
+                $set:{nearbyCities:[{state:params.nearByState.toLowerCase(),city:params.nearByCity.toLowerCase()}]}
+            }).exec()
+        }else if(document[0].nearbyCities.length===0){
+            let updateRes = citySettingsModel.findByIdAndUpdate({_id:document[0]._id},{
+                $push:{nearbyCities:{state:params.nearByState.toLowerCase(),city:params.nearByCity.toLowerCase()}}
+            }).exec()
+        }
+        return successResponse({},"Saved successfully");
     }
 }
 export default locationModel;
