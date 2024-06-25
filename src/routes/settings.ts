@@ -15,4 +15,5 @@ settingsRoutes.post('/update-popular-doctor',[apiRateLimit(10,60)],handelError(p
 settingsRoutes.get('/popular-clinics',[apiRateLimit(15,60)],handelError(popularClinicController.getClinicList));
 settingsRoutes.post('/update-popular-clinic',[apiRateLimit(5,60),parseFormData],handelError(popularClinicController.updatePopularClinic));
 settingsRoutes.post('/set-nearby-city',[apiRateLimit(5,10)],handelError(locationController.setNearByCity));
+settingsRoutes.get('/get-nearby-cities',[apiRateLimit(10,30)],handelError(locationController.getNearByCities));
 export default settingsRoutes;

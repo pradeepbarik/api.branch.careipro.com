@@ -149,7 +149,6 @@ const locationModel = {
                 }
             }
         ]);
-        console.log('document',document)
         if(document.length>0 && document[0].nearbyCities && document[0].nearbyCities.length>0){
             return serviceNotAcceptable("City Already exist");
         }else if(document.length===0){
@@ -170,6 +169,18 @@ const locationModel = {
             }).exec()
         }
         return successResponse({},"Saved successfully");
+    },
+    getNearByCities:async (params:{state:string,city:string})=>{
+        let document = await citySettingsModel.findOne({state:params.state.toLowerCase(),city:params.city.toLowerCase()},{_id:0,state:1,city:1,nearbyCities:1});
+        if(document){
+            return successResponse(document,"success");
+        }else{
+            return successResponse({
+                state:params.state,
+                city:params.city,
+                nearbyCities:[]
+            },"success");
+        }
     }
 }
 export default locationModel;

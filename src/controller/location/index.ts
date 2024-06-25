@@ -27,6 +27,10 @@ const requestParams = {
         district: Joi.string().required(),
         nearbyState: Joi.string().required(),
         nearbyCity: Joi.string().required()
+    }),
+    getNearByCities:Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required()
     })
 }
 export const locationController = {
@@ -139,6 +143,21 @@ export const locationController = {
             return
         }
         let response = await locationModel.setNearByCity({ state: body.state, city: body.district, nearByState: body.nearbyState, nearByCity: body.nearbyCity });
+        res.status(response.code).json(response);
+    },
+    getNearByCities:async (req:Request,res:Response)=>{
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.getNearByCities.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+        let response = await locationModel.getNearByCities({state:query.state,city:query.city});
         res.status(response.code).json(response);
     }
 }
