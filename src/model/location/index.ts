@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { internalServerError, serviceNotAcceptable, successResponse } from '../../services/response';
 import { clinicMarketsModel } from '../../mongo-schema/coll_clinic_markets';
 import villageMongoModel from '../../mongo-schema/col_village_lists';
@@ -122,10 +123,10 @@ const locationModel = {
         return successResponse(null, "Removed successfully");
     },
     setNearByCity: async (params: { state: string, city: string, nearByState: string, nearByCity: string }) => {
-       if(params.city.toLowerCase()===params.nearByCity.toLowerCase()){
-        return serviceNotAcceptable("Target city and nearby city should not be same");
-       }
-        let document:any = await citySettingsModel.aggregate([
+        if (params.city.toLowerCase() === params.nearByCity.toLowerCase()) {
+            return serviceNotAcceptable("Target city and nearby city should not be same");
+        }
+        let document: any = await citySettingsModel.aggregate([
             {
                 $match: {
                     state: params.state.toLowerCase(),
@@ -133,54 +134,90 @@ const locationModel = {
                 }
             },
             {
-                $project:{
-                    _id:1,
-                    state:1,
-                    city:1,
-                    nearbyCities:{
-                        $filter:{
-                            input:"$nearbyCities",
-                            as:"nearbyCities",
-                            cond:{
-                                $eq:["$$nearbyCities.city",params.nearByCity.toLowerCase()]
+                $project: {
+                    _id: 1,
+                    state: 1,
+                    city: 1,
+                    nearbyCities: {
+                        $filter: {
+                            input: "$nearbyCities",
+                            as: "nearbyCities",
+                            cond: {
+                                $eq: ["$$nearbyCities.city", params.nearByCity.toLowerCase()]
                             }
                         }
                     }
                 }
             }
         ]);
-        if(document.length>0 && document[0].nearbyCities && document[0].nearbyCities.length>0){
+        if (document.length > 0 && document[0].nearbyCities && document[0].nearbyCities.length > 0) {
             return serviceNotAcceptable("City Already exist");
-        }else if(document.length===0){
-            let newCitySetting=new citySettingsModel({
-                state:params.state.toLowerCase(),
-                city:params.city.toLowerCase(),
-                pincodes:[],
-                nearbyCities:[{state:params.nearByState.toLowerCase(),city:params.nearByCity.toLowerCase()}]
+        } else if (document.length === 0) {
+            let newCitySetting = new citySettingsModel({
+                state: params.state.toLowerCase(),
+                city: params.city.toLowerCase(),
+                pincodes: [],
+                nearbyCities: [{ state: params.nearByState.toLowerCase(), city: params.nearByCity.toLowerCase() }]
             });
             newCitySetting.save();
-        }else if(document[0].nearbyCities===null){
-          let updateRes = citySettingsModel.findByIdAndUpdate({_id:document[0]._id},{
-                $set:{nearbyCities:[{state:params.nearByState.toLowerCase(),city:params.nearByCity.toLowerCase()}]}
+        } else if (document[0].nearbyCities === null) {
+            let updateRes = citySettingsModel.findByIdAndUpdate({ _id: document[0]._id }, {
+                $set: { nearbyCities: [{ state: params.nearByState.toLowerCase(), city: params.nearByCity.toLowerCase() }] }
             }).exec()
-        }else if(document[0].nearbyCities.length===0){
-            let updateRes = citySettingsModel.findByIdAndUpdate({_id:document[0]._id},{
-                $push:{nearbyCities:{state:params.nearByState.toLowerCase(),city:params.nearByCity.toLowerCase()}}
+        } else if (document[0].nearbyCities.length === 0) {
+            let updateRes = citySettingsModel.findByIdAndUpdate({ _id: document[0]._id }, {
+                $push: { nearbyCities: { state: params.nearByState.toLowerCase(), city: params.nearByCity.toLowerCase() } }
             }).exec()
         }
-        return successResponse({},"Saved successfully");
+        return successResponse({}, "Saved successfully");
     },
-    getNearByCities:async (params:{state:string,city:string})=>{
-        let document = await citySettingsModel.findOne({state:params.state.toLowerCase(),city:params.city.toLowerCase()},{_id:0,state:1,city:1,nearbyCities:1});
-        if(document){
-            return successResponse(document,"success");
-        }else{
+    getNearByCities: async (params: { state: string, city: string }) => {
+        let document = await citySettingsModel.findOne({ state: params.state.toLowerCase(), city: params.city.toLowerCase() }, { _id: 0, state: 1, city: 1, nearbyCities: 1 });
+        if (document) {
+            return successResponse(document, "success");
+        } else {
             return successResponse({
-                state:params.state,
-                city:params.city,
-                nearbyCities:[]
-            },"success");
+                state: params.state,
+                city: params.city,
+                nearbyCities: []
+            }, "success");
         }
+    },
+    updateNearbyCity: async (params: { state: string, city: string, nearbyState: string, nearbyCity: string, action: string }) => {
+        if (params.action === 'delete') {
+          await citySettingsModel.updateOne({state: params.state.toLowerCase(), city: params.city.toLowerCase()},{
+                $pull:{nearbyCities:{state:params.nearbyState.toLowerCase(),city:params.nearbyCity.toLowerCase()}}
+            }).exec();
+            return successResponse("Deleted successfully");
+        }else if(params.action === 'move_up' || params.action === 'move_down'){
+            let document = await citySettingsModel.findOne({ state: params.state.toLowerCase(), city: params.city.toLowerCase() }, { _id: 1, state: 1, city: 1, nearbyCities: 1 });
+            if(document){
+                let i=0;
+                let ind=0;
+                for(let cityObj of document.nearbyCities){
+                    if(cityObj.city?.toLowerCase()===params.nearbyCity.toLowerCase() && cityObj.state?.toLowerCase()===params.nearbyState.toLowerCase()){
+                        ind=i;
+                        break;
+                    }
+                    i+=1;
+                }
+                console.log('ind',ind);
+                if((params.action==="move_down" && ind<=document.nearbyCities.length-2) || (params.action==="move_up" && ind>0)){
+                    let cityobj=Object.create(document.nearbyCities[ind]);
+                     document.nearbyCities.splice(ind,1);
+                     console.log('document.nearbyCities',document.nearbyCities);
+                     if(params.action === 'move_up'){
+                        document.nearbyCities.splice(ind-1,0,cityobj);
+                     }
+                     if(params.action === 'move_down'){
+                        document.nearbyCities.splice(ind+1,0,cityobj);
+                     }
+                     console.log('document.nearbyCities',document.nearbyCities);
+                     await citySettingsModel.updateOne({_id:document._id,state:params.state.toLowerCase(),city:params.city.toLowerCase()},{$set:{nearbyCities:document.nearbyCities}}).exec();                     
+                }
+            }
+        }
+        return successResponse({}, "");
     }
 }
 export default locationModel;
