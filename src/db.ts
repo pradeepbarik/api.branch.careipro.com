@@ -13,9 +13,9 @@ const logSqlQueryError = (err: QueryError) => {
 }
 export interface IDbmethods {
     query: (sql: string, params: Array<string | number>) => Promise<unknown>;
-    get_row: (sql: string, params: Array<string | number>) => Promise<unknown>;
-    get_rows: (sql: string, params: Array<string | number>, logquery?: boolean) => Promise<unknown>;
-    build_query: (sql: string, params: Array<string | number>) => any;
+    get_row: <T>(sql: string, params: Array<string | number>) => Promise<T|null>;
+    get_rows: <T>(sql: string, params: Array<string | number|string[]>, logquery?: boolean) => Promise<T[]>;
+    build_query: (sql: string, params: Array<string | number|Array<string|number>>) => any;
     close_db: () => void;
 }
 const getDbmethods = (connection: Pool): IDbmethods => {
@@ -43,21 +43,21 @@ const getDbmethods = (connection: Pool): IDbmethods => {
 
             });
         },
-        get_row: function (sql: string, params: Array<number | string>) {
+        get_row: <T>(sql: string, params: Array<number | string>):Promise<T | null>=>{
             return new Promise((resolve, reject) => {
                 connection.query(sql, params, (err, result) => {
                     if (err) {
                         resolve(null);
                         logSqlQueryError(err);
                     } else if (Array.isArray(result) && result.length > 0) {
-                        resolve(result[0]);
+                        resolve(<T>result[0]);
                     } else {
                         resolve(null);
                     }
                 });
             });
         },
-        get_rows: function (sql: string, params: Array<string | number>, logquery: boolean = false) {
+        get_rows:  <T>(sql: string, params: Array<string | number|string[]>, logquery: boolean = false):Promise<T[]>=> {
             return new Promise((resolve, reject) => {
                 if (logquery) {
                     console.log(connection.format(sql, params));
@@ -70,12 +70,12 @@ const getDbmethods = (connection: Pool): IDbmethods => {
                         resolve([]);
                     }
                     else {
-                        resolve(result);
+                        resolve(<T[]>result);
                     }
                 });
             });
         },
-        build_query: function (sql: string, params: Array<string | number>) {
+        build_query: function (sql: string, params: Array<string | number|Array<string|number>>) {
             const query = connection.format(sql, params);
             return query;
         },

@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import moment from 'moment';
 import compression from 'compression';
 import rateLimit from 'express-rate-limit';
-import formidable,{Files} from 'formidable';
+import formidable, { Files } from 'formidable';
 import { rateLimitErrorResponse, unauthorizedResponse, internalServerError } from '../services/response';
 import { decrypt } from '../services/encryption';
 import { get_current_datetime } from '../services/datetime';
@@ -13,6 +13,10 @@ export const responseTime = (req: Request, res: Response, next: NextFunction) =>
         let duration = Date.now() - start;
         // console.log("duration",duration);
     })
+    next();
+}
+export const requestOriginValidation=(req:Request,res:Response,next:NextFunction)=>{
+   // res.set('Access-Control-Allow-Origin', 'branch.careipro.com');
     next();
 }
 export const loginRatelimit = rateLimit({
@@ -61,7 +65,14 @@ export const xApiKeyValidation = (req: Request, res: Response, next: NextFunctio
         internalServerError("internal server error", res);
     }
 }
-
+export const checkTokenExist = (req: Request, res: Response, next: NextFunction) => {
+    const { tokenInfo } = res.locals;
+    if (typeof tokenInfo !== 'undefined') {
+        next();
+    } else {
+        unauthorizedResponse("permission denied! Please login to access", res);
+    }
+}
 export const employeeValidation = (level: number = 0) => {// level 0 = just employee or not,1= active or not
     return async (req: Request, res: Response, next: NextFunction) => {
         const { tokenInfo } = res.locals;
@@ -98,6 +109,15 @@ export const employeeValidation = (level: number = 0) => {// level 0 = just empl
         }
     }
 }
+export const checkUnderBranch=(req:Request,res:Response,next: NextFunction)=>{
+    const { tokenInfo, emp_info } = res.locals;
+    const { body }: { body: any } = req;
+    if (tokenInfo && body.branch_id && tokenInfo.bid !== body.branch_id) {
+        unauthorizedResponse("This is not under your branch", res);
+        return
+    }
+    next();
+}
 export const shouldCompress = (req: Request, res: Response) => {
     if (req.headers['x-no-compression']) {
         // don't compress responses with this request header
@@ -115,13 +135,13 @@ export const handelError = (cb: (req: Request, res: Response, next: NextFunction
         }
     }
 }
-const parseForm=(req:any):Promise<{fields:any,files:Files}>=>{
-    return new Promise((resolve,reject)=>{
+const parseForm = (req: any): Promise<{ fields: any, files: Files }> => {
+    return new Promise((resolve, reject) => {
         const form = formidable({});
         form.parse(req, (err, fields, files) => {
-            if(!err){
-                resolve({fields:fields,files:files})
-            }else{
+            if (!err) {
+                resolve({ fields: fields, files: files })
+            } else {
                 reject(err);
             }
         });
@@ -129,9 +149,9 @@ const parseForm=(req:any):Promise<{fields:any,files:Files}>=>{
 }
 export const parseFormData = async (req: FormdataRequest, res: Response, next: NextFunction) => {
     try {
-        const {fields,files} = await parseForm(req);
-        req.body=fields;
-        req.files=files;
+        const { fields, files } = await parseForm(req);
+        req.body = fields;
+        req.files = files;
         next();
     } catch (err: any) {
         next()

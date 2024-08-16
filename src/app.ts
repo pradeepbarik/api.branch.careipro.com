@@ -1,7 +1,7 @@
 import express, { Application } from 'express';
 import compression from 'compression';
 import cors from 'cors';
-import { responseTime,xApiKeyValidation,shouldCompress } from './middleware';
+import { responseTime,xApiKeyValidation,requestOriginValidation,shouldCompress } from './middleware';
 import routes from './routes';
 import authenticationRoutes from './routes/authentication';
 import clinicRoutes from './routes/clinic';
@@ -11,6 +11,7 @@ import cacheRoutes from './routes/cache';
 const APP: Application = express();
 APP.use(compression({ filter: shouldCompress,level:1 }))
 APP.use(express.json());
+//APP.use(requestOriginValidation);
 APP.use(cors({
     origin: ['http://localhost:3000','http://localhost:3001','https://branch.careipro.com'],
     optionsSuccessStatus: 200

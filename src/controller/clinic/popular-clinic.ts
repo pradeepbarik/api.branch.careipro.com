@@ -22,7 +22,7 @@ const popularClinicController = {
     getClinicList: async (req: Request, res: Response) => {
         const { tokenInfo } = res.locals;
         if (typeof tokenInfo === 'undefined') {
-            unauthorizedResponse("permission denied! Please login to access");
+            unauthorizedResponse("permission denied! Please login to access",res);
             return
         }
         let response = await popularClinicModel.getClinicList(tokenInfo.bid, tokenInfo.bd);

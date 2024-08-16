@@ -201,11 +201,9 @@ const locationModel = {
                     }
                     i+=1;
                 }
-                console.log('ind',ind);
                 if((params.action==="move_down" && ind<=document.nearbyCities.length-2) || (params.action==="move_up" && ind>0)){
                     let cityobj=Object.create(document.nearbyCities[ind]);
                      document.nearbyCities.splice(ind,1);
-                     console.log('document.nearbyCities',document.nearbyCities);
                      if(params.action === 'move_up'){
                         document.nearbyCities.splice(ind-1,0,cityobj);
                      }

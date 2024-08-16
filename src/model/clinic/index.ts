@@ -12,6 +12,8 @@ type TaddNewClinicParams = {
     contact_email: string,
     state: string,
     dist: string,
+    state_code: string,
+    dist_code: string,
     market: string,
     area_name: string,
     location: string,
@@ -19,7 +21,9 @@ type TaddNewClinicParams = {
     longitude: number,
     user_name: string,
     password: string,
-    emp_info:ILoggedinEmpInfo
+    partner_type: string,
+    category: string,
+    emp_info: ILoggedinEmpInfo,
 }
 const clinicModel = {
     checkClinicSeourlAvailability: async (seourl: string, city: string) => {
@@ -44,13 +48,16 @@ const clinicModel = {
         return true;
     },
     addNewClinic: async (params: TaddNewClinicParams) => {
-        let q = 'insert into clinics set name=?,username=?,password=md5(?),email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?';
-        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market]);
+        //C12-ODBHC
+        let q = 'insert into clinics set name=?,username=?,password=md5(?),email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type?';
+        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type]);
         if (insertRes.affectedRows >= 1) {
             let clinic_id = insertRes.insertId;
             let now = get_current_datetime();
             q = 'insert into clinic_detail (clinic_id,register_date) values (?,?)';
             DB.query(q, [clinic_id, now]);
+            let bid = `C${clinic_id}-${params.state_code}${params.dist_code}`;
+            DB.query("update clinics set bid=? where id=?", [bid, clinic_id]);
             new clinicprofileChangeLogModel({
                 clinic_id: clinic_id,
                 activity_log: [{
@@ -72,9 +79,128 @@ const clinicModel = {
             return internalServerError("something went wrong! try again");
         }
     },
-    getDoctorsForDropdown:async (branch_id: number, clinic_id: number)=>{
-        let doctors = await DB.get_rows("select id as value,name from doctor where branch_id=? and clinic_id=? and active=1", [branch_id,clinic_id]);
+    getDoctorsForDropdown: async (branch_id: number, clinic_id: number) => {
+        let doctors = await DB.get_rows("select id as value,name from doctor where branch_id=? and clinic_id=? and active=1", [branch_id, clinic_id]);
         return successResponse(doctors, "success");
+    },
+    updateClinicDetail: async (branch_id: number, params: {
+        clinic_id: number,
+        name?: string,
+        email?: string,
+        mobile?: string,
+        location?: string,
+        city?: string,
+        locality?: string,
+        location_lat?: number,
+        location_lng?: number,
+        status?: string,
+        approved?: number,
+        verified?: number,
+        active?: number,
+        seo_url?: string,
+        page_title?: string,
+        meta_description?: string,
+        is_prime?: number,
+        alt_mob_no?: number,
+        state?: string,
+        market_name?: string,
+        category?: string[],
+        partner_type?: string
+    }) => {
+        try {
+            let q = "update clinics set ";
+            let sql_params = [];
+            let updateFields = [];
+            if (params.name) {
+                updateFields.push("name=?");
+                sql_params.push(params.name);
+            }
+            if (params.email) {
+                updateFields.push("email=?");
+                sql_params.push(params.email);
+            }
+            if (params.mobile) {
+                updateFields.push("mobile=?");
+                sql_params.push(params.mobile);
+            }
+            if (params.location) {
+                updateFields.push("location=?");
+                sql_params.push(params.location);
+            }
+            if (params.city) {
+                updateFields.push("city=?");
+                sql_params.push(params.city);
+            }
+            if (params.locality) {
+                updateFields.push("locality=?");
+                sql_params.push(params.locality);
+            }
+            if (params.location_lat) {
+                updateFields.push("location_lat=?");
+                sql_params.push(params.location_lat);
+            }
+            if (params.location_lng) {
+                updateFields.push("location_lng=?");
+                sql_params.push(params.location_lng);
+            }
+            if (params.status) {
+                updateFields.push("status=?");
+                sql_params.push(params.status);
+            }
+            if (params.approved) {
+                updateFields.push("approved=?");
+                sql_params.push(params.approved);
+            }
+            if (params.verified) {
+                updateFields.push("verified=?");
+                sql_params.push(params.verified);
+            }
+            if (params.active) {
+                updateFields.push("active=?");
+                sql_params.push(params.active);
+            }
+            if (params.seo_url) {
+                updateFields.push("seo_url=?");
+                sql_params.push(params.seo_url);
+            }
+            if (params.page_title) {
+                updateFields.push("page_title=?");
+                sql_params.push(params.page_title);
+            }
+            if (params.meta_description) {
+                updateFields.push("meta_description=?");
+                sql_params.push(params.meta_description);
+            }
+            if (params.is_prime) {
+                updateFields.push("is_prime=?");
+                sql_params.push(params.is_prime);
+            }
+            if (params.state) {
+                updateFields.push("state=?");
+                sql_params.push(params.state);
+            }
+            if (params.market_name) {
+                updateFields.push("market_name=?");
+                sql_params.push(params.market_name);
+            }
+            if (params.category) {
+                updateFields.push("category=?");
+                sql_params.push(params.category.join(','));
+            }
+            if (params.partner_type) {
+                updateFields.push("partner_type=?");
+                sql_params.push(params.partner_type);
+            }
+            if (updateFields.length > 0) {
+                q += updateFields.join(',');
+                q += " where id=? and branch_id=?";
+                sql_params.push(params.clinic_id, branch_id);
+                await DB.query(q, sql_params);
+            }
+            return successResponse({}, "Updated Successfully");
+        } catch (err: any) {
+            return internalServerError(err.message)
+        }
     }
 }
 export const getDoctors = async (branch_id: number, clinic_id: number) => {
@@ -292,13 +418,27 @@ export const getClinicBanners = async (params: {
     }
 }
 export const getClinicSpecialization = async (params: {
-    clinic_id: number
+    clinic_id: number,
+    case: string,
+    business_type: string
 }) => {
     try {
-        let sql = "select t1.*,t2.name as specialization_name from (SELECT * FROM `clinic_specialization` WHERE clinic_id=?) as t1 left join specialists as t2 on t1.specialist_id=t2.id";
-        let sql_params = [params.clinic_id];
-        let rows = await DB.get_rows(sql, sql_params);
-        return successResponse(rows, "succes")
+        if (params.case == "all") {
+            let clinic = await DB.get_row<{ category: string }>("select category from clinics where id=?", [params.clinic_id])
+            let parent_categories = clinic && clinic.category ? clinic.category.split(',') : [];
+            if (parent_categories.length === 0) {
+                let categories_row = await DB.get_row<{ categories: string }>(`select group_concat(name) as categories from specialists where parent_id=0 and business_type=?`, [params.business_type]);
+                parent_categories = categories_row && categories_row.categories ? categories_row.categories.split(',') : [];
+            }
+            let specialistRows = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_name as parent_specialization_name from (select t1.*,t2.name as parent_name from (select * from specialists where parent_id!=0 and business_type=? and enable=1) as t1 join (select id,name from specialists where parent_id=0 and name in (?)) as t2 on t1.parent_id=t2.id) as t1
+             left join 
+            (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id`, [params.business_type, parent_categories, params.clinic_id]);
+            return successResponse(specialistRows, "succes")
+        } else if (params.case == "selected") {
+            let specialistRows = await DB.get_rows(`select t2.id as specialist_id,t2.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.specialist_id=t2.id,1,0) as selected from (SELECT * FROM clinic_specialization WHERE clinic_id=?) as t1 left join specialists as t2 on t1.specialist_id=t2.id`, [params.clinic_id]);
+            return successResponse(specialistRows, "succes");
+        }
+        return successResponse([], "succes")
     } catch (err: any) {
         return internalServerError(err.message)
     }

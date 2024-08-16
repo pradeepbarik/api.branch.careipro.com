@@ -20,7 +20,7 @@ const homeController = {
         res.json(successResponse(rows, "success"));
     },
     getStateList: async (req: Request, res: Response) => {
-        let rows = await DB.get_rows("select id,name,icon from region_lvl1 order by is_serviceable desc,name asc", []);
+        let rows = await DB.get_rows("select id,name,icon,code_str as short_code from region_lvl1 order by is_serviceable desc,name asc", []);
         res.json(successResponse(rows, "success"));
     },
     getDistricts: async (req: Request, res: Response) => {
@@ -30,7 +30,7 @@ const homeController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
-        let rows = await DB.get_rows("select id,name,city_icon,is_serviceable,name_ln from tbl_districts where state=? order by name", [query.state]);
+        let rows = await DB.get_rows("select id,name,city_icon,is_serviceable,name_ln,short_code from tbl_districts where state=? order by name", [query.state]);
         res.json(successResponse(rows, "success"));
     },
     updateClinicInfoChangeTracker:async (req: Request, res: Response)=>{
