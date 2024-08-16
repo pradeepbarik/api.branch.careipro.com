@@ -3,6 +3,7 @@ import {apiRateLimit,handelError,parseFormData} from '../middleware';
 import locationController from '../controller/location';
 import popularDoctorController from '../controller/popular-doctor';
 import popularClinicController from '../controller/clinic/popular-clinic';
+import categoriesController from '../controller/categories';
 const settingsRoutes=Router();
 //get-missed-village-list - customer app location selection when customer didn't find his village and added by him manually
 settingsRoutes.get('/get-missed-village-list',[apiRateLimit(1,3)],handelError(locationController.getMissedareaList));
@@ -18,4 +19,5 @@ settingsRoutes.post('/set-nearby-city',[apiRateLimit(5,10)],handelError(location
 settingsRoutes.get('/get-nearby-cities',[apiRateLimit(10,30)],handelError(locationController.getNearByCities));
 settingsRoutes.post('/update-nearby-city',[apiRateLimit(1,10)],handelError(locationController.updateNearbyCity));
 settingsRoutes.post('/update-city',[apiRateLimit(60,60),parseFormData],handelError(locationController.updateCity));
+settingsRoutes.get('/categories',[apiRateLimit(5,20)],handelError(categoriesController.getSpecialists));
 export default settingsRoutes;
