@@ -20,4 +20,5 @@ settingsRoutes.get('/get-nearby-cities',[apiRateLimit(10,30)],handelError(locati
 settingsRoutes.post('/update-nearby-city',[apiRateLimit(1,10)],handelError(locationController.updateNearbyCity));
 settingsRoutes.post('/update-city',[apiRateLimit(60,60),parseFormData],handelError(locationController.updateCity));
 settingsRoutes.get('/categories',[apiRateLimit(5,20)],handelError(categoriesController.getSpecialists));
+settingsRoutes.post('/categories',[apiRateLimit(3,20),parseFormData],handelError(categoriesController.addNewSpecialist));
 export default settingsRoutes;

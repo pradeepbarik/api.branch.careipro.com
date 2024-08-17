@@ -4,24 +4,27 @@ import { DEVELOPMENT_DB, PRODUCTION_DB, DBCONFIG, MONGO_DB_CONNECTION_URL, PRODU
 import { get_current_datetime } from './services/datetime';
 const logError = (user_id: string, err_event: string, err_message: string) => {
     let now = get_current_datetime();
+    console.log(err_message);
     //DB.query("insert into error_log set user_id=?,err_event=?,err_message=?,entry_time=?", [user_id, err_event, err_message, now]);
 }
 const logSqlQueryError = (err: QueryError) => {
     let err_message = JSON.stringify({ sqlMessage: err.message, sql: "" });
-    console.log(err_message);
     //logError('vehicle_owner_app', 'sql_query_error', err_message);
 }
 export interface IDbmethods {
-    query: (sql: string, params: Array<string | number>) => Promise<unknown>;
-    get_row: <T>(sql: string, params: Array<string | number>) => Promise<T|null>;
+    query: (sql: string, params: Array<string | number>,logquery?:boolean) => Promise<unknown>;
+    get_row: <T>(sql: string, params: Array<string | number>, logquery?: boolean) => Promise<T|null>;
     get_rows: <T>(sql: string, params: Array<string | number|string[]>, logquery?: boolean) => Promise<T[]>;
     build_query: (sql: string, params: Array<string | number|Array<string|number>>) => any;
     close_db: () => void;
 }
 const getDbmethods = (connection: Pool): IDbmethods => {
     return {
-        query: function (sql: string, params: Array<string | number>) {
+        query: function (sql: string, params: Array<string | number>,logquery:boolean=false) {
             return new Promise((resolve, reject) => {
+                if (logquery) {
+                    console.log(connection.format(sql, params));
+                }
                 let fstword = sql.split(' ')[0];
                 if (fstword.toUpperCase() === 'UPDATE' || fstword.toUpperCase() === 'DELETE') {
                     let pattern = /where/i;
@@ -43,8 +46,11 @@ const getDbmethods = (connection: Pool): IDbmethods => {
 
             });
         },
-        get_row: <T>(sql: string, params: Array<number | string>):Promise<T | null>=>{
+        get_row: <T>(sql: string, params: Array<number | string>,logquery:boolean=false):Promise<T | null>=>{
             return new Promise((resolve, reject) => {
+                if (logquery) {
+                    console.log(connection.format(sql, params));
+                }
                 connection.query(sql, params, (err, result) => {
                     if (err) {
                         resolve(null);
