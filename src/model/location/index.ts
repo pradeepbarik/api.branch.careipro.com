@@ -216,6 +216,21 @@ const locationModel = {
             }
         }
         return successResponse({}, "");
+    },
+    deleteMarket:async (params:{state:string,city:string,marketName:string})=>{
+        try {
+            let state = params.state.toLowerCase();
+            let city = params.city.toLowerCase();
+            let market_name = params.marketName.toLowerCase();
+           await clinicMarketsModel.updateOne({state:state,city:city},{
+                "$pull":{
+                    "markets":{name:market_name}
+                }
+            }).exec();
+            return successResponse({},"Removed successfully")
+        }catch(err:any){
+            return internalServerError(err.message)
+        }
     }
 }
 export default locationModel;

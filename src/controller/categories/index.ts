@@ -15,7 +15,7 @@ const requestParams = {
         name: Joi.string().required(),
         parent_id: Joi.number().required(),
         enable: Joi.number().required(),
-        short_description: Joi.string(),
+        short_description: Joi.string().allow(""),
         seo_url: Joi.string().required(),
         page_title: Joi.string().required(),
         meta_description: Joi.string().required(),
@@ -26,7 +26,7 @@ const requestParams = {
         name: Joi.string(),
         parent_id: Joi.number(),
         enable: Joi.number(),
-        short_description: Joi.string(),
+        short_description: Joi.string().allow(''),
         seo_url: Joi.string(),
         page_title: Joi.string(),
         meta_description: Joi.string(),
@@ -76,7 +76,7 @@ const categoriesController = {
             icon = body.name.replace(" ", "-").replace(".", "") + path.extname(files.images.originalFilename);
         }
         if (body.id) {
-            let row=await DB.get_row<{icon:string}>("select icon from specialists where id=?",[body.id]);
+            let row=await DB.get_row<{id:number,name:string,parent_id:number,enable:number,short_description:string, icon:string,seo_id:string}>("select * from specialists where id=?",[body.id]);
             let q = "update specialists set ";
             let sqlparams = [];
             let updateFielsd = [];
@@ -92,7 +92,7 @@ const categoriesController = {
                 updateFielsd.push("enable=?")
                 sqlparams.push(body.enable);
             }
-            if (body.short_description) {
+            if (typeof body.short_description!== "undefined" && row?.short_description !== body.short_description) {
                 updateFielsd.push("short_description=?")
                 sqlparams.push(body.short_description);
             }
@@ -108,19 +108,20 @@ const categoriesController = {
                 updateFielsd.push("meta_description=?")
                 sqlparams.push(body.meta_description);
             }
-            if (body.business_type) {
-                updateFielsd.push("business_type=?")
-                sqlparams.push(body.business_type);
-            }
             if (icon) {
                 updateFielsd.push("icon=?")
                 sqlparams.push(icon);
+            }
+            if(!row?.seo_id){
+                let seo_id = `CATG${row?.id}-${body.business_type}`;
+                updateFielsd.push("seo_id=?");
+                sqlparams.push(seo_id);
             }
             if (updateFielsd.length) {
                 q += updateFielsd.join(',');
                 sqlparams.push(body.id);
                 q += " where id=?";
-                await DB.query(q, sqlparams);
+                await DB.query(q, sqlparams,true);
                 if (icon) {
                     let oldPath = files.images.filepath;
                     let new_path = `${specialist_icon_path}/${icon}`;
@@ -137,10 +138,11 @@ const categoriesController = {
             let q = "insert into specialists set name=?,parent_id=?,enable=?,icon=?,short_description=?,seo_url=?,page_title=?,meta_description=?,business_type=?";
             let insertRes: any = await DB.query(q, [body.name, body.parent_id, body.enable, icon, body.short_description, body.seo_url, body.page_title, body.meta_description, body.business_type]);
             if (insertRes.affectedRows >= 1) {
-                let oldPath = files.images.filepath;
-                let new_path = `${specialist_icon_path}/${icon}`;
-                console.log(oldPath, new_path)
-                uploadFileToServer(oldPath, new_path).then(() => { });
+                if (files && files.images) {
+                    let oldPath = files.images.filepath;
+                    let new_path = `${specialist_icon_path}/${icon}`;
+                    uploadFileToServer(oldPath, new_path).then(() => { });
+                }
                 let id = insertRes.insertId;
                 let seo_id = `CATG${id}-${body.business_type}`;
                 await DB.query("update specialists set seo_id=? where id=?", [seo_id, id]);

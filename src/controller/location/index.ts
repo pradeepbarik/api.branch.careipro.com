@@ -147,6 +147,21 @@ export const locationController = {
         });
         res.status(response.code).json(response);
     },
+    deleteClinicAvailableMarket:async (req: Request, res: Response)=>{
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.addClinicAvailableArea.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await locationModel.deleteMarket({state:body.state,city:body.dist_name,marketName:body.market_name});
+        res.status(response.code).json(response);
+    },
     setNearByCity: async (req: Request, res: Response) => {
         const { body }: { body: any } = req;
         const validation: ValidationResult = requestParams.setNearByCity.validate(body);
