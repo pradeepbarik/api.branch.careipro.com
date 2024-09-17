@@ -20,6 +20,7 @@ const requestParams = {
         user_name: Joi.string().required()
     }),
     addNewClinic: Joi.object({
+        business_type:Joi.string().required(),
         clinic_name: Joi.string().required(),
         clinic_seo_url: Joi.string().required(),
         contact_no: Joi.number().required(),
@@ -37,7 +38,8 @@ const requestParams = {
         user_name: Joi.string().required(),
         password: Joi.string().required(),
         partner_type: Joi.string().required(),
-        category: Joi.string().required()
+        //category: Joi.alternatives().conditional("business_type",{is:"CLINIC",then:Joi.string().required()})
+        //category:Joi.string().when("business_type",{is:"CLINIC",then:Joi.required(),otherwise:Joi.optional()})
     }),
     getClinicList: Joi.object({
         page: Joi.number().required(),
@@ -220,6 +222,7 @@ const clinicController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
+        
         const { tokenInfo, emp_info } = res.locals;
         if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
             unauthorizedResponse("permission denied! Please login to access", res);
@@ -241,6 +244,7 @@ const clinicController = {
             return;
         }
         let addres = await cliniModel.addNewClinic({
+            business_type:body.business_type,
             branch_id: tokenInfo.bid,
             clinic_name: body.clinic_name,
             clinic_seo_url: body.clinic_seo_url,
@@ -258,7 +262,7 @@ const clinicController = {
             longitude: body.longitude,
             user_name: body.user_name,
             password: body.password,
-            category: body.category,
+            category: "",
             partner_type: body.partner_type,
             emp_info: emp_info
         });

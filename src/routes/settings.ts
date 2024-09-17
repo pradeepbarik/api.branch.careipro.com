@@ -12,7 +12,7 @@ settingsRoutes.post('/add-missed-village',[apiRateLimit(1,3)],handelError(locati
 settingsRoutes.post('/reject-add-area-request',[apiRateLimit(1,3)],handelError(locationController.rejectAddAreaRequest));
 settingsRoutes.get('/get-clinic-available-areas',[apiRateLimit(10,60)],handelError(locationController.getClinicAvailableAreas));
 settingsRoutes.post('/add-clinic-available-market',[apiRateLimit(1,5)],handelError(locationController.addClinicAvailableMarket));
-settingsRoutes.post('/delete-clinic-available-market',[apiRateLimit(3,20),employeeValidation(1)],handelError(locationController.deleteClinicAvailableMarket));
+settingsRoutes.post('/update-clinic-available-market',[apiRateLimit(3,20),employeeValidation(1)],handelError(locationController.updateClinicAvailableMarket));
 settingsRoutes.get('/popular-doctors',[apiRateLimit(1,3)],handelError(popularDoctorController.getDoctorsList));
 settingsRoutes.post('/update-popular-doctor',[apiRateLimit(10,60)],handelError(popularDoctorController.updatePopularDoctor));
 settingsRoutes.get('/popular-clinics',[apiRateLimit(15,60)],handelError(popularClinicController.getClinicList));

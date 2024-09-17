@@ -5,6 +5,7 @@ import { doctorprofileChangeLogModel } from '../../mongo-schema/coll_doctor_tbl_
 import { clinicprofileChangeLogModel } from '../../mongo-schema/coll_clinic_tbl_chnage_logs';
 type TaddNewClinicParams = {
     branch_id: number,
+    business_type:string,
     clinic_name: string,
     clinic_seo_url: string,
     contact_no: number,
@@ -49,8 +50,8 @@ const clinicModel = {
     },
     addNewClinic: async (params: TaddNewClinicParams) => {
         //C12-ODBHC
-        let q = 'insert into clinics set name=?,username=?,password=md5(?),email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type?';
-        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type]);
+        let q = 'insert into clinics set name=?,username=?,password=md5(?),email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type=?,business_type=?';
+        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type,params.business_type]);
         if (insertRes.affectedRows >= 1) {
             let clinic_id = insertRes.insertId;
             let now = get_current_datetime();
@@ -424,16 +425,41 @@ export const getClinicSpecialization = async (params: {
 }) => {
     try {
         if (params.case == "all") {
-            let clinic = await DB.get_row<{ category: string }>("select category from clinics where id=?", [params.clinic_id])
-            let parent_categories = clinic && clinic.category ? clinic.category.split(',') : [];
-            if (parent_categories.length === 0) {
-                let categories_row = await DB.get_row<{ categories: string }>(`select group_concat(name) as categories from specialists where parent_id=0 and business_type=?`, [params.business_type]);
-                parent_categories = categories_row && categories_row.categories ? categories_row.categories.split(',') : [];
+            if (params.business_type === 'DOCTOR') {
+                let parent_categories: string[] = [];
+                let clinic = await DB.get_row<{ category: string }>("select category from clinics where id=?", [params.clinic_id])
+                parent_categories = clinic && clinic.category ? clinic.category.split(',') : [];
+                if (parent_categories.length === 0) {
+                    let categories_row = await DB.get_row<{ categories: string }>(`select group_concat(name) as categories from specialists where parent_id=0 and business_type=?`, [params.business_type]);
+                    parent_categories = categories_row && categories_row.categories ? categories_row.categories.split(',') : [];
+                }
+                let specialistRows = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_name as parent_specialization_name from (select t1.*,t2.name as parent_name from (select * from specialists where parent_id!=0 and group_category=? and enable=1) as t1 join (select id,name from specialists where parent_id=0 and name in (?)) as t2 on t1.parent_id=t2.id) as t1
+                 left join 
+                (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id`, [params.business_type, parent_categories, params.clinic_id]);
+                return successResponse(specialistRows, "succes")
+            } else {
+                let rows:any = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_id as parent_id from (select * from specialists where group_category=? and parent_id=0
+                union
+                select * from specialists where group_category=? and parent_id!=0) as t1 left join 
+                (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id
+                order by t1.parent_id`, [params.business_type,params.business_type, params.clinic_id]);
+                let obj:any={};
+                for(let row of rows){
+                    if(row.parent_id===0){
+                        if(!obj[row.specialist_id]){
+                            obj[row.specialist_id]=[];
+                        }
+                        obj[row.specialist_id].push(row)
+                    }else{
+                       obj[row.parent_id].push(row)
+                    }
+                }
+                let finalRows:any=[]
+                for(let arr of Object.values(obj)){
+                    finalRows = finalRows.concat(arr)
+                }
+                return successResponse(finalRows, "succes")
             }
-            let specialistRows = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_name as parent_specialization_name from (select t1.*,t2.name as parent_name from (select * from specialists where parent_id!=0 and business_type=? and enable=1) as t1 join (select id,name from specialists where parent_id=0 and name in (?)) as t2 on t1.parent_id=t2.id) as t1
-             left join 
-            (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id`, [params.business_type, parent_categories, params.clinic_id]);
-            return successResponse(specialistRows, "succes")
         } else if (params.case == "selected") {
             let specialistRows = await DB.get_rows(`select t2.id as specialist_id,t2.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.specialist_id=t2.id,1,0) as selected from (SELECT * FROM clinic_specialization WHERE clinic_id=?) as t1 left join specialists as t2 on t1.specialist_id=t2.id`, [params.clinic_id]);
             return successResponse(specialistRows, "succes");

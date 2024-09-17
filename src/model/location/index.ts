@@ -210,24 +210,23 @@ const locationModel = {
                      if(params.action === 'move_down'){
                         document.nearbyCities.splice(ind+1,0,cityobj);
                      }
-                     console.log('document.nearbyCities',document.nearbyCities);
                      await citySettingsModel.updateOne({_id:document._id,state:params.state.toLowerCase(),city:params.city.toLowerCase()},{$set:{nearbyCities:document.nearbyCities}}).exec();                     
                 }
             }
         }
         return successResponse({}, "");
     },
-    deleteMarket:async (params:{state:string,city:string,marketName:string})=>{
+    updateMarket:async (params:{state:string,city:string,marketOldName:string, marketName:string})=>{
         try {
             let state = params.state.toLowerCase();
             let city = params.city.toLowerCase();
             let market_name = params.marketName.toLowerCase();
-           await clinicMarketsModel.updateOne({state:state,city:city},{
-                "$pull":{
-                    "markets":{name:market_name}
+            await clinicMarketsModel.findOneAndUpdate({state:state,city:city,'markets.name':params.marketOldName.toLowerCase()},{
+                $set:{
+                    'markets.$.name':market_name
                 }
-            }).exec();
-            return successResponse({},"Removed successfully")
+            }).exec()
+            return successResponse({},"updated successfully")
         }catch(err:any){
             return internalServerError(err.message)
         }

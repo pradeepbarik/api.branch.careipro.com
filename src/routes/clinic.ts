@@ -16,7 +16,7 @@ clinicRoutes.get('/doctor-complete-details',[apiRateLimit(1,3)],handelError(clin
 clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.approveDoctor));
 clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));
 clinicRoutes.get('/clinic-banners',[apiRateLimit(1,3)],handelError(clinicController.clinicBanners));
-clinicRoutes.get('/clinic-specialization',[apiRateLimit(1,3)],handelError(clinicController.clinicSpecializations));
+clinicRoutes.get('/clinic-specialization',[apiRateLimit(10,30)],handelError(clinicController.clinicSpecializations));
 clinicRoutes.post('/clinic-specialization',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.updateClinicSpecialization));
 clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
 clinicRoutes.post('/add-clinic-staff',[apiRateLimit(1,10)],handelError(clinicController.addClinicStaff));

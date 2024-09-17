@@ -48,12 +48,12 @@ const categoriesController = {
         }
         let categories: Array<{ id: number, name: string }> = [];
         let parent_categories: Array<{ id: number, name: string }> = [];
-        let rows = await DB.get_rows<{ id: number, name: string }>("select * from specialists where business_type=? and parent_id=0 order by display_order", [query.business_type]);
+        let rows = await DB.get_rows<{ id: number, name: string }>("select * from specialists where group_category=? and parent_id=0 order by display_order", [query.business_type]);
         if (rows.length) {
             for (let row of rows) {
                 categories.push(row);
                 parent_categories.push({ id: row.id, name: row.name });
-                let childRows = await DB.get_rows<{ id: number, name: string }>("select * from specialists where business_type=? and parent_id=?", [query.business_type, row.id]);
+                let childRows = await DB.get_rows<{ id: number, name: string }>("select * from specialists where group_category=? and parent_id=?", [query.business_type, row.id]);
                 categories = categories.concat(childRows);
             }
         }
@@ -73,7 +73,7 @@ const categoriesController = {
         }
         let icon = "";
         if (files && files.images) {
-            icon = body.name.replace(" ", "-").replace(".", "") + path.extname(files.images.originalFilename);
+            icon = body.name.toLowerCase().replace(" ", "-").replace(".", "") + path.extname(files.images.originalFilename);
         }
         if (body.id) {
             let row=await DB.get_row<{id:number,name:string,parent_id:number,enable:number,short_description:string, icon:string,seo_id:string}>("select * from specialists where id=?",[body.id]);
@@ -135,7 +135,7 @@ const categoriesController = {
                 serviceNotAcceptable("nothing to update", res)
             }
         } else {
-            let q = "insert into specialists set name=?,parent_id=?,enable=?,icon=?,short_description=?,seo_url=?,page_title=?,meta_description=?,business_type=?";
+            let q = "insert into specialists set name=?,parent_id=?,enable=?,icon=?,short_description=?,seo_url=?,page_title=?,meta_description=?,group_category=?";
             let insertRes: any = await DB.query(q, [body.name, body.parent_id, body.enable, icon, body.short_description, body.seo_url, body.page_title, body.meta_description, body.business_type]);
             if (insertRes.affectedRows >= 1) {
                 if (files && files.images) {

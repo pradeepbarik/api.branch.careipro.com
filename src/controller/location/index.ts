@@ -27,6 +27,12 @@ const requestParams = {
         dist_name: Joi.string().required(),
         market_name: Joi.string().required()
     }),
+    updateClinicAvailableMarket:Joi.object({
+        state: Joi.string().required(),
+        dist_name: Joi.string().required(),
+        market_old_name:Joi.string().required(),
+        market_name: Joi.string().required()
+    }),
     setNearByCity: Joi.object({
         state: Joi.string().required(),
         district: Joi.string().required(),
@@ -147,9 +153,9 @@ export const locationController = {
         });
         res.status(response.code).json(response);
     },
-    deleteClinicAvailableMarket:async (req: Request, res: Response)=>{
+    updateClinicAvailableMarket:async (req: Request, res: Response)=>{
         const { body }: { body: any } = req;
-        const validation: ValidationResult = requestParams.addClinicAvailableArea.validate(body);
+        const validation: ValidationResult = requestParams.updateClinicAvailableMarket.validate(body);
         if (validation.error) {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
@@ -159,7 +165,7 @@ export const locationController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        let response = await locationModel.deleteMarket({state:body.state,city:body.dist_name,marketName:body.market_name});
+        let response = await locationModel.updateMarket({state:body.state,city:body.dist_name,marketOldName:body.market_old_name,marketName:body.market_name});
         res.status(response.code).json(response);
     },
     setNearByCity: async (req: Request, res: Response) => {
