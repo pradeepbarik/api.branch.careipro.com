@@ -45,7 +45,8 @@ export const addClinicAvailableMarket = async (params: TaddClinicAvailableMarket
             await clinicMarketDocument.updateOne({
                 $push: {
                     markets: {
-                        name: market_name
+                        name: market_name,
+                        is_prime:false
                     }
                 }
             }).exec();
@@ -54,7 +55,7 @@ export const addClinicAvailableMarket = async (params: TaddClinicAvailableMarket
                 state: state,
                 city: city,
                 markets: [
-                    { name: market_name }
+                    { name: market_name,is_prime:false }
                 ]
             }).save()
         }
@@ -216,16 +217,30 @@ const locationModel = {
         }
         return successResponse({}, "");
     },
-    updateMarket:async (params:{state:string,city:string,marketOldName:string, marketName:string})=>{
+    updateMarket:async (params:{state:string,city:string,marketOldName:string, marketName:string,is_prime?:boolean})=>{
         try {
             let state = params.state.toLowerCase();
             let city = params.city.toLowerCase();
             let market_name = params.marketName.toLowerCase();
-            await clinicMarketsModel.findOneAndUpdate({state:state,city:city,'markets.name':params.marketOldName.toLowerCase()},{
-                $set:{
-                    'markets.$.name':market_name
-                }
-            }).exec()
+            if(params.marketOldName && params.marketName){
+                await clinicMarketsModel.findOneAndUpdate({state:state,city:city,'markets.name':params.marketOldName.toLowerCase()},{
+                    $set:{
+                        'markets.$.name':market_name
+                    }
+                }).exec()
+            }
+            if(params.is_prime){
+                await clinicMarketsModel.findOneAndUpdate({state:state,city:city},{
+                    $set:{
+                        'markets.$[].is_prime':false
+                    },
+                },{multi:true}).exec()
+                await clinicMarketsModel.findOneAndUpdate({state:state,city:city,'markets.name':params.marketName.toLowerCase()},{
+                    $set:{
+                        'markets.$.is_prime':true
+                    }
+                }).exec()
+            }
             return successResponse({},"updated successfully")
         }catch(err:any){
             return internalServerError(err.message)

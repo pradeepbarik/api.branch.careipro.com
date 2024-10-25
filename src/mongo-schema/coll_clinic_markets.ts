@@ -6,7 +6,8 @@ const clinicMarketsSchema = new Schema({
     markets: [
         {
             _id:false,
-            name: String
+            name: String,
+            is_prime:Boolean
         }
     ]
 })

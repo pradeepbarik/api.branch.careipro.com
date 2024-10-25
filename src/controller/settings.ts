@@ -37,6 +37,21 @@ const requestParams = {
             section_type: Joi.string().required(),
             doctors_count: Joi.number().allow(0, "")
         })
+    }),
+    saveClinicsPageSettings:Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required(),
+        page_name: Joi.string().required(),
+        popular_specialists: Joi.array().items(Joi.number()),
+        section: Joi.object({
+            _id: Joi.string().allow(''),
+            heading: Joi.string().required(),
+            viewType: Joi.string().required(),
+            enable: Joi.boolean().required(),
+            cat_id: Joi.array().items(Joi.number()),
+            section_type: Joi.string().required(),
+            clinics_count: Joi.number().allow(0, "")
+        })
     })
 }
 const settingsController = {
@@ -80,6 +95,18 @@ const settingsController = {
                 city: body.city,
                 popular_specialists: body.popular_specialists,
                 sections: body.sections,
+                section: body.section
+            });
+        }else if(body.page_name === 'clinics'){
+            const validation: ValidationResult = requestParams.saveClinicsPageSettings.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            await settingModel.saveClinicsPageData({
+                state: body.state,
+                city: body.city,
+                popular_specialists: body.popular_specialists,
                 section: body.section
             });
         }
