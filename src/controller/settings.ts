@@ -52,6 +52,23 @@ const requestParams = {
             section_type: Joi.string().required(),
             clinics_count: Joi.number().allow(0, "")
         })
+    }),
+    saveHomePageSettings:Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required(),
+        page_name: Joi.string().required(),
+        categories:Joi.array().items(Joi.number()),
+        verticals:Joi.array().items(),
+        section:Joi.object({
+            _id: Joi.string().allow(''),
+            name:Joi.string().required(),
+            heading: Joi.string().allow(''),
+            viewType: Joi.string().allow(''),
+            enable: Joi.boolean().required(),
+            verticals:Joi.array().items(Joi.string()),
+            specialist_ids:Joi.array().items(Joi.number()),
+            cards:Joi.any()
+        })
     })
 }
 const settingsController = {
@@ -83,7 +100,18 @@ const settingsController = {
             return;
         }
         if (body.page_name === 'home') {
-
+            const validation: ValidationResult = requestParams.saveHomePageSettings.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            await settingModel.saveHomePageData({
+                state: body.state,
+                city: body.city,
+                specialists: body.categories,
+                verticals:body.verticals,
+                section: body.section
+            });
         } else if (body.page_name === 'doctors') {
             const validation: ValidationResult = requestParams.saveDoctorsPageSetting.validate(body);
             if (validation.error) {

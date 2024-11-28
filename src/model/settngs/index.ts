@@ -5,6 +5,21 @@ type TSectionData = {
     enable: boolean,
     spaecialist_id: number[]
 }
+type THomeSection = {
+    _id: string,
+    name: string,
+    heading: string,
+    viewType: string,
+    enable: boolean,
+    verticals: string[]
+}
+export type TVertical = {
+    label: string,
+    name: "doctors" | "clinics" | "medicine" | "caretaker" | "physiotherapy" | "body_massage"
+    icons: string,
+    url_pattern: string,
+    enable: boolean,
+}
 const settingModel = {
     getPageSettingsData: async (data: { state: string, city: string, page: string }) => {
         let document = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: data.page.toLowerCase() }).exec();
@@ -18,6 +33,50 @@ const settingModel = {
                 }
             }
         }).exec()
+    },
+    saveHomePageData: async (data: {
+        state: string
+        city: string,
+        specialists?: Array<number>,
+        verticals?: Array<TVertical>,
+        section?: THomeSection
+    }) => {
+        if (data.section?._id) {
+            await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "home", 'sections._id': data.section._id }, {
+                $set: { "sections.$": data.section },
+            }).exec();
+            return;
+        }
+        let document = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "home" }).select('_id');
+        if (document) {
+            if (data.section) {
+                let { _id, ...sectionData } = data.section
+                await pageSettingsModel.updateOne({ _id: document._id }, {
+                    $push: {
+                        sections: sectionData
+                    }
+                }).exec();
+                return;
+            }
+            let updateData: any = {};
+            if (data.specialists) {
+                updateData.specialists = data.specialists;
+            }
+            if (data.verticals) {
+                updateData.verticals = data.verticals;
+            }
+            console.log('updateData',updateData)
+            await pageSettingsModel.updateOne({ _id: document._id }, updateData).exec();
+        } else {
+            await new pageSettingsModel({
+                state: data.state.toLowerCase(),
+                city: data.city.toLowerCase(),
+                page: "home",
+                specialists: data.specialists || [],
+                verticals: data.verticals || [],
+                sections: data.section ? [data.section] : []
+            }).save()
+        }
     },
     saveDoctorPageData: async (data: {
         state: string
