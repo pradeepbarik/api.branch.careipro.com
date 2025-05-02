@@ -69,6 +69,23 @@ const requestParams = {
             specialist_ids:Joi.array().items(Joi.number()),
             cards:Joi.any()
         })
+    }),
+    saveCaretakersPageSetting:Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required(),
+        page_name: Joi.string().required(),
+        popular_specialists: Joi.array().items(Joi.number()),
+        section: Joi.object({
+            _id: Joi.string().allow(''),
+            heading: Joi.string().allow(""),
+            viewType: Joi.string().required(),
+            enable: Joi.boolean().required(),
+            cat_id: Joi.array().items(Joi.number()),
+            doctor_ids:Joi.array().items(Joi.number()),
+            clinic_ids:Joi.array().items(Joi.number()),
+            section_type: Joi.string().required(),
+            listing_count: Joi.number().allow(0, "")
+        })
     })
 }
 const settingsController = {
@@ -132,6 +149,18 @@ const settingsController = {
                 return;
             }
             await settingModel.saveClinicsPageData({
+                state: body.state,
+                city: body.city,
+                popular_specialists: body.popular_specialists,
+                section: body.section
+            });
+        }else if(body.page_name === "caretakers"){
+            const validation: ValidationResult = requestParams.saveCaretakersPageSetting.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            await settingModel.saveCaretakersPageData({
                 state: body.state,
                 city: body.city,
                 popular_specialists: body.popular_specialists,

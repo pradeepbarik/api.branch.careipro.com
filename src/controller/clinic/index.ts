@@ -105,7 +105,7 @@ const requestParams = {
         cid: Joi.number().required(),
         name: Joi.string(),
         gender: Joi.string(),
-        experienc: Joi.number(),
+        experience: Joi.number(),
         position: Joi.string(),
         description: Joi.string().allow(''),
         service_charge: Joi.number(),

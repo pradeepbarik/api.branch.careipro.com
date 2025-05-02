@@ -56,7 +56,7 @@ const doctorModel = {
         return successResponse(null, "Updated Successfully");
     },
     getDoctorSpecializations: async (doctor_id: number, clinic_id: number, group_category: string = "DOCTOR") => {
-        let doctor: any = await DB.get_row("select t1.*,t2.category as clinic_category from (select clinic_id,category,specialization from doctor where id=? and clinic_id=?) as t1 join (select id,category from clinics where id=?) as t2 on t1.clinic_id=t2.id", [doctor_id, clinic_id, clinic_id]);
+        //let doctor: any = await DB.get_row("select t1.*,t2.category as clinic_category from (select clinic_id,category,specialization from doctor where id=? and clinic_id=?) as t1 join (select id,category from clinics where id=?) as t2 on t1.clinic_id=t2.id", [doctor_id, clinic_id, clinic_id]);
         let params = [];
         let q = `select t1.id,t1.name,if(t2.name>'',t2.name,'') as parent_name,if(t3.specialist_id!='',1,0) as selected from 
         (select * from specialists where group_category=?) as t1  

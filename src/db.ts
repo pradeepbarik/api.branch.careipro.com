@@ -12,15 +12,15 @@ const logSqlQueryError = (err: QueryError) => {
     //logError('vehicle_owner_app', 'sql_query_error', err_message);
 }
 export interface IDbmethods {
-    query: (sql: string, params: Array<string | number>,logquery?:boolean) => Promise<unknown>;
-    get_row: <T>(sql: string, params: Array<string | number>, logquery?: boolean) => Promise<T|null>;
-    get_rows: <T>(sql: string, params: Array<string | number|string[]>, logquery?: boolean) => Promise<T[]>;
-    build_query: (sql: string, params: Array<string | number|Array<string|number>>) => any;
+    query: (sql: string, params: Array<string | number | null>, logquery?: boolean) => Promise<unknown>;
+    get_row: <T>(sql: string, params: Array<string | number>, logquery?: boolean) => Promise<T | null>;
+    get_rows: <T>(sql: string, params: Array<string | number | string[]>, logquery?: boolean) => Promise<T[]>;
+    build_query: (sql: string, params: Array<string | number | Array<string | number>>, logquery?: boolean) => any;
     close_db: () => void;
 }
 const getDbmethods = (connection: Pool): IDbmethods => {
     return {
-        query: function (sql: string, params: Array<string | number>,logquery:boolean=false) {
+        query: function (sql: string, params: Array<string | number | null>, logquery: boolean = false) {
             return new Promise((resolve, reject) => {
                 if (logquery) {
                     console.log(connection.format(sql, params));
@@ -46,7 +46,7 @@ const getDbmethods = (connection: Pool): IDbmethods => {
 
             });
         },
-        get_row: <T>(sql: string, params: Array<number | string>,logquery:boolean=false):Promise<T | null>=>{
+        get_row: <T>(sql: string, params: Array<number | string>, logquery: boolean = false): Promise<T | null> => {
             return new Promise((resolve, reject) => {
                 if (logquery) {
                     console.log(connection.format(sql, params));
@@ -63,7 +63,7 @@ const getDbmethods = (connection: Pool): IDbmethods => {
                 });
             });
         },
-        get_rows:  <T>(sql: string, params: Array<string | number|string[]>, logquery: boolean = false):Promise<T[]>=> {
+        get_rows: <T>(sql: string, params: Array<string | number | string[]>, logquery: boolean = false): Promise<T[]> => {
             return new Promise((resolve, reject) => {
                 if (logquery) {
                     console.log(connection.format(sql, params));
@@ -81,8 +81,11 @@ const getDbmethods = (connection: Pool): IDbmethods => {
                 });
             });
         },
-        build_query: function (sql: string, params: Array<string | number|Array<string|number>>) {
+        build_query: function (sql: string, params: Array<string | number | Array<string | number>>, logquery?: boolean) {
             const query = connection.format(sql, params);
+            if (logquery) {
+                console.log(query);
+            }
             return query;
         },
         close_db: () => {

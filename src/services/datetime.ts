@@ -20,4 +20,7 @@ export const get_current_datetime = (onlydate = false): string => {
 export const formatDateTime = (dateTime: Moment,format:string=dateTimeFormat): string => {
   return dateTime.format(format);
 }
+export const formatToDbTimeFromObj=(datetime:Moment)=>{
+  return datetime.format('Y-MM-DD HH:mm:ss');
+}
 export default moment;

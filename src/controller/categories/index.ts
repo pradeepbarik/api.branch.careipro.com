@@ -1,4 +1,4 @@
-import path from 'path';
+import path, { join } from 'path';
 import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
 import { FormdataRequest } from '../../types';
@@ -31,6 +31,13 @@ const requestParams = {
         page_title: Joi.string(),
         meta_description: Joi.string(),
         business_type: Joi.string()
+    }),
+    updateCategorySetting:Joi.object({
+        cat_id:Joi.number().required(),
+        price:Joi.number(),
+        lead_charge:Joi.number(),
+        display_price:Joi.string().allow(''),
+        service_duration_display:Joi.string().allow(''),
     })
 }
 const categoriesController = {
@@ -48,12 +55,12 @@ const categoriesController = {
         }
         let categories: Array<{ id: number, name: string }> = [];
         let parent_categories: Array<{ id: number, name: string }> = [];
-        let rows = await DB.get_rows<{ id: number, name: string }>("select * from specialists where group_category=? and parent_id=0 order by display_order", [query.business_type]);
+        let rows = await DB.get_rows<{ id: number, name: string }>("select t1.*,t2.city,t2.price,t2.lead_charge,t2.display_price,t2.service_duration_display from (select * from specialists where group_category=? and parent_id=0 order by display_order) as t1 left join (select * from tbl_specialist_setting where city=?) as t2 on t1.id=t2.specialist_id", [query.business_type,tokenInfo.bd]);
         if (rows.length) {
             for (let row of rows) {
                 categories.push(row);
                 parent_categories.push({ id: row.id, name: row.name });
-                let childRows = await DB.get_rows<{ id: number, name: string }>("select * from specialists where group_category=? and parent_id=?", [query.business_type, row.id]);
+                let childRows = await DB.get_rows<{ id: number, name: string }>("select t1.*,t2.city,t2.price,t2.lead_charge,t2.display_price,t2.service_duration_display from (select * from specialists where group_category=? and parent_id=?) as t1 left join (select * from tbl_specialist_setting where city=?) as t2 on t1.id=t2.specialist_id", [query.business_type, row.id,tokenInfo.bd]);
                 categories = categories.concat(childRows);
             }
         }
@@ -151,6 +158,21 @@ const categoriesController = {
                 internalServerError("something went wrong", res);
             }
         }
+    },
+    updateCategorySetting:async (req:Request,res:Response)=>{
+        const {body}=req;
+        const validation: ValidationResult = requestParams.updateCategorySetting.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        await DB.query("insert into tbl_specialist_setting (specialist_id,city,price,lead_charge,display_price,service_duration_display) values (?,?,?,?,?,?) ON DUPLICATE KEY update price=?,lead_charge=?,display_price=?,service_duration_display=?",[body.cat_id,tokenInfo.bd,body.price,body.lead_charge,body.display_price,body.service_duration_display,body.price,body.lead_charge,body.display_price,body.service_duration_display],true);
+        res.json(successResponse({},"Updated successfully"));
     }
 }
 export default categoriesController;

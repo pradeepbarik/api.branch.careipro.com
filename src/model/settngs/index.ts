@@ -161,6 +161,46 @@ const settingModel = {
                 }).save()
             }
         }
+    },
+    saveCaretakersPageData:async (data:{
+        state: string
+        city: string,
+        popular_specialists: Array<number>,
+        section?: TSectionData & { _id: string }
+    })=>{
+        if (data.section?._id) {
+            await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "caretakers", 'sections._id': data.section._id }, {
+                $set: { "sections.$": data.section },
+            }).exec();
+            return;
+        }
+        if (data.popular_specialists || data.section) {
+            let document = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "caretakers" }).select('_id');
+            if (document) {
+                if (data.section) {
+                    let { _id, ...sectionData } = data.section
+                    await pageSettingsModel.updateOne({ _id: document._id }, {
+                        $push: {
+                            sections: sectionData
+                        }
+                    }).exec();
+                    return;
+                }
+                let updateData: any = {};
+                if (data.popular_specialists) {
+                    updateData.popular_specialists = data.popular_specialists;
+                }
+                await pageSettingsModel.updateOne({ _id: document._id }, updateData).exec();
+            }else{
+                await new pageSettingsModel({
+                    state: data.state.toLowerCase(),
+                    city: data.city.toLowerCase(),
+                    page: "caretakers",
+                    popular_specialists: data.popular_specialists,
+                    sections: []
+                }).save()
+            }
+        }
     }
 
 }

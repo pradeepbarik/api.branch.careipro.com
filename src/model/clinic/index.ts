@@ -3,6 +3,7 @@ import { get_current_datetime } from '../../services/datetime';
 import { Iresponse, unauthorizedResponse, successResponse, internalServerError } from '../../services/response';
 import { doctorprofileChangeLogModel } from '../../mongo-schema/coll_doctor_tbl_change_log';
 import { clinicprofileChangeLogModel } from '../../mongo-schema/coll_clinic_tbl_chnage_logs';
+import {getGroupCategoryShortName} from '../../helper';
 type TaddNewClinicParams = {
     branch_id: number,
     business_type:string,
@@ -57,7 +58,7 @@ const clinicModel = {
             let now = get_current_datetime();
             q = 'insert into clinic_detail (clinic_id,register_date) values (?,?)';
             DB.query(q, [clinic_id, now]);
-            let bid = `C${clinic_id}-${params.state_code}${params.dist_code}`;
+            let bid = `${getGroupCategoryShortName(params.business_type)}${clinic_id}-${params.state_code}${params.dist_code}`;
             DB.query("update clinics set bid=? where id=?", [bid, clinic_id]);
             new clinicprofileChangeLogModel({
                 clinic_id: clinic_id,
@@ -205,7 +206,7 @@ const clinicModel = {
     }
 }
 export const getDoctors = async (branch_id: number, clinic_id: number) => {
-    let rows: any = await DB.get_rows("select t1.id as service_loc_id,t1.service_charge as consulting_fee,doctor.id,doctor.name,doctor.gender,doctor.experience,doctor.image,doctor.position,doctor.rating,doctor.active,doctor.clinic_id,group_concat(spl.name SEPARATOR ', ') as specialist from (SELECT * FROM `doctor_service_location` WHERE  clinic_id=?) as t1 join (select * from doctor where branch_id=? and clinic_id=?) as doctor on t1.`doctor_id`=doctor.id left join service_location_specialization as slp on t1.id=slp.service_location left join specialists as spl on slp.specialist_id=spl.id group by t1.id", [clinic_id, branch_id, clinic_id]);
+    let rows: any = await DB.get_rows("select t1.id as service_loc_id,t1.service_charge as consulting_fee,doctor.id,doctor.name,doctor.gender,doctor.experience,doctor.image,doctor.position,doctor.rating,doctor.active,doctor.clinic_id,doctor.business_type,group_concat(spl.name SEPARATOR ', ') as specialist from (SELECT * FROM `doctor_service_location` WHERE  clinic_id=?) as t1 join (select * from doctor where branch_id=? and clinic_id=?) as doctor on t1.`doctor_id`=doctor.id left join service_location_specialization as slp on t1.id=slp.service_location left join specialists as spl on slp.specialist_id=spl.id group by t1.id", [clinic_id, branch_id, clinic_id]);
     let activeDoctors = [];
     let inActiveDoctors = [];
     let unApprovedDoctors = [];

@@ -23,6 +23,7 @@ settingsRoutes.post('/update-nearby-city',[apiRateLimit(1,10)],handelError(locat
 settingsRoutes.post('/update-city',[apiRateLimit(60,60),parseFormData],handelError(locationController.updateCity));
 settingsRoutes.get('/categories',[apiRateLimit(5,20)],handelError(categoriesController.getSpecialists));
 settingsRoutes.post('/categories',[apiRateLimit(3,20),parseFormData],handelError(categoriesController.addNewSpecialist));
+settingsRoutes.post('/update-category-setting',[apiRateLimit(3,20)],handelError(categoriesController.updateCategorySetting));
 settingsRoutes.get("/page-settings",[apiRateLimit(4,20)],handelError(settingsController.getPageSettings));
 settingsRoutes.post("/page-settings",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.savePageSettings));
 export default settingsRoutes;
