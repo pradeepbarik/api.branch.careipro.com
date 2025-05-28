@@ -1,7 +1,12 @@
 import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
-import { unauthorizedResponse, parameterMissingResponse, successResponse } from '../services/response';
+import fs from 'fs';
+import path from 'path';
+import { banner_path } from '../constants';
+import { FormdataRequest } from '../types';
+import { unauthorizedResponse, parameterMissingResponse, successResponse,internalServerError } from '../services/response';
 import settingModel from '../model/settngs';
+import { get_current_datetime } from '../services/datetime';
 const requestParams = {
     getPageSettings: Joi.object({
         state: Joi.string().required(),
@@ -38,7 +43,7 @@ const requestParams = {
             doctors_count: Joi.number().allow(0, "")
         })
     }),
-    saveClinicsPageSettings:Joi.object({
+    saveClinicsPageSettings: Joi.object({
         state: Joi.string().required(),
         city: Joi.string().required(),
         page_name: Joi.string().required(),
@@ -53,24 +58,24 @@ const requestParams = {
             clinics_count: Joi.number().allow(0, "")
         })
     }),
-    saveHomePageSettings:Joi.object({
+    saveHomePageSettings: Joi.object({
         state: Joi.string().required(),
         city: Joi.string().required(),
         page_name: Joi.string().required(),
-        categories:Joi.array().items(Joi.number()),
-        verticals:Joi.array().items(),
-        section:Joi.object({
+        categories: Joi.array().items(Joi.number()),
+        verticals: Joi.array().items(),
+        section: Joi.object({
             _id: Joi.string().allow(''),
-            name:Joi.string().required(),
+            name: Joi.string().required(),
             heading: Joi.string().allow(''),
             viewType: Joi.string().allow(''),
             enable: Joi.boolean().required(),
-            verticals:Joi.array().items(Joi.string()),
-            specialist_ids:Joi.array().items(Joi.number()),
-            cards:Joi.any()
+            verticals: Joi.array().items(Joi.string()),
+            specialist_ids: Joi.array().items(Joi.number()),
+            cards: Joi.any()
         })
     }),
-    saveCaretakersPageSetting:Joi.object({
+    saveCaretakersPageSetting: Joi.object({
         state: Joi.string().required(),
         city: Joi.string().required(),
         page_name: Joi.string().required(),
@@ -81,11 +86,20 @@ const requestParams = {
             viewType: Joi.string().required(),
             enable: Joi.boolean().required(),
             cat_id: Joi.array().items(Joi.number()),
-            doctor_ids:Joi.array().items(Joi.number()),
-            clinic_ids:Joi.array().items(Joi.number()),
+            doctor_ids: Joi.array().items(Joi.number()),
+            clinic_ids: Joi.array().items(Joi.number()),
             section_type: Joi.string().required(),
             listing_count: Joi.number().allow(0, "")
         })
+    }),
+    updateBanner: Joi.object({
+        id: Joi.number(),
+        alt_text: Joi.string().required(),
+        device_type: Joi.valid("mobile", "desktop", "all").required(),
+        display_order: Joi.number().required(),
+        banner_img_url: Joi.string().allow(''),
+        redirection_url: Joi.string().allow(''),
+        page: Joi.string().required(),
     })
 }
 const settingsController = {
@@ -126,7 +140,7 @@ const settingsController = {
                 state: body.state,
                 city: body.city,
                 specialists: body.categories,
-                verticals:body.verticals,
+                verticals: body.verticals,
                 section: body.section
             });
         } else if (body.page_name === 'doctors') {
@@ -142,7 +156,7 @@ const settingsController = {
                 sections: body.sections,
                 section: body.section
             });
-        }else if(body.page_name === 'clinics'){
+        } else if (body.page_name === 'clinics') {
             const validation: ValidationResult = requestParams.saveClinicsPageSettings.validate(body);
             if (validation.error) {
                 parameterMissingResponse(validation.error.details[0].message, res);
@@ -154,7 +168,7 @@ const settingsController = {
                 popular_specialists: body.popular_specialists,
                 section: body.section
             });
-        }else if(body.page_name === "caretakers"){
+        } else if (body.page_name === "caretakers") {
             const validation: ValidationResult = requestParams.saveCaretakersPageSetting.validate(body);
             if (validation.error) {
                 parameterMissingResponse(validation.error.details[0].message, res);
@@ -167,7 +181,88 @@ const settingsController = {
                 section: body.section
             });
         }
-        res.json(successResponse({}, "sussess"))
+        res.json(successResponse({}, "success"))
+    },
+    getBanners: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+        let data = await settingModel.getSiteBannersData({ city: tokenInfo.bd });
+        res.json(successResponse(data, "success"))
+    },
+    updateBanner: async (req: FormdataRequest, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body, files } = req;
+        const validation: ValidationResult = requestParams.updateBanner.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let image_name = '';
+        if (body.banner_img_url) {
+            image_name = body.banner_img_url;
+        }
+        if (!body.banner_img_url && files.banner) {
+            let oldPath = files.banner.filepath;
+            image_name = `${body.alt_text}-${body.page}`;
+            image_name = image_name.replace(/[^a-zA-Z0-9\s]/g, '');
+            image_name = image_name.replace(/\s/g, '-');
+            image_name = image_name + path.extname(files.banner.originalFilename);
+            let new_path = `${banner_path}/${image_name}`;
+            try {
+                await new Promise((resolve, reject) => {
+                    fs.rename(oldPath, new_path, (err) => {
+                        if (err) {
+                            reject(err)
+                        } else {
+                            resolve(null)
+                        }
+                    });
+                })
+            } catch (err: any) {
+                internalServerError(err.message, res);
+                return
+            }
+        }
+        let now = get_current_datetime();
+        if(body.id){
+
+        }else{
+            await DB.query("INSERT INTO site_banners (image,alt_text,device_type,branch_id,link,active,display_order,city,page,upload_time) VALUES (?,?,?,?,?,?,?,?,?,?)", [image_name,body.alt_text,body.device_type,tokenInfo.bid,body.redirection_url,1,body.display_order,tokenInfo.bd,body.page,now]);
+            res.json(successResponse({}, "Banner added successfully"));
+            return;
+        }
+        res.json(successResponse({}, "Banner updated successfully"));
+    },
+    deleteBanner: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body } = req;
+        if (!body.id) {
+            parameterMissingResponse("Banner id is required", res);
+            return;
+        }
+        let banner = await DB.get_row<{image:string}>("select image from site_banners where id = ? and city = ?", [body.id, tokenInfo.bd]);
+        if (banner) {
+            // Only delete if banner.image is not a URL
+            if (!/^https?:\/\//i.test(banner.image)) {
+                let image_path = path.join(banner_path, banner.image);
+                if (fs.existsSync(image_path)) {
+                    fs.unlinkSync(image_path);
+                }
+            }
+        }
+        await DB.query("delete from site_banners where id = ? and city = ?", [body.id, tokenInfo.bd]);
+        res.json(successResponse({}, "Banner deleted successfully"));
     }
 }
 export default settingsController;

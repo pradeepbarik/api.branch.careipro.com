@@ -411,7 +411,7 @@ export const getClinicBanners = async (params: {
     banner_id?: number
 }) => {
     try {
-        let sql = "select id,image,display_order,user_id as clinic_id from banners where user_id=? and user_type='clinic'";
+        let sql = "select * from banners where user_id=? and user_type='clinic' order by display_order";
         let sql_params = [params.clinic_id];
         let rows = await DB.get_rows(sql, sql_params);
         return successResponse(rows, "succes")

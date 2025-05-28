@@ -65,7 +65,7 @@ const settingModel = {
             if (data.verticals) {
                 updateData.verticals = data.verticals;
             }
-            console.log('updateData',updateData)
+            console.log('updateData', updateData)
             await pageSettingsModel.updateOne({ _id: document._id }, updateData).exec();
         } else {
             await new pageSettingsModel({
@@ -162,12 +162,12 @@ const settingModel = {
             }
         }
     },
-    saveCaretakersPageData:async (data:{
+    saveCaretakersPageData: async (data: {
         state: string
         city: string,
         popular_specialists: Array<number>,
         section?: TSectionData & { _id: string }
-    })=>{
+    }) => {
         if (data.section?._id) {
             await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "caretakers", 'sections._id': data.section._id }, {
                 $set: { "sections.$": data.section },
@@ -191,7 +191,7 @@ const settingModel = {
                     updateData.popular_specialists = data.popular_specialists;
                 }
                 await pageSettingsModel.updateOne({ _id: document._id }, updateData).exec();
-            }else{
+            } else {
                 await new pageSettingsModel({
                     state: data.state.toLowerCase(),
                     city: data.city.toLowerCase(),
@@ -201,7 +201,22 @@ const settingModel = {
                 }).save()
             }
         }
-    }
+    },
+    getSiteBannersData: async (data: { city: string }) => {
+        let rows = await DB.get_rows("select * from site_banners where city = ? order by page,display_order", [data.city.toLowerCase()]);
+        return rows;
+    },
+    updateSiteBannerData: async (data: {
+        city: string,
+        id: number,
+        device_type: string,
+        alt_text: string,
+        banner_image_link: string,
+        url: string,
+        display_order: number,
+        enable: boolean
+    }) => {
 
+    }
 }
 export default settingModel;

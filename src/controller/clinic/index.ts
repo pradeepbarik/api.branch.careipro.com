@@ -1,10 +1,15 @@
-import { query, Request, Response } from 'express';
+import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
-import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable } from '../../services/response';
+import fs from 'fs';
+import path from 'path';
+import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
+import { banner_path } from '../../constants';
 import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization } from '../../model/clinic';
 import { addClinicStaff, staffList } from '../../model/clinic-staff';
 import doctorModel from '../../model/clinic/doctor';
 import { encrypt } from '../../services/encryption';
+import { FormdataRequest } from '../../types';
+import { get_current_datetime } from '../../services/datetime';
 const requestParams = {
     getLoginToken: Joi.object({
         clinic_id: Joi.number().required(),
@@ -255,6 +260,16 @@ const requestParams = {
     }),
     getDoctorsForDropDown: Joi.object({
         clinic_id: Joi.number().required()
+    }),
+    uploadClinicBanner: Joi.object({
+        id: Joi.number(),
+        user_id: Joi.number().required(),
+        user_type: Joi.string().required(),
+        banner_description: Joi.string().required(),
+        device_type: Joi.valid("mobile", "desktop", "all").required(),
+        display_order: Joi.number().required(),
+        banner_img_url: Joi.string().allow(''),
+        redirection_url: Joi.string().allow('')
     })
 }
 const clinicController = {
@@ -817,6 +832,54 @@ const clinicController = {
             clinic_staff_type: body.clinic_staff_type
         });
         res.status(resonse.code).json(resonse);
+    },
+    uploadClinicBanner: async (req: FormdataRequest, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body, files } = req;
+        const validation: ValidationResult = requestParams.uploadClinicBanner.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let image_name = '';
+        if (body.banner_img_url) {
+            image_name = body.banner_img_url;
+        }
+        if (!body.banner_img_url && files.banner) {
+            let oldPath = files.banner.filepath;
+            image_name = `${body.banner_description}-${body.user_type}${body.user_id}}`;
+            image_name = image_name.replace(/[^a-zA-Z0-9\s]/g, '');
+            image_name = image_name.replace(/\s/g, '-');
+            image_name= image_name+path.extname(files.banner.originalFilename);
+            let new_path = `${banner_path}/${image_name}`;
+            try {
+                await new Promise((resolve, reject) => {
+                    fs.rename(oldPath, new_path, (err) => {
+                        if (err) {
+                            reject(err)
+                        } else {
+                            resolve(null)
+                        }
+                    });
+                })
+            } catch (err: any) {
+                internalServerError(err.message, res);
+                return
+            }
+        }
+        let now=get_current_datetime();
+        if(body.id){
+            
+        }else{
+            await DB.query("insert into banners set image=?,display_order=?,user_id=?,user_type=?,device_type=?,redirection_url=?,banner_description=?,upload_time=?",[
+                image_name,body.display_order,body.user_id,body.user_type,body.device_type,body.redirection_url,body.banner_description,now
+            ])
+        }
+        res.json(successResponse("Banner Updated successfully"))
     }
 }
 export default clinicController;

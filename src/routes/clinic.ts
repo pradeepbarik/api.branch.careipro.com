@@ -1,5 +1,5 @@
 import {Router} from 'express';
-import {apiRateLimit,handelError,employeeValidation,checkUnderBranch} from '../middleware';
+import {apiRateLimit,handelError,employeeValidation,checkUnderBranch,parseFormData} from '../middleware';
 import clinicController from '../controller/clinic';
 const clinicRoutes=Router();
 clinicRoutes.get('/login-token',[apiRateLimit(2,20),employeeValidation(1),checkUnderBranch],handelError(clinicController.getLoginToken));
@@ -18,6 +18,7 @@ clinicRoutes.post('/save-doctor-info',[apiRateLimit(10,60)],handelError(clinicCo
 clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.approveDoctor));
 clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));
 clinicRoutes.get('/clinic-banners',[apiRateLimit(1,3)],handelError(clinicController.clinicBanners));
+clinicRoutes.post('/upload-clinic-banner',[apiRateLimit(1,5),parseFormData],handelError(clinicController.uploadClinicBanner));
 clinicRoutes.get('/clinic-specialization',[apiRateLimit(10,30)],handelError(clinicController.clinicSpecializations));
 clinicRoutes.post('/clinic-specialization',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.updateClinicSpecialization));
 clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
