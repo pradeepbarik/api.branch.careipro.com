@@ -2,10 +2,10 @@ import { encrypt, decrypt } from '../../services/encryption';
 import { moment, formatDateTime } from '../../services/datetime';
 import { successResponse, unauthorizedResponse, Iresponse } from '../../services/response';
 export interface ILoginParams {
-    user_name: string;
-    password: string;
-    branch_id: number;
-    IP: string;
+    user_name: string,
+    password: string,
+    branch_id: number,
+    IP: string,
 }
 type LoginResponse = {
     token: string,

@@ -1,6 +1,3 @@
-import https, { Server } from 'https';
-import fs from 'fs';
-import { SSL_KEY_FILE, SSL_CERT_FILE } from './config';
 import { IDbmethods, getDevelopmentDb, getProductionDb, getDevelopmentMongoDb, getProductionMongoDB } from './db';
 import APP from './app';
 const PORT: number = <number><unknown>process.env.PORT;
@@ -44,11 +41,9 @@ if (DEV_MODE === 'development') {
         })
     })
 } else {
-    const key = fs.readFileSync(SSL_KEY_FILE);
-    const cert = fs.readFileSync(SSL_CERT_FILE);
-    const SERVER: Server = https.createServer({ key, cert }, APP).listen(PORT, () => {
-        console.log(`server is running on https port ${PORT}`);
-    });
+     const SERVER = APP.listen(PORT, () => {
+        console.log(`server is running ${PORT} dev_mode ${DEV_MODE}`);
+    })
     process.on('SIGINT', () => {
         console.log("SIGINT signal received")
         SERVER.close(() => {

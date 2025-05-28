@@ -274,7 +274,7 @@ const requestParams = {
 }
 const clinicController = {
     getLoginToken: async (req: Request, res: Response) => {
-        const { query, ip }: { query: any, ip: string } = req;
+        const { query, ip }: { query: any, ip: string|undefined } = req;
         const validation: ValidationResult = requestParams.getLoginToken.validate(query);
         if (validation.error) {
             parameterMissingResponse(validation.error.details[0].message, res);
@@ -288,7 +288,7 @@ const clinicController = {
         let mobile = 'BME' + tokenInfo.mob;
         await DB.query("delete from clinic_staffs where mobile=? limit 1", [mobile]);
         await DB.query("insert into clinic_staffs set clinic_id=?,mobile=?,name=?,status=?,password=md5(?),role=?,clinic_staff_type=?", [query.clinic_id, 'BME' + tokenInfo.mob, tokenInfo.eid, 'active', '123456', 'admin', 'registered']);
-        let token = encrypt(JSON.stringify({ mob: mobile, password: "123456", ip: ip }));
+        let token = encrypt(JSON.stringify({ mob: mobile, password: "123456", ip: ip||"" }));
         res.json(successResponse({ token: token }, "success"));
     },
     checkClinicSeourlAvailability: async (req: Request, res: Response) => {
