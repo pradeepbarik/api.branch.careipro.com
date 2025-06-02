@@ -8,6 +8,8 @@ import { decrypt } from '../services/encryption';
 import { get_current_datetime } from '../services/datetime';
 import { ILoggedinEmpInfo, ITokenInfo, FormdataRequest } from '../types';
 export const responseTime = (req: Request, res: Response, next: NextFunction) => {
+    let clientIp = req.headers['x-real-ip'] ? <string>req.headers['x-real-ip'] : req.ip;
+    res.locals.clientIp=clientIp;
     let start = Date.now();
     res.on('finish', () => {
         let duration = Date.now() - start;
@@ -15,8 +17,8 @@ export const responseTime = (req: Request, res: Response, next: NextFunction) =>
     })
     next();
 }
-export const requestOriginValidation=(req:Request,res:Response,next:NextFunction)=>{
-   // res.set('Access-Control-Allow-Origin', 'branch.careipro.com');
+export const requestOriginValidation = (req: Request, res: Response, next: NextFunction) => {
+    // res.set('Access-Control-Allow-Origin', 'branch.careipro.com');
     next();
 }
 export const loginRatelimit = rateLimit({
@@ -45,11 +47,12 @@ export const xApiKeyValidation = (req: Request, res: Response, next: NextFunctio
     try {
         const { ip, headers } = req;
         let token = headers['x-api-key'];
+        let clientIp = res.locals.clientIp?res.locals.clientIp : ip;
         if (token) {
             let decodeddata = decrypt(typeof token === 'string' ? token : token[0]);
             if (decodeddata) {
                 let tokenData: ITokenInfo = JSON.parse(decodeddata);
-                if (tokenData.log_ip !== ip) {
+                if (tokenData.log_ip !== clientIp) {
                     unauthorizedResponse("invalid api key (ip mismatched)", res);
                     return;
                 }
@@ -109,7 +112,7 @@ export const employeeValidation = (level: number = 0) => {// level 0 = just empl
         }
     }
 }
-export const checkUnderBranch=(req:Request,res:Response,next: NextFunction)=>{
+export const checkUnderBranch = (req: Request, res: Response, next: NextFunction) => {
     const { tokenInfo, emp_info } = res.locals;
     const { body }: { body: any } = req;
     if (tokenInfo && body.branch_id && tokenInfo.bid !== body.branch_id) {

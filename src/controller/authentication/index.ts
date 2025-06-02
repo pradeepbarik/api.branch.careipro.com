@@ -17,7 +17,8 @@ const authenticationController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
-        let result = await login({ user_name: body.username, password: body.password, branch_id: body.branch_id, IP: ip||"" });
+        let clientIp = res.locals.clientIp ? res.locals.clientIp : ip;
+        let result = await login({ user_name: body.username, password: body.password, branch_id: body.branch_id, IP: clientIp || "" });
         res.status(result.code).json(result);
     }
 }
