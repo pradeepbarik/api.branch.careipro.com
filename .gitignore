@@ -3,3 +3,4 @@
 /cert/
 /src/config.ts
 package-lock.json
+nodemon.json
