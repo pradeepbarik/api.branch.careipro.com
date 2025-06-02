@@ -1,11 +1,11 @@
 import fs from 'fs';
 export const uploadFileToServer = (oldPath: string, newPath: string) => {
     return new Promise((resolve, reject) => {
-        fs.rename(oldPath, newPath, (err) => {
+        fs.copyFile(oldPath, newPath, (err) => {
             if (err) {
-                console.log('err',err)
                 reject(err)
             } else {
+                fs.rmSync(oldPath);
                 resolve(null)
             }
         });
