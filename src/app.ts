@@ -10,6 +10,7 @@ import settingsRoutes from './routes/settings';
 import cacheRoutes from './routes/cache';
 import enquiryRoutes from './routes/enquiry';
 const APP: Application = express();
+APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress,level:1 }))
 APP.use(express.json());
 //APP.use(requestOriginValidation);
