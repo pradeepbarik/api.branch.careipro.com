@@ -27,9 +27,6 @@ export const loginRatelimit = rateLimit({
     message: rateLimitErrorResponse(),
     standardHeaders: true,
     legacyHeaders: false,
-    onLimitReached: async () => {
-        // block the profile
-    }
 })
 export const apiRateLimit = (count: number, timeInterval: number) => {
     return rateLimit({
