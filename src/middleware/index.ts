@@ -38,9 +38,6 @@ export const apiRateLimit = (count: number, timeInterval: number) => {
         message: rateLimitErrorResponse(),
         standardHeaders: true,
         legacyHeaders: false,
-        onLimitReached: async () => {
-            // block the profile
-        }
     })
 }
 export const xApiKeyValidation = (req: Request, res: Response, next: NextFunction) => {
