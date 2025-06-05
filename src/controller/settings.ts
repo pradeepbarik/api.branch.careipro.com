@@ -7,6 +7,7 @@ import { FormdataRequest } from '../types';
 import { unauthorizedResponse, parameterMissingResponse, successResponse,internalServerError } from '../services/response';
 import settingModel from '../model/settngs';
 import { get_current_datetime } from '../services/datetime';
+import { uploadFileToServer } from '../services/file-upload';
 const requestParams = {
     getPageSettings: Joi.object({
         state: Joi.string().required(),
@@ -216,15 +217,7 @@ const settingsController = {
             image_name = image_name + path.extname(files.banner.originalFilename);
             let new_path = `${banner_path}/${image_name}`;
             try {
-                await new Promise((resolve, reject) => {
-                    fs.rename(oldPath, new_path, (err) => {
-                        if (err) {
-                            reject(err)
-                        } else {
-                            resolve(null)
-                        }
-                    });
-                })
+               await uploadFileToServer(oldPath,new_path)
             } catch (err: any) {
                 internalServerError(err.message, res);
                 return

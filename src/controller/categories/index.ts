@@ -5,6 +5,7 @@ import { FormdataRequest } from '../../types';
 import { specialist_icon_path } from '../../constants';
 import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
 import { uploadFileToServer,deleteFile } from '../../services/file-upload';
+import {cleanString} from '../../helper/index';
 
 const requestParams = {
     getSpecialists: Joi.object({
@@ -80,7 +81,7 @@ const categoriesController = {
         }
         let icon = "";
         if (files && files.images) {
-            icon = body.name.toLowerCase().replace(" ", "-").replace(".", "") + path.extname(files.images.originalFilename);
+            icon = cleanString(body.name) + path.extname(files.images.originalFilename);
         }
         if (body.id) {
             let row=await DB.get_row<{id:number,name:string,parent_id:number,enable:number,short_description:string, icon:string,seo_id:string}>("select * from specialists where id=?",[body.id]);
