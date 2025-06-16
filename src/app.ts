@@ -9,6 +9,7 @@ import ratingRoutes from './routes/rating';
 import settingsRoutes from './routes/settings';
 import cacheRoutes from './routes/cache';
 import enquiryRoutes from './routes/enquiry';
+import commonapiRoutes from './routes/common-apis'
 const APP: Application = express();
 APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress,level:1 }))
@@ -26,4 +27,5 @@ APP.use('/rating-and-review',[xApiKeyValidation],ratingRoutes);
 APP.use('/settings',[xApiKeyValidation],settingsRoutes);
 APP.use('/cache',[xApiKeyValidation],cacheRoutes);
 APP.use('/enquiry',[xApiKeyValidation],enquiryRoutes);
+APP.use('/commonapi',[xApiKeyValidation],commonapiRoutes)
 export default APP;

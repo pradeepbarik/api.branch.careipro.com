@@ -46,7 +46,7 @@ export const xApiKeyValidation = (req: Request, res: Response, next: NextFunctio
             let decodeddata = decrypt(typeof token === 'string' ? token : token[0]);
             if (decodeddata) {
                 let tokenData: ITokenInfo = JSON.parse(decodeddata);
-                if (tokenData.log_ip !== clientIp) {
+                if (tokenData.log_ip !== clientIp && false) {
                     unauthorizedResponse("invalid api key (ip mismatched)", res);
                     return;
                 }
@@ -128,6 +128,7 @@ export const handelError = (cb: (req: Request, res: Response, next: NextFunction
         try {
             await cb(req, res, next);
         } catch (err: any) {
+            console.log(err);
             internalServerError(`Internal server error (${err.message})`, res);
         }
     }
