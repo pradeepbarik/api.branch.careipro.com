@@ -1,15 +1,15 @@
 import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
-import fs from 'fs';
 import path from 'path';
 import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
-import { banner_path } from '../../constants';
+import { banner_path, clinic_logo_path, doctor_logo_path } from '../../constants';
 import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization } from '../../model/clinic';
 import { addClinicStaff, staffList } from '../../model/clinic-staff';
 import doctorModel from '../../model/clinic/doctor';
 import { encrypt } from '../../services/encryption';
 import { FormdataRequest } from '../../types';
 import { get_current_datetime } from '../../services/datetime';
+import { uploadFileToServer, deleteFile } from '../../services/file-upload';
 const requestParams = {
     getLoginToken: Joi.object({
         clinic_id: Joi.number().required(),
@@ -201,6 +201,11 @@ const requestParams = {
         second_session_start_time: Joi.string().allow(''),
         second_session_end_time: Joi.string().allow('')
     }),
+    deleteDoctorMonthlyConsultingTiming: Joi.object({
+        id: Joi.number(),
+        cid: Joi.number().required(),
+        service_loc_id: Joi.number().required(),
+    }),
     updateSlnoGroup: Joi.object({
         action: Joi.string().required(),
         id: Joi.number(),
@@ -270,11 +275,24 @@ const requestParams = {
         display_order: Joi.number().required(),
         banner_img_url: Joi.string().allow(''),
         redirection_url: Joi.string().allow('')
+    }),
+    updateClinicLogo: Joi.object({
+        clinic_id: Joi.number().required(),
+        old_logo: Joi.string().allow(""),
+        clinic_name: Joi.string().required(),
+        clinic_city: Joi.string().required()
+    }),
+    updateDoctorProfilePic: Joi.object({
+        clinic_id: Joi.number().required(),
+        doctor_id: Joi.number().required(),
+        old_logo: Joi.string().allow(""),
+        doctor_name: Joi.string().required(),
+        city: Joi.string().required(),
     })
 }
 const clinicController = {
     getLoginToken: async (req: Request, res: Response) => {
-        const { query, ip }: { query: any, ip: string|undefined } = req;
+        const { query, ip }: { query: any, ip: string | undefined } = req;
         const validation: ValidationResult = requestParams.getLoginToken.validate(query);
         if (validation.error) {
             parameterMissingResponse(validation.error.details[0].message, res);
@@ -288,7 +306,7 @@ const clinicController = {
         let mobile = 'BME' + tokenInfo.mob;
         await DB.query("delete from clinic_staffs where mobile=? limit 1", [mobile]);
         await DB.query("insert into clinic_staffs set clinic_id=?,mobile=?,name=?,status=?,password=md5(?),role=?,clinic_staff_type=?", [query.clinic_id, 'BME' + tokenInfo.mob, tokenInfo.eid, 'active', '123456', 'admin', 'registered']);
-        let token = encrypt(JSON.stringify({ mob: mobile, password: "123456", ip: ip||"" }));
+        let token = encrypt(JSON.stringify({ mob: mobile, password: "123456", ip: ip || "" }));
         res.json(successResponse({ token: token }, "success"));
     },
     checkClinicSeourlAvailability: async (req: Request, res: Response) => {
@@ -680,6 +698,15 @@ const clinicController = {
                     }
                     let response = await doctorModel.updateMonthlyConsultingTiming(doctor_id, cid, body.service_loc_id, timings)
                     res.status(response.code).json(response);
+                } else if (section === 'delete_monthly') {
+                    const { section, ...timings } = restParams;
+                    const validation: ValidationResult = requestParams.deleteDoctorMonthlyConsultingTiming.validate(timings);
+                    if (validation.error) {
+                        parameterMissingResponse(validation.error.details[0].message, res);
+                        return;
+                    }
+                    let response = await doctorModel.deleteMonthyConsultingTimeing({ id: body.id, doctor_id: doctor_id, service_loc_id: timings.service_loc_id, clinic_id: cid })
+                    res.status(response.code).json(response);
                 }
             } else if (tab === "slno_groups") {
                 let { action, ...params } = restParams;
@@ -854,32 +881,97 @@ const clinicController = {
             image_name = `${body.banner_description}-${body.user_type}${body.user_id}}`;
             image_name = image_name.replace(/[^a-zA-Z0-9\s]/g, '');
             image_name = image_name.replace(/\s/g, '-');
-            image_name= image_name+path.extname(files.banner.originalFilename);
+            image_name = image_name + path.extname(files.banner.originalFilename);
             let new_path = `${banner_path}/${image_name}`;
             try {
-                await new Promise((resolve, reject) => {
-                    fs.rename(oldPath, new_path, (err) => {
-                        if (err) {
-                            reject(err)
-                        } else {
-                            resolve(null)
-                        }
-                    });
-                })
+                await uploadFileToServer(oldPath, new_path)
             } catch (err: any) {
                 internalServerError(err.message, res);
                 return
             }
         }
-        let now=get_current_datetime();
-        if(body.id){
-            
-        }else{
-            await DB.query("insert into banners set image=?,display_order=?,user_id=?,user_type=?,device_type=?,redirection_url=?,banner_description=?,upload_time=?",[
-                image_name,body.display_order,body.user_id,body.user_type,body.device_type,body.redirection_url,body.banner_description,now
+        let now = get_current_datetime();
+        if (body.id) {
+
+        } else {
+            await DB.query("insert into banners set image=?,display_order=?,user_id=?,user_type=?,device_type=?,redirection_url=?,banner_description=?,upload_time=?", [
+                image_name, body.display_order, body.user_id, body.user_type, body.device_type, body.redirection_url, body.banner_description, now
             ])
         }
         res.json(successResponse("Banner Updated successfully"))
+    },
+    updateClinicLogo: async (req: FormdataRequest, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body, files } = req;
+        const validation: ValidationResult = requestParams.updateClinicLogo.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        if (files.logo) {
+            let oldPath = files.logo.filepath;
+            let clinic_logo = `${body.clinic_name}-${body.clinic_city}}`;
+            clinic_logo = clinic_logo.replace(/[^a-zA-Z0-9\s-]/g, '');
+            clinic_logo = clinic_logo.replace(/\s/g, '-');
+            clinic_logo = clinic_logo + path.extname(files.logo.originalFilename);
+            try {
+                uploadFileToServer(oldPath, `${clinic_logo_path}/${clinic_logo}`);
+                const now = new Date(get_current_datetime());
+                clinic_logo = clinic_logo + "?t=" + now.getSeconds();
+                await DB.query("update clinics set logo=? where id=?", [clinic_logo, body.clinic_id]);
+                if (body.old_logo !== clinic_logo) {
+                    deleteFile(`${clinic_logo_path}/${body.old_logo}`)
+                }
+                res.json(successResponse({ logo: clinic_logo }, "Logo updated successfully"));
+            } catch (err: any) {
+                res.json(internalServerError("Something went wrong", res));
+            }
+        } else {
+            res.json(parameterMissingResponse("Please select an image", res));
+        }
+    },
+    updateDoctorProfilePic: async (req: FormdataRequest, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body, files } = req;
+        const validation: ValidationResult = requestParams.updateDoctorProfilePic.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        if (files.logo) {
+            let row = await DB.get_row<{ name: string }>("select name from clinics where id=?", [body.clinic_id]);
+            if (row == null) {
+                serviceNotAcceptable("Invalid clinic detail", res);
+                return;
+            }
+            let oldPath = files.logo.filepath;
+            let doctor_logo = `${body.doctor_name}-${row?.name}-at-${body.city}}`;
+            doctor_logo = doctor_logo.replace(/[^a-zA-Z0-9\s-]/g, '');
+            doctor_logo = doctor_logo.replace(/\s/g, '-');
+            doctor_logo = doctor_logo + path.extname(files.logo.originalFilename);
+            try {
+                uploadFileToServer(oldPath, `${doctor_logo_path}/${doctor_logo}`);
+                const now = new Date(get_current_datetime());
+                doctor_logo = doctor_logo + "?t=" + now.getSeconds();
+                await DB.query("update doctor set image=? where id=?", [doctor_logo, body.doctor_id]);
+                if (body.old_logo !== doctor_logo) {
+                    deleteFile(`${clinic_logo_path}/${body.old_logo}`);
+                }
+                res.json(successResponse({ logo: doctor_logo }, "Logo updated successfully"));
+            } catch (err: any) {
+                res.json(internalServerError("Something went wrong", res));
+            }
+        } else {
+            res.json(parameterMissingResponse("Please select an image", res));
+        }
     }
 }
 export default clinicController;

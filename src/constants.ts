@@ -2,7 +2,9 @@ import {asset_path} from './config';
 export const popular_clinic_image_path=asset_path+"images/popular-clinic-banner/";
 export const city_icon_path=asset_path+"images/city-icon/";
 export const specialist_icon_path=asset_path+"images/doctor-specialist";
-export const banner_path=asset_path+"images/banners"
+export const banner_path=asset_path+"images/banners";
+export const clinic_logo_path=asset_path+"images/clinic";
+export const doctor_logo_path=asset_path+"images/profile/doctor";
 export const HOME_PAGE_CACHE_FILE = "home-page.json";
 export const DOCTORS_PAGE_CACHE_FILE = "doctors-page.json";
 export const CLINICS_PAGE_CACHE_FILE = "clinics-page.json";
