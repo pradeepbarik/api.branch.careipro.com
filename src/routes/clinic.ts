@@ -10,6 +10,7 @@ clinicRoutes.post('/add-new-clinic',[apiRateLimit(1,4),employeeValidation(1)],ha
 clinicRoutes.get('/clinic-list',[apiRateLimit(1,4)],handelError(clinicController.getClinicList));
 clinicRoutes.get('/clinic-detail',[apiRateLimit(10,20)],handelError(clinicController.getClinicDetail));
 clinicRoutes.post('/clinic-detail',[apiRateLimit(1,5),employeeValidation(1),checkUnderBranch],handelError(clinicController.saveClinicDetail));
+clinicRoutes.post('/clinic-timing',[apiRateLimit(1,5),employeeValidation(1)],handelError(clinicController.saveClinicTiming));
 clinicRoutes.post('/clinic-logo-update',[apiRateLimit(1,5),parseFormData],handelError(clinicController.updateClinicLogo));
 clinicRoutes.get('/get-doctors-list',[apiRateLimit(1,4)],handelError(clinicController.getDoctorsList));
 clinicRoutes.get('/get-doctors-for-drop-down',[apiRateLimit(30,60)],handelError(clinicController.getDoctorsForDropDown));

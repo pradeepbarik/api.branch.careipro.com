@@ -78,7 +78,51 @@ const requestParams = {
         state: Joi.string(),
         market_name: Joi.string(),
         category: Joi.array().items(Joi.string()),
-        partner_type: Joi.string()
+        partner_type: Joi.string(),
+        whatsapp_number:Joi.string().allow(''),
+        whatsapp_channel_link: Joi.string().allow(''),
+        tag_line: Joi.string().allow(''),
+        enable_enquiry: Joi.number().allow(''),
+        show_patients_feedback: Joi.number().allow(''),
+    }),
+    saveClinicTiming: Joi.object({
+        clinic_id: Joi.number().required(),
+        type: Joi.string().valid('insert', 'update').required(),
+        monday: Joi.number().valid(0, 1).required(),
+        monday_1st_session_start: Joi.string().allow(''),
+        monday_1st_session_end: Joi.string().allow(''),
+        monday_2nd_session_start: Joi.string().allow(''),
+        monday_2nd_session_end: Joi.string().allow(''),
+        tuesday: Joi.number().valid(0, 1).required(),
+        tuesday_1st_session_start: Joi.string().allow(''),
+        tuesday_1st_session_end: Joi.string().allow(''),
+        tuesday_2nd_session_start: Joi.string().allow(''),
+        tuesday_2nd_session_end: Joi.string().allow(''),
+        wednesday: Joi.number().valid(0, 1).required(),
+        wednesday_1st_session_start: Joi.string().allow(''),
+        wednesday_1st_session_end: Joi.string().allow(''),
+        wednesday_2nd_session_start: Joi.string().allow(''),
+        wednesday_2nd_session_end: Joi.string().allow(''),
+        thursday: Joi.number().valid(0, 1).required(),
+        thursday_1st_session_start: Joi.string().allow(''),
+        thursday_1st_session_end: Joi.string().allow(''),
+        thursday_2nd_session_start: Joi.string().allow(''),
+        thursday_2nd_session_end: Joi.string().allow(''),
+        friday: Joi.number().valid(0, 1).required(),
+        friday_1st_session_start: Joi.string().allow(''),
+        friday_1st_session_end: Joi.string().allow(''),
+        friday_2nd_session_start: Joi.string().allow(''),
+        friday_2nd_session_end: Joi.string().allow(''),
+        saturday: Joi.number().valid(0, 1).required(),
+        saturday_1st_session_start: Joi.string().allow(''),
+        saturday_1st_session_end: Joi.string().allow(''),
+        saturday_2nd_session_start: Joi.string().allow(''),
+        saturday_2nd_session_end: Joi.string().allow(''),
+        sunday: Joi.number().valid(0, 1).required(),
+        sunday_1st_session_start: Joi.string().allow(''),
+        sunday_1st_session_end: Joi.string().allow(''),
+        sunday_2nd_session_start: Joi.string().allow(''),
+        sunday_2nd_session_end: Joi.string().allow(''),
     }),
     updateClinicSpecialization: Joi.object({
         clinic_id: Joi.number().required(),
@@ -147,7 +191,9 @@ const requestParams = {
         appointment_book_mode: Joi.string().valid('online', 'offline', 'online_offline'),//ENUM('online', 'offline', 'online_offline')
         allow_booking_request: Joi.number().valid(1, 0),
         slot_allocation_mode: Joi.string().valid('auto', 'manual'),//ENUM('auto', 'manual')
-        slno_type: Joi.string().valid('number', 'group', 'group_without_time', 'group_for_advance_booking')//enum('number','group','group_without_time','group_for_advance_booking')
+        slno_type: Joi.string().valid('number', 'group', 'group_without_time', 'group_for_advance_booking'),//enum('number','group','group_without_time','group_for_advance_booking'),
+        enable_enquiry:Joi.number().valid(0, 1).allow(''),
+        show_patients_feedback: Joi.number().valid(0, 1).allow(''),
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),
@@ -490,7 +536,7 @@ const clinicController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        let updateRes = await cliniModel.updateClinicDetail(tokenInfo.bid, {
+        let postdata:any={
             clinic_id: body.clinic_id,
             name: body.name,
             email: body.email,
@@ -511,7 +557,70 @@ const clinicController = {
             state: body.state,
             market_name: body.market_name,
             category: body.category,
-            partner_type: body.partner_type
+            partner_type: body.partner_type,
+            whatsapp_number: body.whatsapp_number,
+            whatsapp_channel_link: body.whatsapp_channel_link,
+            tag_line: body.tag_line,
+        }
+        if(typeof body.enable_enquiry!=="undefined"){
+            postdata.enable_enquiry = body.enable_enquiry;
+        }
+        if(typeof body.show_patients_feedback!=="undefined"){
+            postdata.show_patients_feedback = body.show_patients_feedback;
+        }
+        let updateRes = await cliniModel.updateClinicDetail(tokenInfo.bid,postdata);
+        res.status(updateRes.code).json(updateRes);
+    },
+    saveClinicTiming: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.saveClinicTiming.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        
+        let updateRes = await cliniModel.updateClinicTiming(tokenInfo.bid, body.clinic_id, {
+            type:body.type,
+            monday: body.monday,
+            monday_1st_session_start: body.monday_1st_session_start,
+            monday_1st_session_end: body.monday_1st_session_end,
+            monday_2nd_session_start: body.monday_2nd_session_start,
+            monday_2nd_session_end: body.monday_2nd_session_end,
+            tuesday: body.tuesday,
+            tuesday_1st_session_start: body.tuesday_1st_session_start,
+            tuesday_1st_session_end: body.tuesday_1st_session_end,
+            tuesday_2nd_session_start: body.tuesday_2nd_session_start,
+            tuesday_2nd_session_end: body.tuesday_2nd_session_end,
+            wednesday: body.wednesday,
+            wednesday_1st_session_start: body.wednesday_1st_session_start,
+            wednesday_1st_session_end: body.wednesday_1st_session_end,
+            wednesday_2nd_session_start: body.wednesday_2nd_session_start,
+            wednesday_2nd_session_end: body.wednesday_2nd_session_end,
+            thursday: body.thursday,
+            thursday_1st_session_start: body.thursday_1st_session_start,
+            thursday_1st_session_end: body.thursday_1st_session_end,
+            thursday_2nd_session_start: body.thursday_2nd_session_start,
+            thursday_2nd_session_end: body.thursday_2nd_session_end,
+            friday: body.friday,
+            friday_1st_session_start: body.friday_1st_session_start,
+            friday_1st_session_end: body.friday_1st_session_end,
+            friday_2nd_session_start: body.friday_2nd_session_start,
+            friday_2nd_session_end: body.friday_2nd_session_end,
+            saturday: body.saturday,
+            saturday_1st_session_start: body.saturday_1st_session_start,
+            saturday_1st_session_end: body.saturday_1st_session_end,
+            saturday_2nd_session_start: body.saturday_2nd_session_start,
+            saturday_2nd_session_end: body.saturday_2nd_session_end,
+            sunday: body.sunday,
+            sunday_1st_session_start: body.sunday_1st_session_start,
+            sunday_1st_session_end: body.sunday_1st_session_end,
+            sunday_2nd_session_start: body.sunday_2nd_session_start,
+            sunday_2nd_session_end: body.sunday_2nd_session_end,
         });
         res.status(updateRes.code).json(updateRes);
     },

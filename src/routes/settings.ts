@@ -24,7 +24,7 @@ settingsRoutes.post('/update-city',[apiRateLimit(60,60),parseFormData],handelErr
 settingsRoutes.get('/categories',[apiRateLimit(5,20)],handelError(categoriesController.getSpecialists));
 settingsRoutes.post('/categories',[apiRateLimit(3,20),parseFormData],handelError(categoriesController.addNewSpecialist));
 settingsRoutes.post('/update-category-setting',[apiRateLimit(3,20)],handelError(categoriesController.updateCategorySetting));
-settingsRoutes.get("/page-settings",[apiRateLimit(4,20)],handelError(settingsController.getPageSettings));
+settingsRoutes.get("/page-settings",[apiRateLimit(20,20)],handelError(settingsController.getPageSettings));
 settingsRoutes.post("/page-settings",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.savePageSettings));
 settingsRoutes.get('/banners',[apiRateLimit(5,20)],handelError(settingsController.getBanners));
 settingsRoutes.post('/banner',[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(settingsController.updateBanner));

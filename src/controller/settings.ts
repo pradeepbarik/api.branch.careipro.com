@@ -4,7 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import { banner_path } from '../constants';
 import { FormdataRequest } from '../types';
-import { unauthorizedResponse, parameterMissingResponse, successResponse,internalServerError } from '../services/response';
+import { unauthorizedResponse, parameterMissingResponse, successResponse, internalServerError } from '../services/response';
 import settingModel from '../model/settngs';
 import { get_current_datetime } from '../services/datetime';
 import { uploadFileToServer } from '../services/file-upload';
@@ -84,13 +84,32 @@ const requestParams = {
         section: Joi.object({
             _id: Joi.string().allow(''),
             heading: Joi.string().allow(""),
-            viewType: Joi.string().required(),
+            viewType: Joi.string().allow(""),
             enable: Joi.boolean().required(),
             cat_id: Joi.array().items(Joi.number()),
             doctor_ids: Joi.array().items(Joi.number()),
             clinic_ids: Joi.array().items(Joi.number()),
             section_type: Joi.string().required(),
             listing_count: Joi.number().allow(0, "")
+        })
+    }),
+    savePhysiotherapyPageSetting: Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required(),
+        page_name: Joi.string().required(),
+        popular_specialists: Joi.array().items(Joi.number()),
+        section: Joi.object({
+            _id: Joi.string().allow(''),
+            heading: Joi.string().allow(""),
+            section_type: Joi.string().required(),
+            viewType: Joi.string().allow(''),
+            enable: Joi.boolean().required(),
+            specialist_ids: Joi.array().items(Joi.number()),
+            doctor_ids: Joi.array().items(Joi.number()),
+            clinic_ids: Joi.array().items(Joi.number()),
+            listing_count: Joi.number().allow(0, ""),
+            banner:Joi.string().allow(''),
+            banner_redirection_url:Joi.string().allow('')
         })
     }),
     updateBanner: Joi.object({
@@ -181,6 +200,19 @@ const settingsController = {
                 popular_specialists: body.popular_specialists,
                 section: body.section
             });
+        } else if (body.page_name === "physiotherapy" || body.page_name === "petcare") {
+            const validation: ValidationResult = requestParams.savePhysiotherapyPageSetting.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+             await settingModel.savePhysiotherapyPageData({
+                state: body.state,
+                city: body.city,
+                page_name:body.page_name,
+                popular_specialists: body.popular_specialists,
+                section: body.section
+            });
         }
         res.json(successResponse({}, "success"))
     },
@@ -217,17 +249,17 @@ const settingsController = {
             image_name = image_name + path.extname(files.banner.originalFilename);
             let new_path = `${banner_path}/${image_name}`;
             try {
-               await uploadFileToServer(oldPath,new_path)
+                await uploadFileToServer(oldPath, new_path)
             } catch (err: any) {
                 internalServerError(err.message, res);
                 return
             }
         }
         let now = get_current_datetime();
-        if(body.id){
+        if (body.id) {
 
-        }else{
-            await DB.query("INSERT INTO site_banners (image,alt_text,device_type,branch_id,link,active,display_order,city,page,upload_time) VALUES (?,?,?,?,?,?,?,?,?,?)", [image_name,body.alt_text,body.device_type,tokenInfo.bid,body.redirection_url,1,body.display_order,tokenInfo.bd,body.page,now]);
+        } else {
+            await DB.query("INSERT INTO site_banners (image,alt_text,device_type,branch_id,link,active,display_order,city,page,upload_time) VALUES (?,?,?,?,?,?,?,?,?,?)", [image_name, body.alt_text, body.device_type, tokenInfo.bid, body.redirection_url, 1, body.display_order, tokenInfo.bd, body.page, now]);
             res.json(successResponse({}, "Banner added successfully"));
             return;
         }
@@ -244,7 +276,7 @@ const settingsController = {
             parameterMissingResponse("Banner id is required", res);
             return;
         }
-        let banner = await DB.get_row<{image:string}>("select image from site_banners where id = ? and city = ?", [body.id, tokenInfo.bd]);
+        let banner = await DB.get_row<{ image: string }>("select image from site_banners where id = ? and city = ?", [body.id, tokenInfo.bd]);
         if (banner) {
             // Only delete if banner.image is not a URL
             if (!/^https?:\/\//i.test(banner.image)) {

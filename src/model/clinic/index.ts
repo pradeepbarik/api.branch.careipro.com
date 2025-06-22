@@ -3,10 +3,10 @@ import { get_current_datetime } from '../../services/datetime';
 import { Iresponse, unauthorizedResponse, successResponse, internalServerError } from '../../services/response';
 import { doctorprofileChangeLogModel } from '../../mongo-schema/coll_doctor_tbl_change_log';
 import { clinicprofileChangeLogModel } from '../../mongo-schema/coll_clinic_tbl_chnage_logs';
-import {getGroupCategoryShortName} from '../../helper';
+import { getGroupCategoryShortName } from '../../helper';
 type TaddNewClinicParams = {
     branch_id: number,
-    business_type:string,
+    business_type: string,
     clinic_name: string,
     clinic_seo_url: string,
     contact_no: number,
@@ -52,7 +52,7 @@ const clinicModel = {
     addNewClinic: async (params: TaddNewClinicParams) => {
         //C12-ODBHC
         let q = 'insert into clinics set name=?,username=?,password=md5(?),email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type=?,business_type=?';
-        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type,params.business_type]);
+        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type, params.business_type]);
         if (insertRes.affectedRows >= 1) {
             let clinic_id = insertRes.insertId;
             let now = get_current_datetime();
@@ -107,7 +107,12 @@ const clinicModel = {
         state?: string,
         market_name?: string,
         category?: string[],
-        partner_type?: string
+        partner_type?: string,
+        whatsapp_number?: string,
+        whatsapp_channel_link?: string,
+        tag_line?: string,
+        enable_enquiry?: number,
+        show_patients_feedback?: number
     }) => {
         try {
             let q = "update clinics set ";
@@ -193,6 +198,30 @@ const clinicModel = {
                 updateFields.push("partner_type=?");
                 sql_params.push(params.partner_type);
             }
+            if (params.whatsapp_number) {
+                updateFields.push("whatsapp_number=?");
+                sql_params.push(params.whatsapp_number);
+            }
+            if (params.whatsapp_channel_link) {
+                updateFields.push("whatsapp_channel_link=?");
+                sql_params.push(params.whatsapp_channel_link);
+            }
+            if (params.tag_line) {
+                updateFields.push("tag_line=?");
+                sql_params.push(params.tag_line);
+            }
+            if (params.enable_enquiry !== undefined) {
+                if (params.enable_enquiry == 1 || params.enable_enquiry == 0) {
+                    updateFields.push("enable_enquiry=?");
+                    sql_params.push(params.enable_enquiry);
+                }
+            }
+            if (params.show_patients_feedback !== undefined) {
+                if (params.show_patients_feedback == 1 || params.show_patients_feedback == 0) {
+                    updateFields.push("show_patients_feedback=?");
+                    sql_params.push(params.show_patients_feedback);
+                }
+            }
             if (updateFields.length > 0) {
                 q += updateFields.join(',');
                 q += " where id=? and branch_id=?";
@@ -203,6 +232,57 @@ const clinicModel = {
         } catch (err: any) {
             return internalServerError(err.message)
         }
+    },
+    updateClinicTiming: async (branch_id: number, clinic_id: number, params: {
+        type: "insert" | "update",
+        monday: number,
+        monday_1st_session_start: string,
+        monday_1st_session_end: string,
+        monday_2nd_session_start: string,
+        monday_2nd_session_end: string,
+        tuesday: number,
+        tuesday_1st_session_start: string,
+        tuesday_1st_session_end: string,
+        tuesday_2nd_session_start: string,
+        tuesday_2nd_session_end: string,
+        wednesday: number,
+        wednesday_1st_session_start: string,
+        wednesday_1st_session_end: string,
+        wednesday_2nd_session_start: string,
+        wednesday_2nd_session_end: string,
+        thursday: number,
+        thursday_1st_session_start: string,
+        thursday_1st_session_end: string,
+        thursday_2nd_session_start: string,
+        thursday_2nd_session_end: string,
+        friday: number,
+        friday_1st_session_start: string,
+        friday_1st_session_end: string,
+        friday_2nd_session_start: string,
+        friday_2nd_session_end: string,
+        saturday: number,
+        saturday_1st_session_start: string,
+        saturday_1st_session_end: string,
+        saturday_2nd_session_start: string,
+        saturday_2nd_session_end: string,
+        sunday: number,
+        sunday_1st_session_start: string,
+        sunday_1st_session_end: string,
+        sunday_2nd_session_start: string,
+        sunday_2nd_session_end: string,
+    }) => {
+        if(params.type === "update"){
+            await DB.query("update clinic_timings set monday=?,monday_1st_session_start=?,monday_1st_session_end=?,monday_2nd_session_start=?,monday_2nd_session_end=?,tuesday=?,tuesday_1st_session_start=?,tuesday_1st_session_end=?,tuesday_2nd_session_start=?,tuesday_2nd_session_end=?,wednesday=?,wednesday_1st_session_start=?,wednesday_1st_session_end=?,wednesday_2nd_session_start=?,wednesday_2nd_session_end=?,thursday=?,thursday_1st_session_start=?,thursday_1st_session_end=?,thursday_2nd_session_start=?,thursday_2nd_session_end=?,friday=?,friday_1st_session_start=?,friday_1st_session_end=?,friday_2nd_session_start=?,friday_2nd_session_end=?,saturday=?,saturday_1st_session_start=?,saturday_1st_session_end=?,saturday_2nd_session_start=?,saturday_2nd_session_end=?,sunday=?,sunday_1st_session_start=?,sunday_1st_session_end=?,sunday_2nd_session_start=?,sunday_2nd_session_end=? where clinic_id=?",[params.monday,params.monday_1st_session_start,params.monday_1st_session_end,params.monday_2nd_session_start,params.monday_2nd_session_end,params.tuesday,params.tuesday_1st_session_start,params.tuesday_1st_session_end,params.tuesday_2nd_session_start,params.tuesday_2nd_session_end,params.wednesday,params.wednesday_1st_session_start,params.wednesday_1st_session_end,params.wednesday_2nd_session_start,params.wednesday_2nd_session_end,params.thursday,params.thursday_1st_session_start,params.thursday_1st_session_end,params.thursday_2nd_session_start,params.thursday_2nd_session_end,params.friday,params.friday_1st_session_start,params.friday_1st_session_end,params.friday_2nd_session_start,params.friday_2nd_session_end,params.saturday,params.saturday_1st_session_start,params.saturday_1st_session_end,params.saturday_2nd_session_start,params.saturday_2nd_session_end,params.sunday,params.sunday_1st_session_start,params.sunday_1st_session_end,params.sunday_2nd_session_start,params.sunday_2nd_session_end,clinic_id]);
+        }else{
+            await DB.query("insert into clinic_timings set clinic_id=?,monday=?,monday_1st_session_start=?,monday_1st_session_end=?,monday_2nd_session_start=?,monday_2nd_session_end=?,"+
+            "tuesday=?,tuesday_1st_session_start=?,tuesday_1st_session_end=?,tuesday_2nd_session_start=?,tuesday_2nd_session_end=?,"+
+            "wednesday=?,wednesday_1st_session_start=?,wednesday_1st_session_end=?,wednesday_2nd_session_start=?,wednesday_2nd_session_end=?,"+
+            "thursday=?,thursday_1st_session_start=?,thursday_1st_session_end=?,thursday_2nd_session_start=?,thursday_2nd_session_end=?,"+
+            "friday=?,friday_1st_session_start=?,friday_1st_session_end=?,friday_2nd_session_start=?,friday_2nd_session_end=?,"+
+            "saturday=?,saturday_1st_session_start=?,saturday_1st_session_end=?,saturday_2nd_session_start=?,saturday_2nd_session_end=?,"+
+            "sunday=?,sunday_1st_session_start=?,sunday_1st_session_end=?,sunday_2nd_session_start=?,sunday_2nd_session_end=?",[clinic_id,params.monday,params.monday_1st_session_start,params.monday_1st_session_end,params.monday_2nd_session_start,params.monday_2nd_session_end,params.tuesday,params.tuesday_1st_session_start,params.tuesday_1st_session_end,params.tuesday_2nd_session_start,params.tuesday_2nd_session_end,params.wednesday,params.wednesday_1st_session_start,params.wednesday_1st_session_end,params.wednesday_2nd_session_start,params.wednesday_2nd_session_end,params.thursday,params.thursday_1st_session_start,params.thursday_1st_session_end,params.thursday_2nd_session_start,params.thursday_2nd_session_end,params.friday,params.friday_1st_session_start,params.friday_1st_session_end,params.friday_2nd_session_start,params.friday_2nd_session_end,params.saturday,params.saturday_1st_session_start,params.saturday_1st_session_end,params.saturday_2nd_session_start,params.saturday_2nd_session_end,params.sunday,params.sunday_1st_session_start,params.sunday_1st_session_end,params.sunday_2nd_session_start,params.sunday_2nd_session_end]);
+        }
+        return successResponse({}, "Clinic timing updated successfully");
     }
 }
 export const getDoctors = async (branch_id: number, clinic_id: number) => {
@@ -436,27 +516,27 @@ export const getClinicSpecialization = async (params: {
                 }
                 let specialistRows = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_name as parent_specialization_name from (select t1.*,t2.name as parent_name from (select * from specialists where parent_id!=0 and group_category=? and enable=1) as t1 join (select id,name from specialists where parent_id=0 and name in (?)) as t2 on t1.parent_id=t2.id) as t1
                  left join 
-                (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id`, [params.business_type, parent_categories, params.clinic_id],true);
+                (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id`, [params.business_type, parent_categories, params.clinic_id], true);
                 return successResponse(specialistRows, "succes")
             } else {
-                let rows:any = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_id as parent_id from (select * from specialists where group_category=? and parent_id=0
+                let rows: any = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_id as parent_id from (select * from specialists where group_category=? and parent_id=0
                 union
                 select * from specialists where group_category=? and parent_id!=0) as t1 left join 
                 (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id
-                order by t1.parent_id`, [params.business_type,params.business_type, params.clinic_id]);
-                let obj:any={};
-                for(let row of rows){
-                    if(row.parent_id===0){
-                        if(!obj[row.specialist_id]){
-                            obj[row.specialist_id]=[];
+                order by t1.parent_id`, [params.business_type, params.business_type, params.clinic_id]);
+                let obj: any = {};
+                for (let row of rows) {
+                    if (row.parent_id === 0) {
+                        if (!obj[row.specialist_id]) {
+                            obj[row.specialist_id] = [];
                         }
                         obj[row.specialist_id].push(row)
-                    }else{
-                       obj[row.parent_id].push(row)
+                    } else {
+                        obj[row.parent_id].push(row)
                     }
                 }
-                let finalRows:any=[]
-                for(let arr of Object.values(obj)){
+                let finalRows: any = []
+                for (let arr of Object.values(obj)) {
                     finalRows = finalRows.concat(arr)
                 }
                 return successResponse(finalRows, "succes")
