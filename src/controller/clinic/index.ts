@@ -128,7 +128,13 @@ const requestParams = {
         clinic_id: Joi.number().required(),
         branch_id: Joi.number().required(),
         specilization_business_type: Joi.string().required(),
-        specialization_ids: Joi.array().items(Joi.number())
+        specializations: Joi.array().items(Joi.object({
+            specialist_id:Joi.number().required(),
+            specialist_business_type:Joi.string().required(),
+            score:Joi.number().allow(''),
+            service_price:Joi.number().allow(''),
+            service_price_display:Joi.string().allow('')
+        }))
     }),
     getSpecialists: Joi.object({
         clinic_id: Joi.number().required(),
@@ -194,6 +200,7 @@ const requestParams = {
         slno_type: Joi.string().valid('number', 'group', 'group_without_time', 'group_for_advance_booking'),//enum('number','group','group_without_time','group_for_advance_booking'),
         enable_enquiry:Joi.number().valid(0, 1).allow(''),
         show_patients_feedback: Joi.number().valid(0, 1).allow(''),
+        site_service_charge:Joi.number().allow("")
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),
@@ -636,13 +643,13 @@ const clinicController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        let query = "insert into clinic_specialization (clinic_id,specialist_id,specialist_business_type) values ?";
+        let query = "insert into clinic_specialization (clinic_id,specialist_id,specialist_business_type,score,service_price,service_price_display) values ?";
         let sqlParams: any = [];
-        for (let id of body.specialization_ids) {
-            sqlParams.push([body.clinic_id, id, body.specilization_business_type]);
+        for (let specialization of body.specializations) {
+            sqlParams.push([body.clinic_id, specialization.specialist_id, body.specilization_business_type,specialization.score||null,specialization.service_price||null,specialization.service_price_display]);
         }
         await DB.query("delete from clinic_specialization where clinic_id=? and specialist_business_type=?", [body.clinic_id, body.specilization_business_type]);
-        DB.query(query, [sqlParams]);
+        DB.query(query, [sqlParams],true);
         res.json(successResponse({}, "success"));
     },
     getDoctorsList: async (req: Request, res: Response) => {

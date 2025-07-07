@@ -14,6 +14,8 @@ export const getGroupCategoryShortName = (groupCategory: string) => {
             return "PTY";
         case "MEDICINESTORE":
             return "MS";
+        case "TESTSCAN":
+            return "TS";
         default:
             return "";
     }

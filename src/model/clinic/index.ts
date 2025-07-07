@@ -514,12 +514,12 @@ export const getClinicSpecialization = async (params: {
                     let categories_row = await DB.get_row<{ categories: string }>(`select group_concat(name) as categories from specialists where parent_id=0 and group_category=?`, [params.business_type]);
                     parent_categories = categories_row && categories_row.categories ? categories_row.categories.split(',') : [];
                 }
-                let specialistRows = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.p_id as parent_id,t1.parent_name as parent_specialization_name from (select t1.*,t2.id as p_id,t2.name as parent_name from (select * from specialists where group_category=? and enable=1) as t1 left join (select id,name from specialists where parent_id=0 and name in (?)) as t2 on t1.parent_id=t2.id) as t1
+                let specialistRows = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.p_id as parent_id,t1.parent_name as parent_specialization_name,csp.service_price,csp.service_price_display,csp.specialist_business_type,csp.score from (select t1.*,t2.id as p_id,t2.name as parent_name from (select * from specialists where group_category=? and enable=1) as t1 left join (select id,name from specialists where parent_id=0 and name in (?)) as t2 on t1.parent_id=t2.id) as t1
                  left join 
                 (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id`, [params.business_type, parent_categories, params.clinic_id]);
                 return successResponse(specialistRows, "succes")
             } else {
-                let rows: any = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_id as parent_id from (select * from specialists where group_category=? and parent_id=0
+                let rows: any = await DB.get_rows(`select t1.id as specialist_id,t1.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.id=csp.specialist_id,1,0) as selected,t1.parent_id as parent_id,csp.service_price,csp.service_price_display,csp.specialist_business_type,csp.score from (select * from specialists where group_category=? and parent_id=0
                 union
                 select * from specialists where group_category=? and parent_id!=0) as t1 left join 
                 (select * from clinic_specialization where clinic_id=?) as csp on t1.id=csp.specialist_id
@@ -542,7 +542,7 @@ export const getClinicSpecialization = async (params: {
                 return successResponse(finalRows, "succes")
             }
         } else if (params.case == "selected") {
-            let specialistRows = await DB.get_rows(`select t2.id as specialist_id,t2.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.specialist_id=t2.id,1,0) as selected from (SELECT * FROM clinic_specialization WHERE clinic_id=?) as t1 left join specialists as t2 on t1.specialist_id=t2.id`, [params.clinic_id]);
+            let specialistRows = await DB.get_rows(`select t2.id as specialist_id,t2.name as specialization_name,if(1=1,${params.clinic_id},0) as clinic_id,if(t1.specialist_id=t2.id,1,0) as selected,t1.service_price,t1.service_price_display,t1.specialist_business_type,t1.score from (SELECT * FROM clinic_specialization WHERE clinic_id=? and specialist_business_type=?) as t1 join specialists as t2 on t1.specialist_id=t2.id`, [params.clinic_id,params.business_type],true);
             return successResponse(specialistRows, "succes");
         }
         return successResponse([], "succes")
