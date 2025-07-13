@@ -8,4 +8,5 @@ routes.get('/get-state-list',[apiRateLimit(10,30)],handelError(homeController.ge
 routes.get('/get-districts-list',[apiRateLimit(10,30)],handelError(homeController.getDistricts));
 routes.post('/update-clinic-info-change-tracker',handelError(homeController.updateClinicInfoChangeTracker));
 routes.get('/create-booking-case',[apiRateLimit(1,1)],handelError(appointmentController.createBookingCase));
+routes.get("/appointment-mysql-to-mongo",appointmentController.moveMysqlToMongo)
 export default routes;
