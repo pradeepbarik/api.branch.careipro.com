@@ -22,7 +22,7 @@ clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],ha
 clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));
 clinicRoutes.get('/clinic-banners',[apiRateLimit(1,3)],handelError(clinicController.clinicBanners));
 clinicRoutes.post('/upload-clinic-banner',[apiRateLimit(1,5),parseFormData],handelError(clinicController.uploadClinicBanner));
-clinicRoutes.get('/clinic-specialization',[apiRateLimit(10,30)],handelError(clinicController.clinicSpecializations));
+clinicRoutes.get('/clinic-specialization',[apiRateLimit(30,30)],handelError(clinicController.clinicSpecializations));
 clinicRoutes.post('/clinic-specialization',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.updateClinicSpecialization));
 clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
 clinicRoutes.post('/add-clinic-staff',[apiRateLimit(1,10)],handelError(clinicController.addClinicStaff));

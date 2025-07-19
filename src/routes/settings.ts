@@ -21,7 +21,7 @@ settingsRoutes.post('/set-nearby-city',[apiRateLimit(5,10)],handelError(location
 settingsRoutes.get('/get-nearby-cities',[apiRateLimit(10,30)],handelError(locationController.getNearByCities));
 settingsRoutes.post('/update-nearby-city',[apiRateLimit(1,10)],handelError(locationController.updateNearbyCity));
 settingsRoutes.post('/update-city',[apiRateLimit(60,60),parseFormData],handelError(locationController.updateCity));
-settingsRoutes.get('/categories',[apiRateLimit(5,20)],handelError(categoriesController.getSpecialists));
+settingsRoutes.get('/categories',[apiRateLimit(30,60)],handelError(categoriesController.getSpecialists));
 settingsRoutes.post('/categories',[apiRateLimit(3,20),parseFormData],handelError(categoriesController.addNewSpecialist));
 settingsRoutes.post('/update-category-setting',[apiRateLimit(3,20)],handelError(categoriesController.updateCategorySetting));
 settingsRoutes.get("/page-settings",[apiRateLimit(20,20)],handelError(settingsController.getPageSettings));

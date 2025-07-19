@@ -79,7 +79,7 @@ const requestParams = {
         market_name: Joi.string(),
         category: Joi.array().items(Joi.string()),
         partner_type: Joi.string(),
-        whatsapp_number:Joi.string().allow(''),
+        whatsapp_number: Joi.string().allow(''),
         whatsapp_channel_link: Joi.string().allow(''),
         tag_line: Joi.string().allow(''),
         enable_enquiry: Joi.number().allow(''),
@@ -129,11 +129,11 @@ const requestParams = {
         branch_id: Joi.number().required(),
         specilization_business_type: Joi.string().required(),
         specializations: Joi.array().items(Joi.object({
-            specialist_id:Joi.number().required(),
-            specialist_business_type:Joi.string().required(),
-            score:Joi.number().allow(''),
-            service_price:Joi.number().allow(''),
-            service_price_display:Joi.string().allow('')
+            specialist_id: Joi.number().required(),
+            specialist_business_type: Joi.string().required(),
+            score: Joi.number().allow(''),
+            service_price: Joi.number().allow(''),
+            service_price_display: Joi.string().allow('')
         }))
     }),
     getSpecialists: Joi.object({
@@ -198,9 +198,9 @@ const requestParams = {
         allow_booking_request: Joi.number().valid(1, 0),
         slot_allocation_mode: Joi.string().valid('auto', 'manual'),//ENUM('auto', 'manual')
         slno_type: Joi.string().valid('number', 'group', 'group_without_time', 'group_for_advance_booking'),//enum('number','group','group_without_time','group_for_advance_booking'),
-        enable_enquiry:Joi.number().valid(0, 1).allow(''),
+        enable_enquiry: Joi.number().valid(0, 1).allow(''),
         show_patients_feedback: Joi.number().valid(0, 1).allow(''),
-        site_service_charge:Joi.number().allow("")
+        site_service_charge: Joi.number().allow("")
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),
@@ -341,6 +341,15 @@ const requestParams = {
         old_logo: Joi.string().allow(""),
         doctor_name: Joi.string().required(),
         city: Joi.string().required(),
+    }),
+    saveSlNoConsultiming: Joi.object({
+        service_loc_id: Joi.number(),
+        consulting_timing: Joi.array().items(Joi.object({
+            message: Joi.string().allow(''),
+            patient_reach_time: Joi.string().allow(''),
+            sl_no: Joi.string().required(),
+            sl_no_exp_time: Joi.string().allow("")
+        }))
     })
 }
 const clinicController = {
@@ -543,7 +552,7 @@ const clinicController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        let postdata:any={
+        let postdata: any = {
             clinic_id: body.clinic_id,
             name: body.name,
             email: body.email,
@@ -569,13 +578,13 @@ const clinicController = {
             whatsapp_channel_link: body.whatsapp_channel_link,
             tag_line: body.tag_line,
         }
-        if(typeof body.enable_enquiry!=="undefined"){
+        if (typeof body.enable_enquiry !== "undefined") {
             postdata.enable_enquiry = body.enable_enquiry;
         }
-        if(typeof body.show_patients_feedback!=="undefined"){
+        if (typeof body.show_patients_feedback !== "undefined") {
             postdata.show_patients_feedback = body.show_patients_feedback;
         }
-        let updateRes = await cliniModel.updateClinicDetail(tokenInfo.bid,postdata);
+        let updateRes = await cliniModel.updateClinicDetail(tokenInfo.bid, postdata);
         res.status(updateRes.code).json(updateRes);
     },
     saveClinicTiming: async (req: Request, res: Response) => {
@@ -590,9 +599,9 @@ const clinicController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        
+
         let updateRes = await cliniModel.updateClinicTiming(tokenInfo.bid, body.clinic_id, {
-            type:body.type,
+            type: body.type,
             monday: body.monday,
             monday_1st_session_start: body.monday_1st_session_start,
             monday_1st_session_end: body.monday_1st_session_end,
@@ -646,10 +655,10 @@ const clinicController = {
         let query = "insert into clinic_specialization (clinic_id,specialist_id,specialist_business_type,score,service_price,service_price_display) values ?";
         let sqlParams: any = [];
         for (let specialization of body.specializations) {
-            sqlParams.push([body.clinic_id, specialization.specialist_id, body.specilization_business_type,specialization.score||null,specialization.service_price||null,specialization.service_price_display]);
+            sqlParams.push([body.clinic_id, specialization.specialist_id, body.specilization_business_type, specialization.score || null, specialization.service_price || null, specialization.service_price_display]);
         }
         await DB.query("delete from clinic_specialization where clinic_id=? and specialist_business_type=?", [body.clinic_id, body.specilization_business_type]);
-        DB.query(query, [sqlParams],true);
+        DB.query(query, [sqlParams], true);
         res.json(successResponse({}, "success"));
     },
     getDoctorsList: async (req: Request, res: Response) => {
@@ -731,6 +740,9 @@ const clinicController = {
         } else if (query.tab === 'consulting_timing') {
             let response = await doctorModel.getconsultingTiming(query.doctor_id, cid, query.service_loc_id);
             res.status(response.code).json(response);
+        } else if (query.tab === "cash_receive_modes") {
+            let rows = await DB.get_rows("select * from cash_recive_modes where service_location_id=? order by display_order", [query.service_loc_id]);
+            res.json(successResponse(rows, "success"));
         } else {
             serviceNotAcceptable("Invalid tab name", res);
         }
@@ -850,6 +862,15 @@ const clinicController = {
                     let response = await doctorModel.deleteSlnoGroup(params.id, params.service_loc_id)
                     res.status(response.code).json(response);
                 }
+            } else if (tab === "slno_conculting_timing") {
+                const validation: ValidationResult = requestParams.saveSlNoConsultiming.validate(restParams);
+                if (validation.error) {
+                    parameterMissingResponse(validation.error.details[0].message, res);
+                    return;
+                }
+                await DB.query("update doctor_servicelocation_setting set consulting_timing_messages=? where service_location_id=?", [JSON.stringify(restParams.consulting_timing), restParams.service_loc_id]);
+                res.json(successResponse({}, "updated successfully"));
+                return;
             } else {
                 serviceNotAcceptable("invalid tab name", res);
             }
