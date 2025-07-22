@@ -7,6 +7,11 @@ const appointmentController = {
     moveMysqlToMongo: async (req: Request, res: Response) => {
         let bookings = await DB.get_rows<any>("select t1.*,t2.document,t2.logs,br.rating,br.rating_date,br.visited_for,br.experience,br.ques_ans,br.review_date,br.replay,br.replay_date,br.status as rating_status,br.rating_processed,br.review_processed,br.score,br.review_tags from booking_backup as t1 left join booking_detail_backup as t2 on t1.id=t2.booking_id left join booking_review as br on t1.id=br.booking_id where t1.vertical='DOCTOR' and t1.clinic_id>0 and t1.user_type IS NOT NULL and date(t1.booking_time) between ? and ? order by booking_time", [<string>req.query.start_date, <string>req.query.end_date], true);
         for (let booking of bookings) {
+            let consult_date = moment(booking.consult_date).format('YYYY-MM-DD');
+            let consult_date_arr = consult_date.split("-");
+            let year = consult_date_arr[0];
+            let month = consult_date_arr[1];
+            let day = consult_date_arr[2];
             let document = await appointmentsModel.findOne({ appointment_id: booking.id }).exec()
             if (!document) {
                 console.log("=================Processing booking (" + booking.id + ")===========>")
@@ -24,28 +29,41 @@ const appointmentController = {
                     patient_mobile: booking.patient_mobile.toString(),
                     patient_email: "",
                     patient_address: booking.patient_address ? booking.patient_address.toLowerCase() : "",
-                    patient_age: booking.patient_age?parseInt(booking.patient_age):0,
-                    patient_gender: booking.patient_gender?booking.patient_gender.toLowerCase():"",
+                    patient_age: booking.patient_age ? parseInt(booking.patient_age) : 0,
+                    patient_gender: booking.patient_gender ? booking.patient_gender.toLowerCase() : "",
                     booked_through: booking.booked_through,
                     booking_charge: parseInt(booking.booking_charge),
-                    doctor_fee_type: booking.doctor_fee_type?parseInt(booking.doctor_fee_type):"",
-                    service_charge: booking.service_charge?parseInt(booking.service_charge):0,
+                    doctor_fee_type: booking.doctor_fee_type ? parseInt(booking.doctor_fee_type) : "",
+                    service_charge: booking.service_charge ? parseInt(booking.service_charge) : 0,
                     total_amount: parseInt(booking.total_amount),
                     booking_time: new Date(booking.booking_time),
                     consult_date: new Date(booking.consult_date),
+                    consult_year: parseInt(year),
+                    consult_month: parseInt(month),
+                    consult_day: parseInt(day),
                     status: booking.status,
                     payment_status: booking.payment_status,
                     payment_method: booking.payment_method,
-                    cancelled_time: booking.cancelled_time?new Date(booking.cancelled_time):"",
+                    cancelled_time: booking.cancelled_time ? new Date(booking.cancelled_time) : "",
                     is_auto_filled: parseInt(booking.is_auto_filled),
                     ask_for_feedback: parseInt(booking.ask_for_feedback),
-                    slno_group: booking.slno_group?booking.slno_group.toLowerCase():"",
+                    slno_group: booking.slno_group ? booking.slno_group.toLowerCase() : "",
                     vertical: booking.vertical.toLowerCase(),
                     case_id: parseInt(booking.case_id),
                     patient_paid_amount: "",
-                    prescription: booking.document?JSON.parse(booking.document):[],
+                    prescription: booking.document ? JSON.parse(booking.document) : [],
                     logs: booking.logs ? JSON.parse(booking.logs) : []
                 }).save()
+            } else {
+                console.log("=================updating booking (" + booking.id + ")===========>")
+                await appointmentsModel.findOneAndUpdate({
+                    appointment_id: parseInt(booking.id)
+                }, {
+                    consult_date: new Date(booking.consult_date),
+                    consult_year: parseInt(year),
+                    consult_month: parseInt(month),
+                    consult_day: parseInt(day),
+                }).exec()
             }
         }
         res.json(successResponse({}, "success"))
@@ -81,6 +99,10 @@ const appointmentController = {
             }
         }
         res.json(successResponse({}, "success"));
+    },
+    clinicAppointmentGrouping: async (req: Request, res: Response) => {
+        let clinic_id = req.query.clinic_id;
+
     }
 }
 export default appointmentController;

@@ -6,3 +6,4 @@ export const coll_appointments='coll_appointments';
 export const COLL_CLINIC_INFO_CHANGE_TRACKERS='coll_clinic_info_change_trackers';
 export const COLL_CITY_PINCODES='coll_city_pincodes';
 export const COLL_PAGE_SETTINGS='coll_page_settings';
+export const COLL_CLINIC_REPORTS='coll_clinic_reports';
