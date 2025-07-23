@@ -20,7 +20,7 @@ const enquiryModel = {
             sqlParams.push('open');
         }
         if(params.from_date && params.to_date){
-            q+=" and create_time between ? and ?";
+            q+=" and date(create_time) between ? and ?";
             sqlParams.push(params.from_date,params.to_date);
         }
        let rows = await DB.get_rows(q,sqlParams);
