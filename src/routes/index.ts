@@ -3,6 +3,7 @@ import { apiRateLimit, handelError } from '../middleware';
 import homeController from '../controller';
 import appointmentController from '../controller/appointment';
 import reportController from '../controller/report';
+import commonapiController from '../controller/common-api';
 const routes = Router();
 routes.get('/get-branches', [apiRateLimit(1, 5)], handelError(homeController.branches));
 routes.get('/get-state-list', [apiRateLimit(10, 30)], handelError(homeController.getStateList));
@@ -11,4 +12,5 @@ routes.post('/update-clinic-info-change-tracker', handelError(homeController.upd
 routes.get('/create-booking-case', [apiRateLimit(1, 1)], handelError(appointmentController.createBookingCase));
 routes.get("/appointment-mysql-to-mongo", appointmentController.moveMysqlToMongo);
 routes.get("/generate-clinic-reports", handelError(reportController.generateClinicReports));
+routes.get("/send-about-careipro-sms",commonapiController.sendAboutCareiproSmsToUsers);
 export default routes;
