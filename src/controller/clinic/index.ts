@@ -200,7 +200,8 @@ const requestParams = {
         slno_type: Joi.string().valid('number', 'group', 'group_without_time', 'group_for_advance_booking'),//enum('number','group','group_without_time','group_for_advance_booking'),
         enable_enquiry: Joi.number().valid(0, 1).allow(''),
         show_patients_feedback: Joi.number().valid(0, 1).allow(''),
-        site_service_charge: Joi.number().allow("")
+        site_service_charge: Joi.number().allow(""),
+        show_group_name_while_booking: Joi.number().valid(0, 1).allow('')
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),
@@ -240,7 +241,21 @@ const requestParams = {
         saturday_1st_session_start: Joi.string().allow(""),
         saturday_1st_session_end: Joi.string().allow(""),
         saturday_2nd_session_start: Joi.string().allow(""),
-        saturday_2nd_session_end: Joi.string().allow("")
+        saturday_2nd_session_end: Joi.string().allow(""),
+        sunday_3rd_session_start: Joi.string().allow(""),
+        sunday_3rd_session_end: Joi.string().allow(""),
+        monday_3rd_session_start: Joi.string().allow(""),
+        monday_3rd_session_end: Joi.string().allow(""),
+        tuesday_3rd_session_start: Joi.string().allow(""),
+        tuesday_3rd_session_end: Joi.string().allow(""),
+        wednesday_3rd_session_start: Joi.string().allow(""),
+        wednesday_3rd_session_end: Joi.string().allow(""),
+        thursday_3rd_session_start: Joi.string().allow(""),
+        thursday_3rd_session_end: Joi.string().allow(""),
+        friday_3rd_session_start: Joi.string().allow(""),
+        friday_3rd_session_end: Joi.string().allow(""),
+        saturday_3rd_session_start: Joi.string().allow(""),
+        saturday_3rd_session_end: Joi.string().allow("")
     }),
     updateDoctorMonthlyConsultingTiming: Joi.object({
         id: Joi.number(),
@@ -350,9 +365,24 @@ const requestParams = {
             sl_no: Joi.string().required(),
             sl_no_exp_time: Joi.string().allow("")
         }))
+    }),
+    updateDbDetails: Joi.object({
+        clinic_id: Joi.number().required(),
+        mongo_db_connection_url: Joi.string().required(),
+        mysql:Joi.any()
     })
 }
 const clinicController = {
+    updateDbDetails: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.updateDbDetails.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        await DB.query("update clinics set db_details=? where id=? limit 1",[JSON.stringify({mongo_db_connection_url:body.mongo_db_connection_url,mysql:body.mysql}),body.clinic_id],true);
+        res.json(successResponse({},"updated successfully"))
+    },
     getLoginToken: async (req: Request, res: Response) => {
         const { query, ip }: { query: any, ip: string | undefined } = req;
         const validation: ValidationResult = requestParams.getLoginToken.validate(query);
@@ -839,7 +869,7 @@ const clinicController = {
             } else if (tab === "slno_groups") {
                 let { action, ...params } = restParams;
                 if (action === "add_update") {
-                    const validation: ValidationResult = requestParams.updateSlnoGroup.validate(params);
+                    const validation: ValidationResult = requestParams.updateSlnoGroup.validate(restParams);
                     if (validation.error) {
                         parameterMissingResponse(validation.error.details[0].message, res);
                         return;

@@ -26,4 +26,5 @@ clinicRoutes.get('/clinic-specialization',[apiRateLimit(30,30)],handelError(clin
 clinicRoutes.post('/clinic-specialization',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.updateClinicSpecialization));
 clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
 clinicRoutes.post('/add-clinic-staff',[apiRateLimit(1,10)],handelError(clinicController.addClinicStaff));
+clinicRoutes.post("/update-db-detail",[apiRateLimit(1,5)],clinicController.updateDbDetails);
 export default clinicRoutes;

@@ -280,7 +280,8 @@ const doctorModel = {
         slno_type?: string,
         enable_enquiry?:number,
         show_patients_feedback?:number
-        site_service_charge?:number
+        site_service_charge?:number,
+        show_group_name_while_booking?:number
     }) => {
         if (params.emergency_booking_close && !params.booking_close_message) {
             return parameterMissingResponse("Please provide emergency booking close reason");
@@ -353,6 +354,10 @@ const doctorModel = {
             updateFields.push("show_patients_feedback=?");
             sqlParams.push(params.show_patients_feedback);
         }
+        if (params.show_group_name_while_booking == 0 || params.show_group_name_while_booking == 1) {
+            updateFields.push("show_group_name_while_booking=?");
+            sqlParams.push(params.show_group_name_while_booking);
+        }
         if (updateFields.length > 0) {
             if (params.service_loc_setting_id) {
                 q += updateFields.join(',') + " where id=? and doctor_id=? and service_location_id=?";
@@ -366,7 +371,7 @@ const doctorModel = {
         return successResponse(null);
     },
     getconsultingTiming: async (doctor_id: number, clinic_id: number, service_loc_id: number) => {
-        let weeklytimingRow: any = await DB.get_row("select id,availability,sunday,sunday_1st_session_start,sunday_1st_session_end,sunday_2nd_session_start,sunday_2nd_session_end,monday,monday_1st_session_start,monday_1st_session_end,monday_2nd_session_start,monday_2nd_session_end,tuesday,tuesday_1st_session_start,tuesday_1st_session_end,tuesday_2nd_session_start,tuesday_2nd_session_end,wednesday,wednesday_1st_session_start,wednesday_1st_session_end,wednesday_2nd_session_start,wednesday_2nd_session_end,thursday,thursday_1st_session_start,thursday_1st_session_end,thursday_2nd_session_start,thursday_2nd_session_end,friday,friday_1st_session_start,friday_1st_session_end,friday_2nd_session_start,friday_2nd_session_end,saturday,saturday_1st_session_start,saturday_1st_session_end,saturday_2nd_session_start,saturday_2nd_session_end from doctor_service_location where id=? and doctor_id=? and clinic_id=?", [service_loc_id, doctor_id, clinic_id]);
+        let weeklytimingRow: any = await DB.get_row("select id,availability,sunday,sunday_1st_session_start,sunday_1st_session_end,sunday_2nd_session_start,sunday_2nd_session_end,monday,monday_1st_session_start,monday_1st_session_end,monday_2nd_session_start,monday_2nd_session_end,tuesday,tuesday_1st_session_start,tuesday_1st_session_end,tuesday_2nd_session_start,tuesday_2nd_session_end,wednesday,wednesday_1st_session_start,wednesday_1st_session_end,wednesday_2nd_session_start,wednesday_2nd_session_end,thursday,thursday_1st_session_start,thursday_1st_session_end,thursday_2nd_session_start,thursday_2nd_session_end,friday,friday_1st_session_start,friday_1st_session_end,friday_2nd_session_start,friday_2nd_session_end,saturday,saturday_1st_session_start,saturday_1st_session_end,saturday_2nd_session_start,saturday_2nd_session_end,sunday_3rd_session_start,sunday_3rd_session_end,monday_3rd_session_start,monday_3rd_session_end,tuesday_3rd_session_start,tuesday_3rd_session_end,wednesday_3rd_session_start,wednesday_3rd_session_end,thursday_3rd_session_start,thursday_3rd_session_end,friday_3rd_session_start,friday_3rd_session_end,saturday_3rd_session_start,saturday_3rd_session_end from doctor_service_location where id=? and doctor_id=? and clinic_id=?", [service_loc_id, doctor_id, clinic_id]);
         const { id, availability, ...weeklytiming } = weeklytimingRow;
         let monthlyTimings = await DB.get_rows("select id,every_month,no_of_times,day_name,first_session_start_time,first_session_end_time,second_session_start_time,second_session_end_time from doctor_consulting_timing_monthly where doctor_id=? and service_loc_id=? and clinic_id=?", [doctor_id, service_loc_id, clinic_id]);
         return successResponse({
@@ -412,7 +417,21 @@ const doctorModel = {
         saturday_1st_session_start?: string,
         saturday_1st_session_end?: string,
         saturday_2nd_session_start?: string,
-        saturday_2nd_session_end?: string
+        saturday_2nd_session_end?: string,
+        sunday_3rd_session_start?: string,
+        sunday_3rd_session_end?: string,
+        monday_3rd_session_start?: string,
+        monday_3rd_session_end?: string,
+        tuesday_3rd_session_start?: string,
+        tuesday_3rd_session_end?: string,
+        wednesday_3rd_session_start?: string,
+        wednesday_3rd_session_end?: string,
+        thursday_3rd_session_start?: string,
+        thursday_3rd_session_end?: string,
+        friday_3rd_session_start?: string,
+        friday_3rd_session_end?: string,
+        saturday_3rd_session_start?: string,
+        saturday_3rd_session_end?: string,
     }) => {
         let q = "update doctor_service_location set ";
         let sqlParams = [];
@@ -560,6 +579,62 @@ const doctorModel = {
         if (typeof params.saturday_2nd_session_end === 'string') {
             updateFields.push("saturday_2nd_session_end=?");
             sqlParams.push(params.saturday_2nd_session_end);
+        }
+        if (typeof params.saturday_3rd_session_start === 'string') {
+            updateFields.push("saturday_3rd_session_start=?");
+            sqlParams.push(params.saturday_3rd_session_start);
+        }
+        if (typeof params.saturday_3rd_session_end === 'string') {
+            updateFields.push("saturday_3rd_session_end=?");
+            sqlParams.push(params.saturday_3rd_session_end);
+        }
+        if( typeof params.sunday_3rd_session_start === 'string') {
+            updateFields.push("sunday_3rd_session_start=?");
+            sqlParams.push(params.sunday_3rd_session_start);
+        }
+        if( typeof params.sunday_3rd_session_end === 'string') {
+            updateFields.push("sunday_3rd_session_end=?");
+            sqlParams.push(params.sunday_3rd_session_end);
+        }
+        if( typeof params.monday_3rd_session_start === 'string') {
+            updateFields.push("monday_3rd_session_start=?");
+            sqlParams.push(params.monday_3rd_session_start);
+        }
+        if( typeof params.monday_3rd_session_end === 'string') {
+            updateFields.push("monday_3rd_session_end=?");
+            sqlParams.push(params.monday_3rd_session_end);
+        }
+        if( typeof params.tuesday_3rd_session_start === 'string') {
+            updateFields.push("tuesday_3rd_session_start=?");
+            sqlParams.push(params.tuesday_3rd_session_start);
+        }
+        if( typeof params.tuesday_3rd_session_end === 'string') {
+            updateFields.push("tuesday_3rd_session_end=?");
+            sqlParams.push(params.tuesday_3rd_session_end);
+        }
+        if( typeof params.wednesday_3rd_session_start === 'string') {
+            updateFields.push("wednesday_3rd_session_start=?");
+            sqlParams.push(params.wednesday_3rd_session_start);
+        }
+        if( typeof params.wednesday_3rd_session_end === 'string') {
+            updateFields.push("wednesday_3rd_session_end=?");
+            sqlParams.push(params.wednesday_3rd_session_end);
+        }
+        if( typeof params.thursday_3rd_session_start === 'string') {
+            updateFields.push("thursday_3rd_session_start=?");
+            sqlParams.push(params.thursday_3rd_session_start);
+        }
+        if( typeof params.thursday_3rd_session_end === 'string') {
+            updateFields.push("thursday_3rd_session_end=?");
+            sqlParams.push(params.thursday_3rd_session_end);
+        }
+        if( typeof params.friday_3rd_session_start === 'string') {
+            updateFields.push("friday_3rd_session_start=?");
+            sqlParams.push(params.friday_3rd_session_start);
+        }
+        if( typeof params.friday_3rd_session_end === 'string') {
+            updateFields.push("friday_3rd_session_end=?");
+            sqlParams.push(params.friday_3rd_session_end);
         }
         if (updateFields.length > 0) {
             q += updateFields.join(',') + " where id=? and doctor_id=? and clinic_id=?";
