@@ -809,7 +809,7 @@ const clinicController = {
                 let response = await doctorModel.updateDoctorSpecialization(doctor_id, cid, body.service_loc_id, {
                     selected: restParams.selected_ids,
                     removed: restParams.removed_ids
-                })
+                },tokenInfo.bd)
                 res.status(response.code).json(response);
             } else if (body.tab === 'disease_treatments') {
                 const validation: ValidationResult = requestParams.saveDoctorSpecialization.validate(restParams);
@@ -820,7 +820,7 @@ const clinicController = {
                 let response = await doctorModel.updateDoctordiseaseTreatment(doctor_id, cid, body.service_loc_id, {
                     selected: restParams.selected_ids,
                     removed: restParams.removed_ids
-                })
+                },tokenInfo.bd)
                 res.status(response.code).json(response);
             } else if (tab === 'seo_details') {
                 const validation: ValidationResult = requestParams.saveDoctorSeoDetail.validate(restParams);

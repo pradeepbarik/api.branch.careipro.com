@@ -154,6 +154,23 @@ const cacheController = {
                 internalServerError("Something went wrong", res);
                 return
             }
+        }else if(req.query.cache_type === "doctor_list_by_specialist"){
+            let city=tokenInfo.bd.toLowerCase();
+            let state=tokenInfo.bs.toLowerCase();
+            let specialist_id=req.query.specialist_id;
+            if(specialist_id===undefined){
+                parameterMissingResponse("specialist_id is required", res);
+                return;
+            }
+            try {
+                fs.accessSync(`${cache_directory}/${state}/${city}/doctors/catid-${specialist_id}`);
+                fs.readdirSync(`${cache_directory}/${state}/${city}/doctors/catid-${specialist_id}`).forEach((file)=>{
+                    fs.unlinkSync(`${cache_directory}/${state}/${city}/doctors/catid-${specialist_id}/${file}`);
+                });
+            } catch (err) {
+                internalServerError("Something went wrong", res);
+                return
+            }
         } else {
             parameterMissingResponse("Invalid cache type", res);
             return

@@ -85,10 +85,10 @@ const doctorModel = {
         }
         return successResponse(result);
     },
-    updateDoctorSpecialization: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] }) => {
+    updateDoctorSpecialization: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] },city:string) => {
         if (params.selected.length >= 1) {
-            let q = "insert into doctor_specialization (doctor_id,specialist,experience) values (?,?,0)";
-            let sqlparams = [doctor_id, params.selected[0]];
+            let q = "insert into doctor_specialization (doctor_id,specialist,experience,spl_city) values (?,?,0,?)";
+            let sqlparams = [doctor_id, params.selected[0], city];
             let q2 = "insert into service_location_specialization (service_location,doctor_id,specialist_id) values (?,?,?)";
             let sqlparams2 = [service_loc_id, doctor_id, params.selected[0]];
             let remainSelectedItems = params.selected.slice(1, params.selected.length);
@@ -153,7 +153,7 @@ const doctorModel = {
         }
         return successResponse(result);
     },
-    updateDoctordiseaseTreatment: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] }) => {
+    updateDoctordiseaseTreatment: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] },city:string) => {
         if (params.selected.length >= 1) {
             let q = "insert into service_location_disease_treatment (service_location_id,clinic_id,disease_id) values (?,?,?)";
             let sqlparams = [service_loc_id, clinic_id, params.selected[0]];

@@ -29,4 +29,6 @@ settingsRoutes.post("/page-settings",[apiRateLimit(1,5),employeeValidation(1)],h
 settingsRoutes.get('/banners',[apiRateLimit(5,20)],handelError(settingsController.getBanners));
 settingsRoutes.post('/banner',[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(settingsController.updateBanner));
 settingsRoutes.post('/delete-banner',[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.deleteBanner));
+settingsRoutes.get("/category-doctors",[apiRateLimit(10,30)],handelError(categoriesController.getCategoryDoctors));
+settingsRoutes.post('/update-doctor-score',[apiRateLimit(5,20),employeeValidation(1)],handelError(categoriesController.updateDoctorScore));
 export default settingsRoutes;

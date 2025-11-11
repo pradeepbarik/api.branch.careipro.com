@@ -39,6 +39,13 @@ const requestParams = {
         lead_charge:Joi.number(),
         display_price:Joi.string().allow(''),
         service_duration_display:Joi.string().allow(''),
+    }),
+    updateDoctorScore:Joi.object({
+        data:Joi.array().items(Joi.object({
+            doctor_id:Joi.number().required(),
+            category_id:Joi.number().required(),
+            score:Joi.number().required()
+        })).required()
     })
 }
 const categoriesController = {
@@ -173,6 +180,37 @@ const categoriesController = {
             return
         }
         await DB.query("insert into tbl_specialist_setting (specialist_id,city,price,lead_charge,display_price,service_duration_display) values (?,?,?,?,?,?) ON DUPLICATE KEY update price=?,lead_charge=?,display_price=?,service_duration_display=?",[body.cat_id,tokenInfo.bd,body.price,body.lead_charge,body.display_price,body.service_duration_display,body.price,body.lead_charge,body.display_price,body.service_duration_display],true);
+        res.json(successResponse({},"Updated successfully"));
+    },
+    getCategoryDoctors:async (req:Request,res:Response)=>{
+        const { query }: { query: any } = req;
+        if(!query.specialist_id){
+            parameterMissingResponse("specialist_id is required", res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let doctors=await DB.get_rows<{id:number,name:string,clinic_name:string,city:string}>(`select t1.*,doctors.name as doctor_name,clinics.name as clinic_name from (select * from doctor_specialization where specialist=? and spl_city=?) as t1 join (select id,name,clinic_id from doctor where city=?) as doctors on t1.doctor_id=doctors.id join clinics on doctors.clinic_id=clinics.id order by t1.score desc`,[query.specialist_id,tokenInfo.bd,tokenInfo.bd]);
+        res.json(successResponse({doctors:doctors},"Success"));
+    },
+    updateDoctorScore:async (req:Request,res:Response)=>{
+        const { body } = req;
+        const validation: ValidationResult = requestParams.updateDoctorScore.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        for(let item of body.data){
+            await DB.query("update doctor_specialization set score=? where doctor_id=? and specialist=? and spl_city=?",[item.score,item.doctor_id,item.category_id,tokenInfo.bd]);
+        }
         res.json(successResponse({},"Updated successfully"));
     }
 }
