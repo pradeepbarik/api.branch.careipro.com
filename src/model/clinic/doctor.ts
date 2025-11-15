@@ -94,8 +94,8 @@ const doctorModel = {
             let remainSelectedItems = params.selected.slice(1, params.selected.length);
             if (remainSelectedItems.length > 0) {
                 for (let id of remainSelectedItems) {
-                    q += ",(?,?,0)";
-                    sqlparams.push(doctor_id, id);
+                    q += ",(?,?,0,?)";
+                    sqlparams.push(doctor_id, id, city);
                     q2 += ",(?,?,?)";
                     sqlparams2.push(service_loc_id, doctor_id, id);
                 }
