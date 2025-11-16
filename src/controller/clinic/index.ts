@@ -182,7 +182,8 @@ const requestParams = {
         cid: Joi.number().required(),
         seo_url: Joi.string(),
         page_title: Joi.string(),
-        meta_description: Joi.string()
+        meta_description: Joi.string(),
+        ldjson: Joi.any().allow(''),
     }),
     updateDoctorSettings: Joi.object({
         service_loc_id: Joi.number().allow(''),

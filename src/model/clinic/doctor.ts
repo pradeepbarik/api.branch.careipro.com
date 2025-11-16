@@ -85,7 +85,7 @@ const doctorModel = {
         }
         return successResponse(result);
     },
-    updateDoctorSpecialization: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] },city:string) => {
+    updateDoctorSpecialization: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] }, city: string) => {
         if (params.selected.length >= 1) {
             let q = "insert into doctor_specialization (doctor_id,specialist,experience,spl_city) values (?,?,0,?)";
             let sqlparams = [doctor_id, params.selected[0], city];
@@ -153,7 +153,7 @@ const doctorModel = {
         }
         return successResponse(result);
     },
-    updateDoctordiseaseTreatment: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] },city:string) => {
+    updateDoctordiseaseTreatment: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: { selected: number[], removed: number[] }, city: string) => {
         if (params.selected.length >= 1) {
             let q = "insert into service_location_disease_treatment (service_location_id,clinic_id,disease_id) values (?,?,?)";
             let sqlparams = [service_loc_id, clinic_id, params.selected[0]];
@@ -174,7 +174,7 @@ const doctorModel = {
         return successResponse(null);
     },
     getDoctorSeoDetails: async (doctor_id: number, clinic_id: number) => {
-        let q = "select t1.seo_url,t2.page_title,t2.meta_key_words,t2.meta_description,t2.doctor_id as seo_id from (select id,seo_url from doctor where id=? and clinic_id=?) as t1 left join (select doctor_id,page_title,meta_key_words,meta_description from doctor_seo_details where doctor_id=?) as t2 on t1.id=t2.doctor_id";
+        let q = "select t1.seo_url,t2.page_title,t2.meta_key_words,t2.meta_description,t2.doctor_id as seo_id,t2.ldjson from (select id,seo_url from doctor where id=? and clinic_id=?) as t1 left join (select doctor_id,page_title,meta_key_words,meta_description,ldjson from doctor_seo_details where doctor_id=?) as t2 on t1.id=t2.doctor_id";
         let params = [doctor_id, clinic_id, doctor_id];
         let row = await DB.get_row(q, params);
         return successResponse(row);
@@ -183,7 +183,8 @@ const doctorModel = {
         seo_id: number,
         seo_url?: string,
         page_title?: string,
-        meta_description?: string
+        meta_description?: string,
+        ldjson?: any
     }) => {
         let doctor: any = await DB.get_row("select active,seo_url from doctor where id=? and clinic_id=?", [doctor_id, clinic_id]);
         if (params.seo_url && doctor.seo_url !== params.seo_url) {
@@ -203,6 +204,14 @@ const doctorModel = {
         if (params.meta_description) {
             updateFields.push("meta_description=?");
             sqlParams.push(params.meta_description);
+        }
+        if (typeof params.ldjson !== "undefined") {
+            updateFields.push("ldjson=?");
+            if (params.ldjson === "") {
+                sqlParams.push(params.ldjson);
+            } else {
+                sqlParams.push(JSON.stringify(params.ldjson));
+            }
         }
         if (updateFields.length > 0) {
             if (params.seo_id) {
@@ -232,9 +241,9 @@ const doctorModel = {
             select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_patients_feedback,consulting_timing_messages from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
             ) as t2 on t1.id=t2.service_location_id`;
         let sqlparams = [service_loc_id, doctor_id, clinic_id, service_loc_id, doctor_id];
-        let row:any = await DB.get_row(q, sqlparams);
-        row.site_service_charge=parseInt(row.site_service_charge||"0");
-        row.consulting_timing_messages=row.consulting_timing_messages?JSON.parse(row.consulting_timing_messages):[]
+        let row: any = await DB.get_row(q, sqlparams);
+        row.site_service_charge = parseInt(row.site_service_charge || "0");
+        row.consulting_timing_messages = row.consulting_timing_messages ? JSON.parse(row.consulting_timing_messages) : []
         return successResponse(row);
     },
     getDoctorSlnoGroups: async (service_loc_id: number) => {
@@ -255,16 +264,16 @@ const doctorModel = {
         enable: number
     }) => {
         if (data.id) {
-           await DB.query("update slno_group set group_name=?,group_name_for_user=?,`limit`=?,booking_start=?,booking_complete_time=?,display_order=?,reserved=?,message=?,enable=? where id=?", [data.group_name, data.group_name_for_user, data.limit, data.booking_start, data.booking_complete_time, data.display_order, data.reserved, data.message, data.enable, data.id],true);
-            return successResponse({},"Updated successfully")
+            await DB.query("update slno_group set group_name=?,group_name_for_user=?,`limit`=?,booking_start=?,booking_complete_time=?,display_order=?,reserved=?,message=?,enable=? where id=?", [data.group_name, data.group_name_for_user, data.limit, data.booking_start, data.booking_complete_time, data.display_order, data.reserved, data.message, data.enable, data.id], true);
+            return successResponse({}, "Updated successfully")
         } else {
-           await DB.query("insert into slno_group set service_loc_id=?,group_name=?,group_name_for_user=?,`limit`=?,booking_start=?,booking_complete_time=?,display_order=?,reserved=?,message=?,enable=?", [data.service_loc_id, data.group_name, data.group_name_for_user, data.limit, data.booking_start, data.booking_complete_time, data.display_order, data.reserved, data.message, data.enable],true);
-            return successResponse({},"Added successfully")
+            await DB.query("insert into slno_group set service_loc_id=?,group_name=?,group_name_for_user=?,`limit`=?,booking_start=?,booking_complete_time=?,display_order=?,reserved=?,message=?,enable=?", [data.service_loc_id, data.group_name, data.group_name_for_user, data.limit, data.booking_start, data.booking_complete_time, data.display_order, data.reserved, data.message, data.enable], true);
+            return successResponse({}, "Added successfully")
         }
     },
-    deleteSlnoGroup:async (id:number,service_loc_id:number)=>{
-        await DB.query("delete from slno_group where id=? and service_loc_id=?",[id,service_loc_id],true);
-        return successResponse({},"Deleted successfully")
+    deleteSlnoGroup: async (id: number, service_loc_id: number) => {
+        await DB.query("delete from slno_group where id=? and service_loc_id=?", [id, service_loc_id], true);
+        return successResponse({}, "Deleted successfully")
     },
     updateDoctorSettings: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: {
         service_loc_setting_id: number,
@@ -278,10 +287,10 @@ const doctorModel = {
         allow_booking_request?: number,
         slot_allocation_mode?: string,
         slno_type?: string,
-        enable_enquiry?:number,
-        show_patients_feedback?:number
-        site_service_charge?:number,
-        show_group_name_while_booking?:number
+        enable_enquiry?: number,
+        show_patients_feedback?: number
+        site_service_charge?: number,
+        show_group_name_while_booking?: number
     }) => {
         if (params.emergency_booking_close && !params.booking_close_message) {
             return parameterMissingResponse("Please provide emergency booking close reason");
@@ -293,7 +302,7 @@ const doctorModel = {
             updateFields.push("slno_type=?");
             sqlParams.push(params.slno_type);
         }
-        if(typeof params.site_service_charge!=='undefined'){
+        if (typeof params.site_service_charge !== 'undefined') {
             updateFields.push("site_service_charge=?");
             sqlParams.push(params.site_service_charge);
         }
@@ -588,51 +597,51 @@ const doctorModel = {
             updateFields.push("saturday_3rd_session_end=?");
             sqlParams.push(params.saturday_3rd_session_end);
         }
-        if( typeof params.sunday_3rd_session_start === 'string') {
+        if (typeof params.sunday_3rd_session_start === 'string') {
             updateFields.push("sunday_3rd_session_start=?");
             sqlParams.push(params.sunday_3rd_session_start);
         }
-        if( typeof params.sunday_3rd_session_end === 'string') {
+        if (typeof params.sunday_3rd_session_end === 'string') {
             updateFields.push("sunday_3rd_session_end=?");
             sqlParams.push(params.sunday_3rd_session_end);
         }
-        if( typeof params.monday_3rd_session_start === 'string') {
+        if (typeof params.monday_3rd_session_start === 'string') {
             updateFields.push("monday_3rd_session_start=?");
             sqlParams.push(params.monday_3rd_session_start);
         }
-        if( typeof params.monday_3rd_session_end === 'string') {
+        if (typeof params.monday_3rd_session_end === 'string') {
             updateFields.push("monday_3rd_session_end=?");
             sqlParams.push(params.monday_3rd_session_end);
         }
-        if( typeof params.tuesday_3rd_session_start === 'string') {
+        if (typeof params.tuesday_3rd_session_start === 'string') {
             updateFields.push("tuesday_3rd_session_start=?");
             sqlParams.push(params.tuesday_3rd_session_start);
         }
-        if( typeof params.tuesday_3rd_session_end === 'string') {
+        if (typeof params.tuesday_3rd_session_end === 'string') {
             updateFields.push("tuesday_3rd_session_end=?");
             sqlParams.push(params.tuesday_3rd_session_end);
         }
-        if( typeof params.wednesday_3rd_session_start === 'string') {
+        if (typeof params.wednesday_3rd_session_start === 'string') {
             updateFields.push("wednesday_3rd_session_start=?");
             sqlParams.push(params.wednesday_3rd_session_start);
         }
-        if( typeof params.wednesday_3rd_session_end === 'string') {
+        if (typeof params.wednesday_3rd_session_end === 'string') {
             updateFields.push("wednesday_3rd_session_end=?");
             sqlParams.push(params.wednesday_3rd_session_end);
         }
-        if( typeof params.thursday_3rd_session_start === 'string') {
+        if (typeof params.thursday_3rd_session_start === 'string') {
             updateFields.push("thursday_3rd_session_start=?");
             sqlParams.push(params.thursday_3rd_session_start);
         }
-        if( typeof params.thursday_3rd_session_end === 'string') {
+        if (typeof params.thursday_3rd_session_end === 'string') {
             updateFields.push("thursday_3rd_session_end=?");
             sqlParams.push(params.thursday_3rd_session_end);
         }
-        if( typeof params.friday_3rd_session_start === 'string') {
+        if (typeof params.friday_3rd_session_start === 'string') {
             updateFields.push("friday_3rd_session_start=?");
             sqlParams.push(params.friday_3rd_session_start);
         }
-        if( typeof params.friday_3rd_session_end === 'string') {
+        if (typeof params.friday_3rd_session_end === 'string') {
             updateFields.push("friday_3rd_session_end=?");
             sqlParams.push(params.friday_3rd_session_end);
         }
@@ -702,7 +711,7 @@ const doctorModel = {
     },
     deleteMonthyConsultingTimeing: async (params: { id: number, doctor_id: number, clinic_id: number, service_loc_id: number }) => {
         await DB.query("delete from doctor_consulting_timing_monthly where id=? and doctor_id=? and service_loc_id=? and clinic_id=?", [params.id, params.doctor_id, params.service_loc_id, params.clinic_id]);
-        return successResponse({},"Deleted successfully");
+        return successResponse({}, "Deleted successfully");
     },
 }
 export default doctorModel;
