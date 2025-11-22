@@ -1,6 +1,7 @@
 import {Router} from 'express';
 import {apiRateLimit,handelError,employeeValidation,checkUnderBranch,parseFormData} from '../middleware';
 import clinicController from '../controller/clinic';
+import clinicAppointmentsController from '../controller/clinic/appointments';
 const clinicRoutes=Router();
 clinicRoutes.get('/login-token',[apiRateLimit(2,20),employeeValidation(1),checkUnderBranch],handelError(clinicController.getLoginToken));
 clinicRoutes.get('/seo-url-availability-check',[apiRateLimit(5,20)],handelError(clinicController.checkClinicSeourlAvailability));
@@ -27,4 +28,7 @@ clinicRoutes.post('/clinic-specialization',[apiRateLimit(1,3),employeeValidation
 clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
 clinicRoutes.post('/add-clinic-staff',[apiRateLimit(1,10)],handelError(clinicController.addClinicStaff));
 clinicRoutes.post("/update-db-detail",[apiRateLimit(1,5)],clinicController.updateDbDetails);
+// appointments related routes
+clinicRoutes.post('/appointments',[apiRateLimit(5,10)],handelError(clinicAppointmentsController.apoointments));
+clinicRoutes.post('/bookings',[apiRateLimit(5,10)],handelError(clinicAppointmentsController.bookings));
 export default clinicRoutes;
