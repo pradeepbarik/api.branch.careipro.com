@@ -1,14 +1,40 @@
 import { Request, Response } from 'express';
+import { fork } from 'child_process';
 import Joi from 'joi';
-import { parameterMissingResponse, successResponse } from '../services/response';
+import { internalServerError, parameterMissingResponse, successResponse } from '../services/response';
 import clinicReportsMongoModel from '../mongo-schema/coll_clinic_reports';
 import appointmentsModel from '../mongo-schema/coll_apoointments';
+import path from 'path';
+import { get_current_datetime } from '../services/datetime';
 const reqSchema = {
     generateClinicReports: Joi.object({
         clinic_id: Joi.string().required(),
     })
 }
 const reportController = {
+    businessListingSummary: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            parameterMissingResponse("permission denied! Please login to access", res);
+            return
+        }
+        let clinics = await DB.get_rows("select * from clinics where branch_id=?", [tokenInfo.bid]);
+        let doctors = await DB.get_rows("select * from doctor where branch_id=?", [tokenInfo.bid]);
+        let now=get_current_datetime();
+        try {
+            const childprocess = fork(path.join(__dirname, "../child-process/report.js"),[], { silent: false });
+            childprocess.send({ action: "generate_business_listing_summary", data: { clinics, doctors,current_time: now } });
+            clinics=[];
+            doctors=[];
+            childprocess.on('message', (message: { status: string, data: any }) => {
+                if (message.status === "done") {
+                    res.json(successResponse(message.data, "Business listing summary generated successfully"));
+                }
+            });
+        } catch (e) {
+           internalServerError("Error generating business listing summary", res);
+        }
+    },
     generateClinicReports: async (req: Request, res: Response) => {
         const { error } = reqSchema.generateClinicReports.validate(req.query);
         if (error) {

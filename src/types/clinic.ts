@@ -1,5 +1,6 @@
 export type TUpdateDoctorBasicInfoParams={
     name?: string,
+    partner_type?: 'public_listing' | 'partnered',
     gender?: string,
     experience?: number,
     position?: string,

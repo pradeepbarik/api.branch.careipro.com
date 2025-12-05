@@ -2,6 +2,7 @@ import {Router} from 'express';
 import {apiRateLimit,handelError,employeeValidation,checkUnderBranch,parseFormData} from '../middleware';
 import clinicController from '../controller/clinic';
 import clinicAppointmentsController from '../controller/clinic/appointments';
+import doctorController from '../controller/doctor';
 const clinicRoutes=Router();
 clinicRoutes.get('/login-token',[apiRateLimit(2,20),employeeValidation(1),checkUnderBranch],handelError(clinicController.getLoginToken));
 clinicRoutes.get('/seo-url-availability-check',[apiRateLimit(5,20)],handelError(clinicController.checkClinicSeourlAvailability));
@@ -13,7 +14,9 @@ clinicRoutes.get('/clinic-detail',[apiRateLimit(10,20)],handelError(clinicContro
 clinicRoutes.post('/clinic-detail',[apiRateLimit(1,5),employeeValidation(1),checkUnderBranch],handelError(clinicController.saveClinicDetail));
 clinicRoutes.post('/clinic-timing',[apiRateLimit(1,5),employeeValidation(1)],handelError(clinicController.saveClinicTiming));
 clinicRoutes.post('/clinic-logo-update',[apiRateLimit(1,5),parseFormData],handelError(clinicController.updateClinicLogo));
-clinicRoutes.get('/get-doctors-list',[apiRateLimit(1,4)],handelError(clinicController.getDoctorsList));
+clinicRoutes.get('/get-doctors-list',[apiRateLimit(4,4)],handelError(clinicController.getDoctorsList));
+clinicRoutes.get("/get-all-doctors",[apiRateLimit(4,4)],handelError(doctorController.getAllDoctors));
+clinicRoutes.post('/add-new-doctor',[apiRateLimit(1,10),employeeValidation(1),checkUnderBranch],handelError(doctorController.addNewDoctor));
 clinicRoutes.get('/get-doctors-for-drop-down',[apiRateLimit(30,60)],handelError(clinicController.getDoctorsForDropDown));
 clinicRoutes.get('/doctor-complete-details',[apiRateLimit(1,3)],handelError(clinicController.doctorCompleteDetails));
 clinicRoutes.get('/doctor-info',[apiRateLimit(30,60)],handelError(clinicController.getDoctorinfo));

@@ -56,8 +56,8 @@ const clinicModel = {
         if (insertRes.affectedRows >= 1) {
             let clinic_id = insertRes.insertId;
             let now = get_current_datetime();
-            q = 'insert into clinic_detail (clinic_id,register_date) values (?,?)';
-            DB.query(q, [clinic_id, now]);
+            q = 'insert into clinic_detail (clinic_id,register_date,registered_by_emp_id) values (?,?,?)';
+            DB.query(q, [clinic_id, now, params.emp_info.id]);
             let bid = `${getGroupCategoryShortName(params.business_type)}${clinic_id}-${params.state_code}${params.dist_code}`;
             DB.query("update clinics set bid=? where id=?", [bid, clinic_id]);
             new clinicprofileChangeLogModel({

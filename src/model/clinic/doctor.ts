@@ -13,6 +13,10 @@ const doctorModel = {
             updateFields.push("name=?");
             sqlParams.push(params.name);
         }
+        if (params.partner_type) {
+            updateFields.push("partner_type=?");
+            sqlParams.push(params.partner_type);
+        }
         if (params.gender) {
             updateFields.push("gender=?");
             sqlParams.push(params.gender);

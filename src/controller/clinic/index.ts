@@ -41,8 +41,8 @@ const requestParams = {
         location: Joi.string().required(),
         latitude: Joi.number().allow(''),
         longitude: Joi.number().allow(''),
-        user_name: Joi.string().required(),
-        password: Joi.string().required(),
+        user_name: Joi.string().allow(""),
+        password: Joi.string().allow(""),
         partner_type: Joi.string().required(),
         //category: Joi.alternatives().conditional("business_type",{is:"CLINIC",then:Joi.string().required()})
         //category:Joi.string().when("business_type",{is:"CLINIC",then:Joi.required(),otherwise:Joi.optional()})
@@ -159,6 +159,7 @@ const requestParams = {
         service_loc_id: Joi.number().allow(''),
         cid: Joi.number().required(),
         name: Joi.string(),
+        partner_type: Joi.string().valid('public_listing', 'partnered'),
         gender: Joi.string(),
         experience: Joi.number(),
         position: Joi.string(),
@@ -525,7 +526,7 @@ const clinicController = {
             return
         }
         if (query.case === 'clinic_list_for_ddl') {
-            let q = "select id,name,market_name,category from clinics where branch_id=?";
+            let q = "select id,name,market_name,category,business_type from clinics where branch_id=?";
             let rows = await DB.get_rows(q, [tokenInfo.bid]);
             res.json(successResponse({
                 clinics: rows,
