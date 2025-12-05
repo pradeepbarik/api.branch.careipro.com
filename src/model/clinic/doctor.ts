@@ -2,7 +2,7 @@ import { successResponse, parameterMissingResponse } from '../../services/respon
 import { TUpdateDoctorBasicInfoParams } from '../../types/clinic';
 const doctorModel = {
     getDoctorBasicInfo: async (doctor_id: number, clinic_id: number) => {
-        let row = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id]);
+        let row = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id]);
         return successResponse(row, "success");
     },
     updateDoctorBasicInfo: async (doctor_id: number, clinic_id: number, params: TUpdateDoctorBasicInfoParams) => {
