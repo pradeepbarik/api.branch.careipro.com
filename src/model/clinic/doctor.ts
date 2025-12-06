@@ -49,6 +49,10 @@ const doctorModel = {
             updateFields.push("qualification_disp=?");
             sqlParams.push(params.qualification_disp);
         }
+        if(params.active!==undefined){
+            updateFields.push("active=?");
+            sqlParams.push(params.active);
+        }
         if (updateFields.length > 0) {
             q += updateFields.join(',') + " where id=? and clinic_id=?";
             sqlParams.push(doctor_id, clinic_id);
