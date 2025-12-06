@@ -58,8 +58,21 @@ const doctorModel = {
             sqlParams.push(doctor_id, clinic_id);
             await DB.query(q, sqlParams);
         }
-        if (params.service_charge) {
-            await DB.query("update doctor_service_location set service_charge=? where clinic_id=? and doctor_id=?", [params.service_charge, clinic_id, doctor_id]);
+        q="update doctor_service_location set ";
+        updateFields = [];
+        sqlParams = [];
+        if(params.service_charge){
+            updateFields.push("service_charge=?");
+            sqlParams.push(params.service_charge);
+        }
+        if(params.active!==undefined){
+            updateFields.push("active=?");
+            sqlParams.push(params.active);
+        }
+        if (updateFields.length > 0) {
+            q += updateFields.join(',') + " where clinic_id=? and doctor_id=?";
+            sqlParams.push(clinic_id, doctor_id);
+            await DB.query(q, sqlParams);
         }
         return successResponse(null, "Updated Successfully");
     },
@@ -246,11 +259,11 @@ const doctorModel = {
         let q = `select t1.availability,t1.slno_type,t1.site_service_charge,t2.* from (
             SELECT id,availability,slno_type,site_service_charge FROM doctor_service_location where id=? and doctor_id=? and clinic_id=?
             ) as t1 left join (
-            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_patients_feedback,consulting_timing_messages from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
+            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,show_patients_feedback,consulting_timing_messages from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
             ) as t2 on t1.id=t2.service_location_id`;
         let sqlparams = [service_loc_id, doctor_id, clinic_id, service_loc_id, doctor_id];
         let row: any = await DB.get_row(q, sqlparams);
-        row.site_service_charge = parseInt(row.site_service_charge || "0");
+        row.site_service_charge = parseInt(row?.site_service_charge || "0");
         row.consulting_timing_messages = row.consulting_timing_messages ? JSON.parse(row.consulting_timing_messages) : []
         return successResponse(row);
     },
@@ -299,6 +312,7 @@ const doctorModel = {
         show_patients_feedback?: number
         site_service_charge?: number,
         show_group_name_while_booking?: number
+        show_similar_business?: number
     }) => {
         if (params.emergency_booking_close && !params.booking_close_message) {
             return parameterMissingResponse("Please provide emergency booking close reason");
@@ -374,6 +388,10 @@ const doctorModel = {
         if (params.show_group_name_while_booking == 0 || params.show_group_name_while_booking == 1) {
             updateFields.push("show_group_name_while_booking=?");
             sqlParams.push(params.show_group_name_while_booking);
+        }
+        if (params.show_similar_business == 0 || params.show_similar_business == 1) {
+            updateFields.push("show_similar_business=?");
+            sqlParams.push(params.show_similar_business);
         }
         if (updateFields.length > 0) {
             if (params.service_loc_setting_id) {
