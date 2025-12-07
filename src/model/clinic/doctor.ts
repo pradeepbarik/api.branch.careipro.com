@@ -259,7 +259,7 @@ const doctorModel = {
         let q = `select t1.availability,t1.slno_type,t1.site_service_charge,t2.* from (
             SELECT id,availability,slno_type,site_service_charge FROM doctor_service_location where id=? and doctor_id=? and clinic_id=?
             ) as t1 left join (
-            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,show_patients_feedback,consulting_timing_messages from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
+            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,display_consulting_timing,display_booking_timing,show_patients_feedback,consulting_timing_messages from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
             ) as t2 on t1.id=t2.service_location_id`;
         let sqlparams = [service_loc_id, doctor_id, clinic_id, service_loc_id, doctor_id];
         let row: any = await DB.get_row(q, sqlparams);
@@ -312,7 +312,9 @@ const doctorModel = {
         show_patients_feedback?: number
         site_service_charge?: number,
         show_group_name_while_booking?: number
-        show_similar_business?: number
+        show_similar_business?: number,
+        display_consulting_timing?:string,
+        display_booking_timing?:string,
     }) => {
         if (params.emergency_booking_close && !params.booking_close_message) {
             return parameterMissingResponse("Please provide emergency booking close reason");
@@ -392,6 +394,14 @@ const doctorModel = {
         if (params.show_similar_business == 0 || params.show_similar_business == 1) {
             updateFields.push("show_similar_business=?");
             sqlParams.push(params.show_similar_business);
+        }
+        if(typeof params.display_consulting_timing!=='undefined'){
+            updateFields.push("display_consulting_timing=?");
+            sqlParams.push(params.display_consulting_timing);
+        }
+        if(typeof params.display_booking_timing!=='undefined'){
+            updateFields.push("display_booking_timing=?");
+            sqlParams.push(params.display_booking_timing);
         }
         if (updateFields.length > 0) {
             if (params.service_loc_setting_id) {

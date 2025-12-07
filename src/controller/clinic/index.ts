@@ -204,7 +204,9 @@ const requestParams = {
         show_patients_feedback: Joi.number().valid(0, 1).allow(''),
         site_service_charge: Joi.number().allow(""),
         show_group_name_while_booking: Joi.number().valid(0, 1).allow(''),
-        show_similar_business: Joi.number().valid(0, 1).allow('')
+        show_similar_business: Joi.number().valid(0, 1).allow(''),
+        display_consulting_timing:Joi.string().allow(''),
+        display_booking_timing:Joi.string().allow(''),
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),
