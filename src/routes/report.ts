@@ -7,6 +7,8 @@ const reportRouter = Router();
 reportRouter.get("/business-listing-summary",[apiRateLimit(10,10)],handelError(reportController.businessListingSummary));
 reportRouter.get('/todays-booked-appointment-doctors', [apiRateLimit(10, 30)], handelError(AppointmentController.getTodaysAppointmentBookedDoctors));
 reportRouter.get('/patients-doctor-list', [apiRateLimit(10, 30)], handelError(AppointmentController.getTodaysPatientsDoctorList));
+reportRouter.get("/page-visit-summary",[apiRateLimit(10,10)],handelError(pageVisiterController.getPageVisitSummary));
+reportRouter.get("/page-visit-graph-data",[apiRateLimit(10,10)],handelError(pageVisiterController.getPageVisitReport));
 reportRouter.get("/site-visiters",[apiRateLimit(10,10)],handelError(pageVisiterController.getPageVisiters));
 
 export default reportRouter;
