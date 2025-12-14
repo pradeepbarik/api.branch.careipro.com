@@ -10,6 +10,7 @@ import { encrypt } from '../../services/encryption';
 import { FormdataRequest } from '../../types';
 import { get_current_datetime } from '../../services/datetime';
 import { uploadFileToServer, deleteFile } from '../../services/file-upload';
+import fs from 'fs';
 const requestParams = {
     getLoginToken: Joi.object({
         clinic_id: Joi.number().required(),
@@ -84,6 +85,8 @@ const requestParams = {
         tag_line: Joi.string().allow(''),
         enable_enquiry: Joi.number().allow(''),
         show_patients_feedback: Joi.number().allow(''),
+        crm_contact_number: Joi.string().allow(''),
+        crm_name: Joi.string().allow('')
     }),
     saveClinicTiming: Joi.object({
         clinic_id: Joi.number().required(),
@@ -341,8 +344,8 @@ const requestParams = {
     }),
     uploadClinicBanner: Joi.object({
         id: Joi.number(),
-        user_id: Joi.number().required(),
-        user_type: Joi.string().required(),
+        clinic_id: Joi.number().required(),
+        doctor_id: Joi.number().required(),
         banner_description: Joi.string().required(),
         device_type: Joi.valid("mobile", "desktop", "all").required(),
         display_order: Joi.number().required(),
@@ -612,6 +615,8 @@ const clinicController = {
             whatsapp_number: body.whatsapp_number,
             whatsapp_channel_link: body.whatsapp_channel_link,
             tag_line: body.tag_line,
+            crm_contact_number: body.crm_contact_number,
+            crm_name: body.crm_name,
         }
         if (typeof body.enable_enquiry !== "undefined") {
             postdata.enable_enquiry = body.enable_enquiry;
@@ -756,6 +761,9 @@ const clinicController = {
         const { cid } = query;
         if (query.tab === 'basic_detail') {
             let response = await doctorModel.getDoctorBasicInfo(query.doctor_id, cid);
+            res.status(response.code).json(response);
+        }else if(query.tab==="media_content"){
+            let response=await doctorModel.getDoctorMediaContent(query.doctor_id,cid);
             res.status(response.code).json(response);
         } else if (query.tab === 'specialization') {
             let response = await doctorModel.getDoctorSpecializations(query.doctor_id, cid, query.group_category);
@@ -1044,6 +1052,26 @@ const clinicController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
+        let state = '';
+        let city = '';
+        let user_id="";
+        let user_type="";
+        if(parseInt(body.clinic_id)){
+            let row = await DB.get_row<{state: string, city: string}>("select state,city from clinics where id=?", [body.clinic_id]);
+            state = row?.state||'';
+            city = row?.city||'';
+        }else if(parseInt(body.doctor_id) && (state=='' || city=='')){
+            let row=await DB.get_row<{state: string, city: string}>("select state,city from doctor where id=?", [body.doctor_id]);
+            state = row?.state||'';
+            city = row?.city||'';
+        }
+        if(parseInt(body.doctor_id)){
+            user_id = body.doctor_id;
+            user_type = "doctor";
+        }else if(!parseInt(body.doctor_id) && parseInt(body.clinic_id)){
+            user_id = body.clinic_id;
+            user_type = "clinic";
+        }
         let image_name = '';
         if (body.banner_img_url) {
             image_name = body.banner_img_url;
@@ -1054,7 +1082,15 @@ const clinicController = {
             image_name = image_name.replace(/[^a-zA-Z0-9\s]/g, '');
             image_name = image_name.replace(/\s/g, '-');
             image_name = image_name + path.extname(files.banner.originalFilename);
-            let new_path = `${banner_path}/${image_name}`;
+            let bannerDirectory = `${banner_path}/${state.toLowerCase()}/${city.toLowerCase()}/C${body.clinic_id}D${body.doctor_id}`;
+            // replace space to -
+            bannerDirectory = bannerDirectory.replace(/\s/g, '-');
+            if(fs.existsSync(bannerDirectory)==false){
+                fs.mkdirSync(bannerDirectory, { recursive: true });
+            }
+            let new_path = `${bannerDirectory}/${image_name}`;
+            image_name = `${state.toLowerCase()}/${city.toLowerCase()}/C${body.clinic_id}D${body.doctor_id}/${image_name}`;
+            image_name = image_name.replace(/\s/g, '-');
             try {
                 await uploadFileToServer(oldPath, new_path)
             } catch (err: any) {
@@ -1067,7 +1103,7 @@ const clinicController = {
 
         } else {
             await DB.query("insert into banners set image=?,display_order=?,user_id=?,user_type=?,device_type=?,redirection_url=?,banner_description=?,upload_time=?", [
-                image_name, body.display_order, body.user_id, body.user_type, body.device_type, body.redirection_url, body.banner_description, now
+                image_name, body.display_order, user_id, user_type, body.device_type, body.redirection_url, body.banner_description, now
             ])
         }
         res.json(successResponse("Banner Updated successfully"))

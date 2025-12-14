@@ -1,7 +1,13 @@
 import { Request, Response } from "express";
 import Joi from "joi";
-import { parameterMissingResponse, serviceNotAcceptable, successResponse, unauthorizedResponse } from "../../services/response";
+import { internalServerError, parameterMissingResponse, serviceNotAcceptable, successResponse, unauthorizedResponse } from "../../services/response";
 import doctorModel from "../../model/doctor";
+import { FormdataRequest } from "../../types";
+import path from "path";
+import fs from "fs";
+import { uploadFileToServer } from "../../services/file-upload";
+import { banner_path } from "../../constants";
+import { get_current_datetime } from "../../services/datetime";
 const requestParams = {
     getAllDoctors: Joi.object({
         business_type: Joi.string().required(),
@@ -42,21 +48,21 @@ const doctorController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        let q="select id,name,gender,experience,position,image,description,rating,clinic_id,seo_url,active,business_type,partner_type,market_name,city from doctor where branch_id=? and city=?";
-        let sqlParams=[tokenInfo.bid, tokenInfo.bd];
-        if(req.query.business_type){
-            q+=" and business_type=?";
+        let q = "select id,name,gender,experience,position,image,description,rating,clinic_id,seo_url,active,business_type,partner_type,market_name,city from doctor where branch_id=? and city=?";
+        let sqlParams = [tokenInfo.bid, tokenInfo.bd];
+        if (req.query.business_type) {
+            q += " and business_type=?";
             sqlParams.push(<string>req.query.business_type);
         }
-        if(req.query.partner_type){
-            q+=" and partner_type=?";
+        if (req.query.partner_type) {
+            q += " and partner_type=?";
             sqlParams.push(<string>req.query.partner_type);
         }
         let rows = await DB.get_rows("select doctors.*,t2.id as service_location_id,t2.clinic as clinic_name from (" + q + ") as doctors join doctor_service_location as t2 on doctors.id=t2.doctor_id", sqlParams);
         res.json(successResponse(rows, "doctors list fetched successfully"));
     },
-    addNewDoctor: async (req: Request, res: Response) => {
-        const { body } = req;
+    addNewDoctor: async (req: FormdataRequest, res: Response) => {
+        const { body, files } = req;
         const validation = requestParams.addNewDoctor.validate(body);
         if (validation.error) {
             parameterMissingResponse(validation.error.details[0].message, res);
@@ -101,7 +107,42 @@ const doctorController = {
             serviceNotAcceptable(result.message, res);
             return;
         }
-        res.json(successResponse(result.data, result.message));
+        let now = get_current_datetime()
+        if (result.data?.doctor_id) {
+            //save doctor images
+            let state = body.state;
+            let city = body.dist;
+            let user_id = result.data?.doctor_id;
+            if (files) {
+                let i = 1;
+                for (let key in files) {
+                    let img = files[key];
+                    let oldPath = img.filepath;
+                    let doctor_photos = `${body.doctor_name}-${tokenInfo.bd}}-${i}`;
+                    doctor_photos = doctor_photos.replace(/[^a-zA-Z0-9\s-]/g, '');
+                    doctor_photos = doctor_photos.replace(/\s/g, '-');
+                    doctor_photos = doctor_photos + path.extname(img.originalFilename);
+                    let bannerDirectory = `${banner_path}/${state.toLowerCase()}/${city.toLowerCase()}/C${body.clinic_id||0}D${user_id}`;
+                    bannerDirectory = bannerDirectory.replace(/\s/g, '-');
+                    if (fs.existsSync(bannerDirectory) == false) {
+                        fs.mkdirSync(bannerDirectory, { recursive: true });
+                    }
+                    let new_path = `${bannerDirectory}/${doctor_photos}`;
+                    try {
+                        doctor_photos = `${state.toLowerCase()}/${city.toLowerCase()}/C${body.clinic_id||0}D${user_id}/${doctor_photos}`;
+                        doctor_photos = doctor_photos.replace(/\s/g, '-');
+                        await uploadFileToServer(oldPath, new_path)
+                        DB.query("insert into banners set image=?,display_order=?,user_id=?,user_type=?,device_type=?,redirection_url=?,banner_description=?,upload_time=?", [
+                            doctor_photos, i, result.data?.doctor_id, "doctor", "all", "", body.doctor_name + " " + "clinic photos", now
+                        ])
+                    } catch (err: any) {
+                        console.log("File upload error:", err.message);
+                    }
+                    i++;
+                }
+            }
+            res.json(successResponse(result.data, result.message));
+        }
     }
 }
 

@@ -113,6 +113,8 @@ const clinicModel = {
         tag_line?: string,
         enable_enquiry?: number,
         show_patients_feedback?: number
+        crm_contact_number?: string
+        crm_name?:string|null
     }) => {
         try {
             let q = "update clinics set ";
@@ -221,6 +223,14 @@ const clinicModel = {
                     updateFields.push("show_patients_feedback=?");
                     sql_params.push(params.show_patients_feedback);
                 }
+            }
+            if (params.crm_contact_number !== undefined) {
+                updateFields.push("crm_contact_number=?");
+                sql_params.push(params.crm_contact_number);
+            }
+            if (params.crm_name !== undefined) {
+                updateFields.push("crm_name=?");
+                sql_params.push(params.crm_name);
             }
             if (updateFields.length > 0) {
                 q += updateFields.join(',');

@@ -49,8 +49,8 @@ const doctorModel = {
                 throw new Error("page url is not available! Please choose some othe name");
             }
             let now = get_current_datetime();
-            let q = "insert into doctor set name=?,gender=?,experience=?,position=?,clinic_id=?,branch_id=?,seo_url=?,active=-5,registration_no=?,entry_time=?,city=?,qualification_disp=?,business_type=?,market_name=?,partner_type=?"
-            let insert_res: any = await DB.query(q, [params.doctor_name, params.gender, params.years_of_experience || 0, params.position, params.clinic_id, params.branch_id, params.seo_url, params.reg_no || "000000", now, params.dist, params.qualification, params.business_type, params.market, params.partner_type]);
+            let q = "insert into doctor set name=?,gender=?,experience=?,position=?,clinic_id=?,branch_id=?,seo_url=?,active=-5,registration_no=?,entry_time=?,city=?,qualification_disp=?,business_type=?,market_name=?,partner_type=?,state=?"
+            let insert_res: any = await DB.query(q, [params.doctor_name, params.gender, params.years_of_experience || 0, params.position, params.clinic_id, params.branch_id, params.seo_url, params.reg_no || "000000", now, params.dist, params.qualification, params.business_type, params.market, params.partner_type,params.state]);
             if (!insert_res) {
                 throw new Error('Something went wrong ! Please contact with support team');
             }
