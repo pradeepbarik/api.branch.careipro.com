@@ -6,7 +6,7 @@ const requestParams = {
     login: Joi.object({
         username: Joi.string().required().min(5).max(15),
         password: Joi.string().required().min(5).max(15),
-        branch_id: Joi.number().required().min(1).max(3)
+        branch_id: Joi.number().required()
     })
 }
 const authenticationController = {

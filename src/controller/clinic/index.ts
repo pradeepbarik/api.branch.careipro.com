@@ -208,8 +208,8 @@ const requestParams = {
         site_service_charge: Joi.number().allow(""),
         show_group_name_while_booking: Joi.number().valid(0, 1).allow(''),
         show_similar_business: Joi.number().valid(0, 1).allow(''),
-        display_consulting_timing:Joi.string().allow(''),
-        display_booking_timing:Joi.string().allow(''),
+        display_consulting_timing: Joi.string().allow(''),
+        display_booking_timing: Joi.string().allow(''),
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),
@@ -296,6 +296,14 @@ const requestParams = {
         message: Joi.string(),
         enable: Joi.number(),
     }),
+    similarBusiness: Joi.object({
+        cid: Joi.number(),
+        similar_business_sections: Joi.array().items(Joi.object({
+            heading: Joi.string().required(),
+            doctor_ids: Joi.string().allow(''),
+            clinic_ids: Joi.string().allow('')
+        }))
+    }),
     approveDoctor: Joi.object({
         clinic_id: Joi.number().required(),
         doctor_id: Joi.number().required(),
@@ -377,7 +385,7 @@ const requestParams = {
     updateDbDetails: Joi.object({
         clinic_id: Joi.number().required(),
         mongo_db_connection_url: Joi.string().required(),
-        mysql:Joi.any()
+        mysql: Joi.any()
     })
 }
 const clinicController = {
@@ -388,8 +396,8 @@ const clinicController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
-        await DB.query("update clinics set db_details=? where id=? limit 1",[JSON.stringify({mongo_db_connection_url:body.mongo_db_connection_url,mysql:body.mysql}),body.clinic_id],true);
-        res.json(successResponse({},"updated successfully"))
+        await DB.query("update clinics set db_details=? where id=? limit 1", [JSON.stringify({ mongo_db_connection_url: body.mongo_db_connection_url, mysql: body.mysql }), body.clinic_id], true);
+        res.json(successResponse({}, "updated successfully"))
     },
     getLoginToken: async (req: Request, res: Response) => {
         const { query, ip }: { query: any, ip: string | undefined } = req;
@@ -762,8 +770,8 @@ const clinicController = {
         if (query.tab === 'basic_detail') {
             let response = await doctorModel.getDoctorBasicInfo(query.doctor_id, cid);
             res.status(response.code).json(response);
-        }else if(query.tab==="media_content"){
-            let response=await doctorModel.getDoctorMediaContent(query.doctor_id,cid);
+        } else if (query.tab === "media_content") {
+            let response = await doctorModel.getDoctorMediaContent(query.doctor_id, cid);
             res.status(response.code).json(response);
         } else if (query.tab === 'specialization') {
             let response = await doctorModel.getDoctorSpecializations(query.doctor_id, cid, query.group_category);
@@ -786,6 +794,9 @@ const clinicController = {
         } else if (query.tab === "cash_receive_modes") {
             let rows = await DB.get_rows("select * from cash_recive_modes where service_location_id=? order by display_order", [query.service_loc_id]);
             res.json(successResponse(rows, "success"));
+        } else if (query.tab === "similar_business") {
+           let response = await doctorModel.getDoctorSettingsFromMongo(query.doctor_id, cid);
+           res.status(response.code).json(response);
         } else {
             serviceNotAcceptable("Invalid tab name", res);
         }
@@ -797,6 +808,7 @@ const clinicController = {
             unauthorizedResponse("you are not authorised for this service", res);
             return;
         }
+        console.log(body);
         const { cid } = body;
         const { doctor_id, tab, ...restParams } = body;
         if (body.doctor_id && typeof body.doctor_id === 'number' && body.tab) {
@@ -822,7 +834,7 @@ const clinicController = {
                 let response = await doctorModel.updateDoctorSpecialization(doctor_id, cid, body.service_loc_id, {
                     selected: restParams.selected_ids,
                     removed: restParams.removed_ids
-                },tokenInfo.bd)
+                }, tokenInfo.bd)
                 res.status(response.code).json(response);
             } else if (body.tab === 'disease_treatments') {
                 const validation: ValidationResult = requestParams.saveDoctorSpecialization.validate(restParams);
@@ -833,7 +845,7 @@ const clinicController = {
                 let response = await doctorModel.updateDoctordiseaseTreatment(doctor_id, cid, body.service_loc_id, {
                     selected: restParams.selected_ids,
                     removed: restParams.removed_ids
-                },tokenInfo.bd)
+                }, tokenInfo.bd)
                 res.status(response.code).json(response);
             } else if (tab === 'seo_details') {
                 const validation: ValidationResult = requestParams.saveDoctorSeoDetail.validate(restParams);
@@ -914,6 +926,18 @@ const clinicController = {
                 await DB.query("update doctor_servicelocation_setting set consulting_timing_messages=? where service_location_id=?", [JSON.stringify(restParams.consulting_timing), restParams.service_loc_id]);
                 res.json(successResponse({}, "updated successfully"));
                 return;
+            } else if (tab === "similar_business") {
+                const validation: ValidationResult = requestParams.similarBusiness.validate(restParams);
+                if (validation.error) {
+                    parameterMissingResponse(validation.error.details[0].message, res);
+                    return;
+                }
+                let response = await doctorModel.updateSimilarBusinessSettings({
+                    clinic_id: parseInt(cid),
+                    doctor_id: parseInt(doctor_id),
+                    similar_business_sections: restParams.similar_business_sections
+                })
+                res.status(response.code).json(response);
             } else {
                 serviceNotAcceptable("invalid tab name", res);
             }
@@ -1054,21 +1078,21 @@ const clinicController = {
         }
         let state = '';
         let city = '';
-        let user_id="";
-        let user_type="";
-        if(parseInt(body.clinic_id)){
-            let row = await DB.get_row<{state: string, city: string}>("select state,city from clinics where id=?", [body.clinic_id]);
-            state = row?.state||'';
-            city = row?.city||'';
-        }else if(parseInt(body.doctor_id) && (state=='' || city=='')){
-            let row=await DB.get_row<{state: string, city: string}>("select state,city from doctor where id=?", [body.doctor_id]);
-            state = row?.state||'';
-            city = row?.city||'';
+        let user_id = "";
+        let user_type = "";
+        if (parseInt(body.clinic_id)) {
+            let row = await DB.get_row<{ state: string, city: string }>("select state,city from clinics where id=?", [body.clinic_id]);
+            state = row?.state || '';
+            city = row?.city || '';
+        } else if (parseInt(body.doctor_id) && (state == '' || city == '')) {
+            let row = await DB.get_row<{ state: string, city: string }>("select state,city from doctor where id=?", [body.doctor_id]);
+            state = row?.state || '';
+            city = row?.city || '';
         }
-        if(parseInt(body.doctor_id)){
+        if (parseInt(body.doctor_id)) {
             user_id = body.doctor_id;
             user_type = "doctor";
-        }else if(!parseInt(body.doctor_id) && parseInt(body.clinic_id)){
+        } else if (!parseInt(body.doctor_id) && parseInt(body.clinic_id)) {
             user_id = body.clinic_id;
             user_type = "clinic";
         }
@@ -1085,7 +1109,7 @@ const clinicController = {
             let bannerDirectory = `${banner_path}/${state.toLowerCase()}/${city.toLowerCase()}/C${body.clinic_id}D${body.doctor_id}`;
             // replace space to -
             bannerDirectory = bannerDirectory.replace(/\s/g, '-');
-            if(fs.existsSync(bannerDirectory)==false){
+            if (fs.existsSync(bannerDirectory) == false) {
                 fs.mkdirSync(bannerDirectory, { recursive: true });
             }
             let new_path = `${bannerDirectory}/${image_name}`;

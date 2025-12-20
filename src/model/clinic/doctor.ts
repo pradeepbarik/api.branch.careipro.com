@@ -1,13 +1,14 @@
-import { successResponse, parameterMissingResponse } from '../../services/response';
+import { successResponse, parameterMissingResponse, serviceNotAcceptable } from '../../services/response';
 import { TUpdateDoctorBasicInfoParams } from '../../types/clinic';
+import doctorSettingsMongoModel from '../../mongo-schema/coll_doctor_settings';
 const doctorModel = {
     getDoctorBasicInfo: async (doctor_id: number, clinic_id: number) => {
-        let row = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id,doctor_id]);
+        let row = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id, doctor_id]);
         return successResponse(row, "success");
     },
     getDoctorMediaContent: async (doctor_id: number, clinic_id: number) => {
-       let rows = await DB.get_rows("select * from banners where user_id=? and user_type='doctor' order by display_order", [doctor_id]);
-       return successResponse(rows, "success");
+        let rows = await DB.get_rows("select * from banners where user_id=? and user_type='doctor' order by display_order", [doctor_id]);
+        return successResponse(rows, "success");
     },
     updateDoctorBasicInfo: async (doctor_id: number, clinic_id: number, params: TUpdateDoctorBasicInfoParams) => {
         let q = "update doctor set ";
@@ -53,7 +54,7 @@ const doctorModel = {
             updateFields.push("qualification_disp=?");
             sqlParams.push(params.qualification_disp);
         }
-        if(params.active!==undefined){
+        if (params.active !== undefined) {
             updateFields.push("active=?");
             sqlParams.push(params.active);
         }
@@ -62,14 +63,14 @@ const doctorModel = {
             sqlParams.push(doctor_id, clinic_id);
             await DB.query(q, sqlParams);
         }
-        q="update doctor_service_location set ";
+        q = "update doctor_service_location set ";
         updateFields = [];
         sqlParams = [];
-        if(params.service_charge){
+        if (params.service_charge) {
             updateFields.push("service_charge=?");
             sqlParams.push(params.service_charge);
         }
-        if(params.active!==undefined){
+        if (params.active !== undefined) {
             updateFields.push("active=?");
             sqlParams.push(params.active);
         }
@@ -317,8 +318,8 @@ const doctorModel = {
         site_service_charge?: number,
         show_group_name_while_booking?: number
         show_similar_business?: number,
-        display_consulting_timing?:string,
-        display_booking_timing?:string,
+        display_consulting_timing?: string,
+        display_booking_timing?: string,
     }) => {
         if (params.emergency_booking_close && !params.booking_close_message) {
             return parameterMissingResponse("Please provide emergency booking close reason");
@@ -399,11 +400,11 @@ const doctorModel = {
             updateFields.push("show_similar_business=?");
             sqlParams.push(params.show_similar_business);
         }
-        if(typeof params.display_consulting_timing!=='undefined'){
+        if (typeof params.display_consulting_timing !== 'undefined') {
             updateFields.push("display_consulting_timing=?");
             sqlParams.push(params.display_consulting_timing);
         }
-        if(typeof params.display_booking_timing!=='undefined'){
+        if (typeof params.display_booking_timing !== 'undefined') {
             updateFields.push("display_booking_timing=?");
             sqlParams.push(params.display_booking_timing);
         }
@@ -753,5 +754,53 @@ const doctorModel = {
         await DB.query("delete from doctor_consulting_timing_monthly where id=? and doctor_id=? and service_loc_id=? and clinic_id=?", [params.id, params.doctor_id, params.service_loc_id, params.clinic_id]);
         return successResponse({}, "Deleted successfully");
     },
+    getDoctorSettingsFromMongo: async (doctor_id: number, clinic_id: number) => {
+        let doctor = await DB.get_row<{ city: string }>("select city from doctor where id=?", [doctor_id]);
+        if (doctor === null) {
+            return serviceNotAcceptable("Doctor not found");
+        }
+        let settings = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id, city: doctor.city.toLowerCase() }).exec();
+        return successResponse(settings || { similar_business_not_show: false, similar_business_sections: [], treated_health_conditions: [], treatments_available: [] });
+    },
+    updateSimilarBusinessSettings: async (data: {
+        clinic_id: number,
+        doctor_id: number,
+        similar_business_sections: Array<{ heading: string, doctor_ids: string, clinic_ids: string }>
+    }) => {
+        let doctor = await DB.get_row<{ city: string }>("select city from doctor where id=?", [data.doctor_id]);
+        if (doctor === null) {
+            return serviceNotAcceptable("Doctor not found");
+        }
+        let settings = await doctorSettingsMongoModel.findOne({ doctor_id: data.doctor_id, clinic_id: data.clinic_id, city: doctor.city.toLowerCase() }).exec();
+        if (settings) {
+            await doctorSettingsMongoModel.updateOne({
+                clinic_id: data.clinic_id,
+                doctor_id: data.doctor_id,
+                city: doctor.city.toLowerCase()
+            }, {
+                $set: {
+                    similar_business_sections: data.similar_business_sections.map(section => ({
+                        heading: section.heading,
+                        doctor_ids: section.doctor_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)),
+                        clinic_ids: section.clinic_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+                    }))
+                }
+            }).exec();
+        } else {
+            settings = new doctorSettingsMongoModel({
+                clinic_id: data.clinic_id,
+                doctor_id: data.doctor_id,
+                city: doctor.city.toLowerCase(),
+                similar_business_sections: data.similar_business_sections.map(section => ({
+                    heading: section.heading,
+                    doctor_ids: section.doctor_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id)),
+                    clinic_ids: section.clinic_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+                }))
+            });
+            await settings.save()
+        }
+
+        return successResponse({}, "Settings updated successfully");
+    }
 }
 export default doctorModel;
