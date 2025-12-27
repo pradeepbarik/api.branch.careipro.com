@@ -304,6 +304,16 @@ const requestParams = {
             clinic_ids: Joi.string().allow('')
         }))
     }),
+    treatedHealthConditions: Joi.object({
+        cid: Joi.number(),
+        service_loc_id: Joi.number().required(),
+        treatments_available: Joi.string().allow(''),
+        treated_health_conditions: Joi.array().items(Joi.object({
+            condition: Joi.string().required(),
+            severity_levels: Joi.string().allow(''),
+            no_of_cases:Joi.number().allow('')
+        }))
+    }),
     approveDoctor: Joi.object({
         clinic_id: Joi.number().required(),
         doctor_id: Joi.number().required(),
@@ -795,8 +805,8 @@ const clinicController = {
             let rows = await DB.get_rows("select * from cash_recive_modes where service_location_id=? order by display_order", [query.service_loc_id]);
             res.json(successResponse(rows, "success"));
         } else if (query.tab === "similar_business") {
-           let response = await doctorModel.getDoctorSettingsFromMongo(query.doctor_id, cid);
-           res.status(response.code).json(response);
+            let response = await doctorModel.getDoctorSettingsFromMongo(query.doctor_id, cid);
+            res.status(response.code).json(response);
         } else {
             serviceNotAcceptable("Invalid tab name", res);
         }
@@ -936,6 +946,19 @@ const clinicController = {
                     clinic_id: parseInt(cid),
                     doctor_id: parseInt(doctor_id),
                     similar_business_sections: restParams.similar_business_sections
+                })
+                res.status(response.code).json(response);
+            } else if (tab === "treated_health_conditions") {
+                const validation: ValidationResult = requestParams.treatedHealthConditions.validate(restParams);
+                if (validation.error) {
+                    parameterMissingResponse(validation.error.details[0].message, res);
+                    return;
+                }
+                let response = await doctorModel.updateTreatedHealthConditions({
+                    clinic_id: parseInt(cid),
+                    doctor_id: parseInt(doctor_id),
+                    conditions: restParams.treated_health_conditions,
+                    treatments_available: restParams.treatments_available
                 })
                 res.status(response.code).json(response);
             } else {

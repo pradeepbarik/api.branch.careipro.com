@@ -270,6 +270,23 @@ const doctorModel = {
         let row: any = await DB.get_row(q, sqlparams);
         row.site_service_charge = parseInt(row?.site_service_charge || "0");
         row.consulting_timing_messages = row.consulting_timing_messages ? JSON.parse(row.consulting_timing_messages) : []
+        let doctorSettingDocument = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).exec();
+        if (doctorSettingDocument && doctorSettingDocument.treated_health_conditions.length > 0) {
+            row.treated_health_conditions = doctorSettingDocument.treated_health_conditions.map(thc => {
+                return {
+                    condition: thc.condition,
+                    severity_levels: thc.severity_levels.join("|"),
+                    no_of_cases: thc.no_of_cases
+                }
+            });
+        } else {
+            row.treated_health_conditions = [{ condition: "", severity_levels: "", no_of_cases: 0 }];
+        }
+        if (doctorSettingDocument && doctorSettingDocument.treatments_available) {
+            row.treatments_available = doctorSettingDocument.treatments_available.join("|");
+        } else {
+            row.treatments_available = "";
+        }
         return successResponse(row);
     },
     getDoctorSlnoGroups: async (service_loc_id: number) => {
@@ -419,6 +436,31 @@ const doctorModel = {
             await DB.query(q, sqlParams);
         }
         return successResponse(null);
+    },
+    updateTreatedHealthConditions: async ({doctor_id, clinic_id, treatments_available, conditions}: {doctor_id: number, clinic_id: number, treatments_available:string, conditions: { condition: string, severity_levels: string, no_of_cases: number }[]}) => {
+        let severityLevelsData = conditions.map(c => {
+            return {
+                condition: c.condition,
+                severity_levels: c.severity_levels ? c.severity_levels.split("|").map(sl => sl.trim()) : [],
+                no_of_cases: c.no_of_cases
+            }
+        });
+        let doctorSettingDocument = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).exec();
+        if (doctorSettingDocument) {
+            doctorSettingDocument.treated_health_conditions = severityLevelsData;
+            doctorSettingDocument.treatments_available = treatments_available ? treatments_available.split("|").map(t => t.trim()) : [];
+            await doctorSettingDocument.save();
+        } else {
+            let newDoctorSettingDocument = new doctorSettingsMongoModel({
+                doctor_id: doctor_id,
+                clinic_id: clinic_id,
+                treated_health_conditions: severityLevelsData,
+                treatments_available: treatments_available ? treatments_available.split("|").map(t => t.trim()) : [],
+                similar_business_sections: []
+            });
+            await newDoctorSettingDocument.save();
+        }
+        return successResponse(null, "Treated health conditions updated successfully");
     },
     getconsultingTiming: async (doctor_id: number, clinic_id: number, service_loc_id: number) => {
         let weeklytimingRow: any = await DB.get_row("select id,availability,sunday,sunday_1st_session_start,sunday_1st_session_end,sunday_2nd_session_start,sunday_2nd_session_end,monday,monday_1st_session_start,monday_1st_session_end,monday_2nd_session_start,monday_2nd_session_end,tuesday,tuesday_1st_session_start,tuesday_1st_session_end,tuesday_2nd_session_start,tuesday_2nd_session_end,wednesday,wednesday_1st_session_start,wednesday_1st_session_end,wednesday_2nd_session_start,wednesday_2nd_session_end,thursday,thursday_1st_session_start,thursday_1st_session_end,thursday_2nd_session_start,thursday_2nd_session_end,friday,friday_1st_session_start,friday_1st_session_end,friday_2nd_session_start,friday_2nd_session_end,saturday,saturday_1st_session_start,saturday_1st_session_end,saturday_2nd_session_start,saturday_2nd_session_end,sunday_3rd_session_start,sunday_3rd_session_end,monday_3rd_session_start,monday_3rd_session_end,tuesday_3rd_session_start,tuesday_3rd_session_end,wednesday_3rd_session_start,wednesday_3rd_session_end,thursday_3rd_session_start,thursday_3rd_session_end,friday_3rd_session_start,friday_3rd_session_end,saturday_3rd_session_start,saturday_3rd_session_end from doctor_service_location where id=? and doctor_id=? and clinic_id=?", [service_loc_id, doctor_id, clinic_id]);
