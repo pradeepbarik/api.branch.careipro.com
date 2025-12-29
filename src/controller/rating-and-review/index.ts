@@ -88,6 +88,16 @@ const ratingAndReviewController = {
         }
         let response = await deleteReview({ id: body.id });
         res.status(response.code).json(response);
+    },
+    getSiteFeedbacks: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access");
+            return
+        }
+        // Implement the logic to get site feedbacks here
+        // For now, returning a success response with an empty array
+        successResponse({}, "Site feedbacks fetched successfully");
     }
 }
 export default ratingAndReviewController;

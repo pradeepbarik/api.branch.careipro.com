@@ -5,5 +5,6 @@ const ratingRoutes=Router();
 ratingRoutes.get('/appointment-rating-and-reviews',[apiRateLimit(10,30)],handelError(ratingAndReviewController.getAppointmentRatingandReviews));
 ratingRoutes.post('/verified-review',[apiRateLimit(40,60),employeeValidation(1)],handelError(ratingAndReviewController.verifiedReview));
 ratingRoutes.post('/reject-review',[apiRateLimit(40,60),employeeValidation(1)],handelError(ratingAndReviewController.rejectReview));
-ratingRoutes.post('/delete-review',[apiRateLimit(20,60),employeeValidation(1)],handelError(ratingAndReviewController.rejectReview));
+ratingRoutes.post('/delete-review',[apiRateLimit(20,60),employeeValidation(1)],handelError(ratingAndReviewController.deleteReview));
+ratingRoutes.get('/site-feedbacks',[apiRateLimit(10,30)],handelError(ratingAndReviewController.getSiteFeedbacks));
 export default ratingRoutes;

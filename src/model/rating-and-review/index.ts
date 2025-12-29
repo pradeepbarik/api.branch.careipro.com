@@ -9,7 +9,7 @@ export const getApointmentRatingAndReviews = async (params: {
     status?:'unverified'|'verified'|'approved'|'unapproved',
 }) => {
     try {
-        let bookingReviewSql=`SELECT id,booking_id,user_id,doctor_id,service_loc_id,rating,visited_for,experience,ques_ans,review_date,status FROM booking_review where `;
+        let bookingReviewSql=`SELECT id,booking_id,user_id,doctor_id,service_loc_id,rating,visited_for,experience,ques_ans,review_date,status,replay,replay_date,score,review_tags FROM booking_review where `;
         let bookingReviewSqlParams:Array<string|number>=[];
         let conditions=[];
         if(params.user_id){
