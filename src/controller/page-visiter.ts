@@ -20,7 +20,7 @@ const reqSchema = {
     getPageVisiters: Joi.object({
         from_date: Joi.string().required(),
         to_date: Joi.string().required(),
-        page: Joi.string().allow('')
+        page_name: Joi.string().allow('')
     })
 }
 const pageVisiterController = {
@@ -152,12 +152,17 @@ const pageVisiterController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
+        let conditions={};
+        if(query.page_name){
+            conditions={...conditions, page_name:query.page_name}
+        }
         let rows = await siteVisiterLogModel.find({
             city: tokenInfo.bd.toLowerCase(),
             visit_time: {
                 $gte: new Date(query.from_date + " 00:00:00"),
                 $lte: new Date(query.to_date + " 23:59:59")
-            }
+            },
+            ...conditions
         }).lean();
         res.json(successResponse(rows, "success"));
     }

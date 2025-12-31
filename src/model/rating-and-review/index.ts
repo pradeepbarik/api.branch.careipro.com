@@ -37,7 +37,7 @@ export const getApointmentRatingAndReviews = async (params: {
             bookingReviewSqlParams.push(params.status)
         }
         bookingReviewSql+=conditions.join(' and ');
-        let sql = `select br.*,doc.name as doctor_name,doc.position as doctor_position,doc.image as doctor_logo,clinics.* from (${bookingReviewSql}) as br JOIN (select id as doc_id,clinic_id,name,position,image from doctor where branch_id=?) as doc on br.doctor_id=doc.doc_id left join (select id as clinic_id,name as clinic_name from clinics where branch_id=?) as clinics on doc.clinic_id=clinics.clinic_id order by br.review_date desc`;
+        let sql = `select br.*,doc.name as doctor_name,doc.position as doctor_position,doc.image as doctor_logo,clinics.* from (${bookingReviewSql}) as br JOIN (select id as doc_id,clinic_id,name,position,image from doctor where branch_id=?) as doc on br.doctor_id=doc.doc_id left join (select id as clinic_id,name as clinic_name from clinics where branch_id=?) as clinics on doc.clinic_id=clinics.clinic_id join booking on br.booking_id=booking.id order by br.review_date desc`;
         let sqlParams=[...bookingReviewSqlParams, params.branch_id, params.branch_id];
         let rows = await DB.get_rows(sql, sqlParams);
         return successResponse(rows,"success");

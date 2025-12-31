@@ -21,6 +21,15 @@ const requestParams = {
     })
 }
 const ratingAndReviewController = {
+    getBookingPatinetDetails: async (req: Request, res: Response) => {
+        if (!req.query.booking_id || !req.query.user_id) {
+            parameterMissingResponse("booking_id and user_id are required", res);
+            return;
+        }
+        let {query}:{query: any}=req;
+        let patient_info = await DB.get_row(`select t1.*,t2.* from (select patient_name,patient_mobile from booking where id=?)as t1 cross join (select firstname as booked_by,mobile as booked_by_mobile from users where id=?) as t2`,[query.booking_id, query.user_id]);
+        res.json(successResponse(patient_info,"success"));
+    },
     getAppointmentRatingandReviews: async (req: Request, res: Response) => {
         const { query }: { query: any } = req;
         const validation: ValidationResult = requestParams.getAppointmentRatingandReviews.validate(query);
