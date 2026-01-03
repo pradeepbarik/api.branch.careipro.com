@@ -156,7 +156,6 @@ const getManagementMongoDb = (connectionString: string) => {
             var instance = new mongoose.Mongoose();
             instance.connect(connectionString, {});
             mongoConnection = instance.connection;
-           // mongoConnection = mongoose.createConnection(connectionString);
             mongoConnection.on('error', (err: any) => {
                 console.log(err);
             });

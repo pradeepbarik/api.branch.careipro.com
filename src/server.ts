@@ -18,9 +18,9 @@ switch (DEV_MODE) {
     case 'staging':
         break;
     case 'production':
-        global.MANAGEMENT_DB = getManagementDb();
         global.DB = getProductionDb();
         global.MONGODB = getProductionMongoDB();
+        global.MANAGEMENT_DB = getManagementDb();
         break;
     default:
         global.DB = getDevelopmentDb();
