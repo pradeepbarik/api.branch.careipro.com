@@ -1,5 +1,18 @@
 import { Schema } from "mongoose";
+import { getManagementDevDb, getManagementDb } from "../db";
+
 const COLLECTION_NAME = 'coll_tasks';
+const DEV_MODE: string = <string>process.env.NODE_ENV;
+
+// Get the correct database connection based on environment
+const getManagementDB = () => {
+    if (global.MANAGEMENT_DB) {
+        return global.MANAGEMENT_DB;
+    }
+    // Fallback: initialize if not already done
+    return DEV_MODE === 'production' ? getManagementDb() : getManagementDevDb();
+};
+
 const TaskSchema = new Schema({
     branch_id: { type: Number, required: true },
     task_type: { type: String },
@@ -38,10 +51,13 @@ const TaskSchema = new Schema({
         activity_by: { emp_id: Number, name: String }
     }]
 })
+
 const getTasksModel = () => {
+    const MANAGEMENT_DB = getManagementDB();
     if (MANAGEMENT_DB.models[COLLECTION_NAME]) {
         return MANAGEMENT_DB.models[COLLECTION_NAME];
     }
     return MANAGEMENT_DB.model(COLLECTION_NAME, TaskSchema);
 }
+
 export default getTasksModel;
