@@ -39,12 +39,6 @@ const TaskSchema = new Schema({
     }]
 })
 const getTasksModel = () => {
-    if (!MANAGEMENT_DB) {
-        throw new Error('MANAGEMENT_DB is not initialized. Check server.ts initialization.');
-    }
-    console.log('MANAGEMENT_DB name:', MANAGEMENT_DB.name);
-    console.log('MANAGEMENT_DB host:', MANAGEMENT_DB.host);
-    
     if (MANAGEMENT_DB.models[COLLECTION_NAME]) {
         return MANAGEMENT_DB.models[COLLECTION_NAME];
     }
