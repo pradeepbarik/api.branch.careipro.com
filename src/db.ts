@@ -146,16 +146,17 @@ const connectToDb = (url: string) => new Promise((resolve, reject) => {
     })
 })
 const getManagementMongoDb = (connectionString: string) => {
-    var mongoConnection: any;
+    let mongoConnection: any;
     return ()=>{
         if (mongoConnection) {
             console.log('already connected to management mongdb...');
             return mongoConnection;
         } else {
             console.log('connecting to management mongdb...');
-            //var instance = new mongoose.Mongoose();
-            //instance.connect(connectionString, {});
-            mongoConnection = mongoose.createConnection(connectionString);
+            var instance = new mongoose.Mongoose();
+            instance.connect(connectionString, {});
+            mongoConnection = instance.connection;
+           // mongoConnection = mongoose.createConnection(connectionString);
             mongoConnection.on('error', (err: any) => {
                 console.log(err);
             });

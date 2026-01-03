@@ -39,7 +39,9 @@ const TaskSchema = new Schema({
     }]
 })
 const getTasksModel = () => {
-    console.log('Getting Tasks Model',MANAGEMENT_DB);
+    if (MANAGEMENT_DB.models[COLLECTION_NAME]) {
+        return MANAGEMENT_DB.models[COLLECTION_NAME];
+    }
     return MANAGEMENT_DB.model(COLLECTION_NAME, TaskSchema);
 }
 export default getTasksModel;
