@@ -11,7 +11,7 @@ import cacheRoutes from './routes/cache';
 import enquiryRoutes from './routes/enquiry';
 import commonapiRoutes from './routes/common-apis'
 import reportRouter from './routes/report';
-import { x } from 'joi';
+import tasksRouter from './routes/tasks';
 const APP: Application = express();
 APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress, level: 1 }))
@@ -31,4 +31,5 @@ APP.use('/cache', [xApiKeyValidation], cacheRoutes);
 APP.use('/enquiry', [xApiKeyValidation], enquiryRoutes);
 APP.use('/commonapi', [xApiKeyValidation], commonapiRoutes)
 APP.use('/report', [xApiKeyValidation], reportRouter);
+APP.use("/tasks",[xApiKeyValidation],tasksRouter);
 export default APP;

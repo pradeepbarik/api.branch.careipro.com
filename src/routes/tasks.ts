@@ -1,0 +1,14 @@
+import { Router } from "express";
+import {apiRateLimit,handelError,parseFormData,employeeValidation} from '../middleware';
+import manageTaskController from "../controller/manage-task";
+const tasksRouter=Router();
+tasksRouter.post("/create",[apiRateLimit(1,2),employeeValidation(1)],handelError(manageTaskController.createTask));
+tasksRouter.get("/list",[apiRateLimit(5,10),employeeValidation(1)],handelError(manageTaskController.tasksList));
+tasksRouter.get("/detail",[apiRateLimit(10,10),employeeValidation(1)],handelError(manageTaskController.taskDetail));
+tasksRouter.get("/employee-list",[apiRateLimit(5,10),employeeValidation(1)],handelError(manageTaskController.employeeList));
+tasksRouter.post("/assign-employee",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.assignEmployeeToTask));
+tasksRouter.post("/add-comment",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.addCommentToTask));
+tasksRouter.post("/change-status",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeTaskStatus));
+tasksRouter.post("/change-reporter",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeReporterOfTask));
+tasksRouter.post("/change-priority",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changePriorityOfTask));
+export default tasksRouter;
