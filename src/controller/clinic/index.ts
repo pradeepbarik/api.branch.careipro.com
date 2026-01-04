@@ -296,6 +296,16 @@ const requestParams = {
         message: Joi.string(),
         enable: Joi.number(),
     }),
+    cashReceiveModes: Joi.object({
+        action: Joi.string().required(),
+        id: Joi.number(),
+        service_loc_id: Joi.number().required(),
+        name: Joi.string().allow(''),
+        short_name: Joi.string().required(),
+        value: Joi.number().required(),
+        bar_value: Joi.number().required(),
+        display_order: Joi.number().required()
+    }),
     similarBusiness: Joi.object({
         cid: Joi.number(),
         similar_business_sections: Joi.array().items(Joi.object({
@@ -311,7 +321,7 @@ const requestParams = {
         treated_health_conditions: Joi.array().items(Joi.object({
             condition: Joi.string().required(),
             severity_levels: Joi.string().allow(''),
-            no_of_cases:Joi.number().allow('')
+            no_of_cases: Joi.number().allow('')
         }))
     }),
     approveDoctor: Joi.object({
@@ -818,7 +828,6 @@ const clinicController = {
             unauthorizedResponse("you are not authorised for this service", res);
             return;
         }
-        console.log(body);
         const { cid } = body;
         const { doctor_id, tab, ...restParams } = body;
         if (body.doctor_id && typeof body.doctor_id === 'number' && body.tab) {
@@ -926,6 +935,37 @@ const clinicController = {
                 } else if (action === 'delete') {
                     let response = await doctorModel.deleteSlnoGroup(params.id, params.service_loc_id)
                     res.status(response.code).json(response);
+                }
+            } else if (tab === "cash_receive_modes") {
+                let { action, ...params } = restParams;
+                if (action === "add") {
+                    const validation: ValidationResult = requestParams.cashReceiveModes.validate(restParams);
+                    if (validation.error) {
+                        parameterMissingResponse(validation.error.details[0].message, res);
+                        return;
+                    }
+                    await DB.query("insert into cash_recive_modes (service_location_id,short_name,name,value,display_order,bar_value) values (?,?,?,?,?,?)", [params.service_loc_id, params.short_name, params.name, params.value, params.display_order, params.bar_value]);
+                    res.json(successResponse({}, "added successfully"));
+                } else if (action === "update") {
+                    const validation: ValidationResult = requestParams.cashReceiveModes.validate(restParams);
+                    if (validation.error) {
+                        parameterMissingResponse(validation.error.details[0].message, res);
+                        return;
+                    }
+                    await DB.query("update cash_recive_modes set short_name=?,name=?,value=?,display_order=?,bar_value=? where id=? and service_location_id=?", [params.short_name, params.name, params.value, params.display_order, params.bar_value, params.id, params.service_loc_id]);
+                    res.json(successResponse({}, "updated successfully"));
+                } else if (action === "delete") {
+                    const validation: ValidationResult = Joi.object({
+                        id: Joi.number().required(),
+                        action: Joi.string().valid("delete").required(),
+                        service_loc_id: Joi.number().required()
+                    }).validate(restParams);
+                    if (validation.error) {
+                        parameterMissingResponse(validation.error.details[0].message, res);
+                        return;
+                    }
+                    await DB.query("delete from cash_recive_modes where id=? and service_location_id=? limit 1", [params.id, params.service_loc_id]);
+                    res.json(successResponse({}, "deleted successfully"));
                 }
             } else if (tab === "slno_conculting_timing") {
                 const validation: ValidationResult = requestParams.saveSlNoConsultiming.validate(restParams);
