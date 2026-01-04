@@ -11,4 +11,5 @@ tasksRouter.post("/add-comment",[apiRateLimit(2,5),employeeValidation(1)],handel
 tasksRouter.post("/change-status",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeTaskStatus));
 tasksRouter.post("/change-reporter",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeReporterOfTask));
 tasksRouter.post("/change-priority",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changePriorityOfTask));
+tasksRouter.post("/delete",[apiRateLimit(1,2),employeeValidation(1)],handelError(manageTaskController.deleteTask));
 export default tasksRouter;

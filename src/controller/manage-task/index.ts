@@ -198,6 +198,23 @@ const manageTaskController = {
             priority: priority,
         });
         res.status(response.code).json(response);
-    }
+    },
+    deleteTask: async (req: Request, res: Response) => {
+        const { task_id } = req.body;
+        if (!task_id) {
+            parameterMissingResponse("task_id is required", res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await taskManagementModel.deleteTask({
+            task_id: task_id,
+            emp_id: tokenInfo.eid,
+        });
+        res.status(response.code).json(response);
+    },
 }
 export default manageTaskController;

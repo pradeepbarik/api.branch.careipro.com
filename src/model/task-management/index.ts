@@ -187,6 +187,29 @@ const taskManagementModel = {
         task.priority = params.priority;
         await task.save();
         return successResponse({}, "Task priority updated successfully");
+    },
+    deleteTask: async (params: {
+        task_id: string;
+        emp_id: number;
+    }) => {
+        const TasksModel = getTasksModel();
+        let task = await TasksModel.findById(new Types.ObjectId(params.task_id));
+        if (!task) {
+            return serviceNotAcceptable("Task not found");
+        }
+        // check if task is in backlog and params.emp_id is the creator of the task
+        if(task.status!=="backlog"){
+            return serviceNotAcceptable("Only tasks in backlog can be deleted");
+        }
+        if (task.created_by.emp_id !== params.emp_id) {
+            return serviceNotAcceptable("Only the creator can delete tasks");
+        }
+        let sub_tasks = await TasksModel.find({ parent_task_id: new Types.ObjectId(params.task_id) }, "_id").lean();
+        if (sub_tasks.length > 0) {
+            return serviceNotAcceptable("Cannot delete task with existing sub-tasks");
+        }
+        await TasksModel.deleteOne({ _id: new Types.ObjectId(params.task_id) });
+        return successResponse({}, "Task deleted successfully");
     }
 };
 
