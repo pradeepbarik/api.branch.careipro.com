@@ -2,6 +2,7 @@ import { serviceNotAcceptable, successResponse } from "../../services/response";
 import getTasksModel from "../../management-mongo-schema/tasks";
 import { Types } from "mongoose";
 import { moment, get_current_datetime } from "../../services/datetime";
+import getRemindersModel from "../../management-mongo-schema/reminders";
 const taskManagementModel = {
     createTask: async (params: {
         branch_id: number;
@@ -210,7 +211,62 @@ const taskManagementModel = {
         }
         await TasksModel.deleteOne({ _id: new Types.ObjectId(params.task_id) });
         return successResponse({}, "Task deleted successfully");
-    }
+    },
+    getAllReminders: async (params: {
+        emp_id: number;
+    }) => {
+        // Placeholder for fetching reminders from the database
+        const remindersModel = getRemindersModel();
+        let remindersDoc = await remindersModel.findOne({ emp_id: parseInt(params.emp_id.toString()) }).lean();
+        let reminders = [];
+        if (remindersDoc && remindersDoc.reminders) {
+            reminders = remindersDoc.reminders.map((r: any) => ({
+                id: r._id.toString(),
+                message: r.message,
+                due_date: r.due_date,
+                created_at: r.created_at
+            }));
+        }
+        return successResponse({ reminders }, "Reminders fetched successfully");
+    },
+    createReminder: async (params: {
+        emp_id: number;
+        message: string;
+        due_date?: string;
+    }) => {
+        // Placeholder for creating a reminder in the database
+        const remindersModel = getRemindersModel();
+        remindersModel.findOneAndUpdate(
+            { emp_id: parseInt(params.emp_id.toString()) },
+            {
+                $push: {
+                    reminders: {
+                        message: params.message,
+                        due_date: params.due_date ? moment(params.due_date).toDate() : undefined,
+                        created_at: new Date(get_current_datetime())
+                    }
+                }
+            },
+            { upsert: true, new: true }
+        ).exec();   
+        return successResponse({}, "Reminder created successfully");
+    },
+    deleteReminder: async (params: {
+        emp_id: number;
+        reminder_id: string;
+    }) => {
+        // Placeholder for deleting a reminder from the database
+        const remindersModel = getRemindersModel();
+        await remindersModel.findOneAndUpdate(
+            { emp_id: parseInt(params.emp_id.toString()) },
+            {
+                $pull: {
+                    reminders: { _id: new Types.ObjectId(params.reminder_id) }
+                }
+            }
+        ).exec();
+        return successResponse({}, "Reminder deleted successfully");
+    },
 };
 
 export default taskManagementModel;

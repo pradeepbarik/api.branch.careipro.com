@@ -216,5 +216,53 @@ const manageTaskController = {
         });
         res.status(response.code).json(response);
     },
+    getAllReminders: async (req: Request, res: Response) => {
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await taskManagementModel.getAllReminders({
+            emp_id: tokenInfo.eid,
+        });
+        res.status(response.code).json(response);
+    },
+    createReminder: async (req: Request, res: Response) => {
+        // Logic to create a new reminder
+        const { message, due_date } = req.body;
+        if (!message) {
+            parameterMissingResponse("message is required", res);
+            return;
+        }
+        console.log("Creating reminder with message:", message, "and due_date:", due_date);
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await taskManagementModel.createReminder({
+            emp_id: tokenInfo.eid,
+            message: message,
+            due_date: due_date,
+        });
+        res.status(response.code).json(response);
+    },
+    deleteReminder: async (req: Request, res: Response) => {
+        const { reminder_id } = req.body;
+        if (!reminder_id) {
+            parameterMissingResponse("reminder_id is required", res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await taskManagementModel.deleteReminder({
+            emp_id: tokenInfo.eid,
+            reminder_id: reminder_id,
+        });
+        res.status(response.code).json(response);
+    }
 }
 export default manageTaskController;

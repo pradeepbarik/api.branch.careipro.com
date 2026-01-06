@@ -86,7 +86,8 @@ const requestParams = {
         enable_enquiry: Joi.number().allow(''),
         show_patients_feedback: Joi.number().allow(''),
         crm_contact_number: Joi.string().allow(''),
-        crm_name: Joi.string().allow('')
+        crm_name: Joi.string().allow(''),
+        patient_support_contact_no: Joi.string().allow('')
     }),
     saveClinicTiming: Joi.object({
         clinic_id: Joi.number().required(),
@@ -645,6 +646,7 @@ const clinicController = {
             tag_line: body.tag_line,
             crm_contact_number: body.crm_contact_number,
             crm_name: body.crm_name,
+            patient_support_contact_no: body.patient_support_contact_no
         }
         if (typeof body.enable_enquiry !== "undefined") {
             postdata.enable_enquiry = body.enable_enquiry;

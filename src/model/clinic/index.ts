@@ -114,7 +114,8 @@ const clinicModel = {
         enable_enquiry?: number,
         show_patients_feedback?: number
         crm_contact_number?: string
-        crm_name?:string|null
+        crm_name?:string|null,
+        patient_support_contact_no?:string|null
     }) => {
         try {
             let q = "update clinics set ";
@@ -231,6 +232,10 @@ const clinicModel = {
             if (params.crm_name !== undefined) {
                 updateFields.push("crm_name=?");
                 sql_params.push(params.crm_name);
+            }
+            if (params.patient_support_contact_no !== undefined) {
+                updateFields.push("patient_support_contact_no=?");
+                sql_params.push(params.patient_support_contact_no);
             }
             if (updateFields.length > 0) {
                 q += updateFields.join(',');
