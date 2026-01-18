@@ -40,7 +40,7 @@ export const addClinicAvailableMarket = async (params: TaddClinicAvailableMarket
         let state = params.state.toLowerCase();
         let city = params.dist_name.toLowerCase();
         let market_name = params.area_name.toLowerCase();
-        let clinicMarketDocument = await clinicMarketsModel.findOne({ state: state, city: city }).select('_id state sity').exec();
+        let clinicMarketDocument = await clinicMarketsModel.findOne({ state: state, city: city }).select('_id state city').exec();
         if (clinicMarketDocument) {
             await clinicMarketDocument.updateOne({
                 $push: {

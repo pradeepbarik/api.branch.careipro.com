@@ -180,6 +180,44 @@ const manageTaskController = {
         });
         res.status(response.code).json(response);
     },
+    changeTaskTitle: async (req: Request, res: Response) => {
+        const { task_id, title } = req.body;
+        if (!task_id || !title) {
+            parameterMissingResponse("task_id and title are required", res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await taskManagementModel.changeTaskTitle({
+            emp_id: tokenInfo.eid,
+            emp_name: emp_info.first_name,
+            task_id: task_id,
+            title: title,
+        });
+        res.status(response.code).json(response);
+    },
+    changeTaskDescription: async (req: Request, res: Response) => {
+        const { task_id, description } = req.body;
+        if (!task_id || !description) {
+            parameterMissingResponse("task_id and description are required", res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await taskManagementModel.changeTaskDescription({
+            emp_id: tokenInfo.eid,
+            emp_name: emp_info.first_name,
+            task_id: task_id,
+            description: description,
+        });
+        res.status(response.code).json(response);
+    },
     changePriorityOfTask: async (req: Request, res: Response) => {
         const { task_id, priority } = req.body;
         if (!task_id || !priority) {

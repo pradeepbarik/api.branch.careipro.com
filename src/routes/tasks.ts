@@ -9,6 +9,8 @@ tasksRouter.get("/employee-list",[apiRateLimit(5,10),employeeValidation(1)],hand
 tasksRouter.post("/assign-employee",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.assignEmployeeToTask));
 tasksRouter.post("/add-comment",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.addCommentToTask));
 tasksRouter.post("/change-status",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeTaskStatus));
+tasksRouter.post("/change-task-title",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeTaskTitle));
+tasksRouter.post("/change-description",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeTaskDescription));
 tasksRouter.post("/change-reporter",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeReporterOfTask));
 tasksRouter.post("/change-priority",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changePriorityOfTask));
 tasksRouter.post("/delete",[apiRateLimit(1,2),employeeValidation(1)],handelError(manageTaskController.deleteTask));

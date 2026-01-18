@@ -8,7 +8,7 @@ const TaskSchema = new Schema({
     description: { type: String, required: false },
     additional_changes: { type: String, required: false },
     priority: { type: String, enum: ['low', 'medium', 'high', 'critical'], required: true },
-    status: { type: String, enum: ['backlog', 'to_do', 'in_progress', 'on_hold', 'postponed', 'completed'], default: 'backlog' },
+    status: { type: String, enum: ['backlog', 'to_do', 'in_progress', 'on_hold', 'postponed','ready_for_test','ready_for_live','test_on_live', 'completed'], default: 'backlog' },
     tags: [String],
     created_at: { type: Date, default: Date.now },
     created_by: { emp_id: Number, name: String },

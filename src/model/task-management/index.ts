@@ -169,6 +169,46 @@ const taskManagementModel = {
         await task.save();
         return successResponse({}, "Task status updated successfully");
     },
+    changeTaskTitle:async (params: {
+        emp_id: number;
+        emp_name: string;
+        task_id: string;
+        title: string;
+    })=>{
+        const TasksModel = getTasksModel();
+        let task = await TasksModel.findById(new Types.ObjectId(params.task_id));
+        if (!task) {
+            return serviceNotAcceptable("Task not found");
+        }
+        task.activity_log.push({
+            activity: `Title changed from ${task.title} to ${params.title}`,
+            activity_at: new Date(get_current_datetime()),
+            activity_by: { emp_id: params.emp_id, name: params.emp_name }
+        });
+        task.title = params.title;
+        await task.save();
+        return successResponse({}, "Task title updated successfully");
+    },
+    changeTaskDescription:async (params: {
+        emp_id: number;
+        emp_name: string;
+        task_id: string;
+        description: string;
+    })=>{
+        const TasksModel = getTasksModel();
+        let task = await TasksModel.findById(new Types.ObjectId(params.task_id));
+        if (!task) {
+            return serviceNotAcceptable("Task not found");
+        }
+        task.activity_log.push({
+            activity: `Description changed`,
+            activity_at: new Date(get_current_datetime()),
+            activity_by: { emp_id: params.emp_id, name: params.emp_name }
+        });
+        task.description = params.description;
+        await task.save();
+        return successResponse({}, "Task description updated successfully");
+    },
     changePriorityOfTask: async (params: {
         emp_id: number;
         emp_name: string;
