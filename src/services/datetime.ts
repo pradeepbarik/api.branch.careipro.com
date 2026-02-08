@@ -12,10 +12,13 @@ type datetime = {
 }
 export const get_current_datetime = (onlydate = false): string => {
   if (onlydate) {
-    return formatDateTime(moment(),dateFormat);
+    return formatDateTime(moment().utcOffset("+05:30"),dateFormat);
   } else {
-    return formatDateTime(moment(),dateTimeFormat);
+    return formatDateTime(moment().utcOffset("+05:30"),dateTimeFormat);
   }
+}
+export const getDateTime=(dateTime:string):moment.Moment=>{
+  return moment(dateTime).utcOffset("+05:30");
 }
 export const formatDateTime = (dateTime: Moment,format:string=dateTimeFormat): string => {
   return dateTime.format(format);

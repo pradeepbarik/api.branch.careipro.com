@@ -7,6 +7,7 @@ export const COLL_CLINIC_INFO_CHANGE_TRACKERS='coll_clinic_info_change_trackers'
 export const COLL_CITY_PINCODES='coll_city_pincodes';
 export const COLL_PAGE_SETTINGS='coll_page_settings';
 export const COLL_CLINIC_REPORTS='coll_clinic_reports';
+export const COLL_CLINIC_DAILY_REPORTS="coll_clinic_daily_reports";
 export const COLL_SITE_VISITER_LOGS='coll_site_visiter_logs';
 export const COLL_PAGES="coll_pages";
 export const COLL_DFORM_SUBMISSIONS="coll_dform_submissions";
