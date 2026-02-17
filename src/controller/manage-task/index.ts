@@ -14,7 +14,7 @@ const requestParams = {
         task_type:Joi.string().allow('', null),
     }),
     tasksList: Joi.object({
-        case: Joi.string().valid('all_tasks', 'my_tasks').required(),
+        case: Joi.string().valid('all_tasks', 'my_tasks', 'reported', 'watching').required(),
         status: Joi.string().allow('', null),
         status_not_in: Joi.string().allow('', null),
         priority: Joi.string().allow('', null),
@@ -70,7 +70,6 @@ const manageTaskController = {
         const { error, value } = requestParams.tasksList.validate(req.query);
         if (error) {
             parameterMissingResponse(error.details[0].message, res);
-            res.status(400).json({ success: false, message: error.details[0].message });
             return;
         }
         const { tokenInfo, emp_info } = res.locals;
@@ -81,6 +80,11 @@ const manageTaskController = {
         let emp_id: number | undefined = undefined;
         if (req.query.case === 'my_tasks') {
             emp_id = tokenInfo.eid;
+        }
+        if(req.query.case === 'reported' || req.query.case === 'watching'){
+           let response = await taskManagementModel.watchingTasksList({emp_id: tokenInfo.eid, case: req.query.case});
+           res.status(response.code).json(response);
+           return;
         }
         let response = await taskManagementModel.tasksList({
             branch_id: tokenInfo.bid,
@@ -251,6 +255,26 @@ const manageTaskController = {
         let response = await taskManagementModel.deleteTask({
             task_id: task_id,
             emp_id: tokenInfo.eid,
+        });
+        res.status(response.code).json(response);
+    },
+    submitRating: async (req: Request, res: Response) => {
+        const { task_id, rating, feedback } = req.body;
+        if (!task_id || !rating) {
+            parameterMissingResponse("task_id and rating are required", res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await taskManagementModel.submitTaskRating({
+            task_id: task_id,
+            emp_id: tokenInfo.eid,
+            emp_name: emp_info.first_name,
+            rating: rating,
+            feedback: feedback,
         });
         res.status(response.code).json(response);
     },

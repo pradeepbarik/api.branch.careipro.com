@@ -87,6 +87,17 @@ const taskManagementModel = {
         let tasks = await TasksModel.find(filter, "_id branch_id task_type title priority status tags created_at created_by due_date target_start_time assigned_to").sort({ due_date: 1 }).lean();
         return successResponse({ tasks }, "Tasks fetched successfully");
     },
+    watchingTasksList: async (params: {case:string,emp_id:number})=>{
+        const TasksModel = getTasksModel();
+        let filter:any = {};
+        if(params.case==="reported"){
+            filter['reporter.emp_id'] = parseInt(params.emp_id.toString());
+        }else if(params.case==="watching"){
+            filter['watching.emp_id'] = parseInt(params.emp_id.toString());
+        }
+        let tasks = await TasksModel.find(filter, "_id branch_id task_type title priority status tags created_at created_by due_date target_start_time assigned_to").sort({ due_date: 1 }).limit(300).lean();
+        return successResponse({ tasks }, "Tasks fetched successfully");
+    },
     taskDetail: async (params: {
         task_id: string;
     }) => {
@@ -251,6 +262,31 @@ const taskManagementModel = {
         }
         await TasksModel.deleteOne({ _id: new Types.ObjectId(params.task_id) });
         return successResponse({}, "Task deleted successfully");
+    },
+    submitTaskRating: async (params: {
+        task_id: string;
+        emp_id: number;
+        emp_name: string;
+        rating: number;
+        feedback: string;
+    }) => {
+        const TasksModel = getTasksModel();
+        let task = await TasksModel.findById(new Types.ObjectId(params.task_id));
+        if (!task) {
+            return serviceNotAcceptable("Task not found");
+        }
+        if (task.status !== "completed" && task.status !== "ready_for_test" && task.status !== "ready_for_live" && task.status !== "test_on_live") {
+            return serviceNotAcceptable("Rating can be submitted only for completed or ready for test/live tasks");
+        }
+        task.rating = { rating: params.rating, feedback: params.feedback };
+        task.activity_log.push({
+            activity: `Task rated with ${params.rating} stars`,
+            activity_at: new Date(get_current_datetime()),
+            activity_by: { emp_id: params.emp_id, name: params.emp_name }
+        });
+        await task.save();
+        return successResponse({}, "Task rating submitted successfully");
+
     },
     getAllReminders: async (params: {
         emp_id: number;

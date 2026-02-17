@@ -14,6 +14,7 @@ tasksRouter.post("/change-description",[apiRateLimit(2,5),employeeValidation(1)]
 tasksRouter.post("/change-reporter",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changeReporterOfTask));
 tasksRouter.post("/change-priority",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.changePriorityOfTask));
 tasksRouter.post("/delete",[apiRateLimit(1,2),employeeValidation(1)],handelError(manageTaskController.deleteTask));
+tasksRouter.post("/submit-rating",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.submitRating));
 tasksRouter.get("/reminders/all",[apiRateLimit(5,10),employeeValidation(1)],handelError(manageTaskController.getAllReminders));
 tasksRouter.post("/reminders/create",[apiRateLimit(2,5),employeeValidation(1)],handelError(manageTaskController.createReminder));
 tasksRouter.post("/reminders/delete",[apiRateLimit(1,2),employeeValidation(1)],handelError(manageTaskController.deleteReminder));

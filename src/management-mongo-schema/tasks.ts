@@ -18,6 +18,11 @@ const TaskSchema = new Schema({
     end_time: { type: Date, required: false },
     assigned_to: { type: { emp_id: Number, name: String }, default: null },
     reporter: { type: { emp_id: Number, name: String }, default: null },
+    watching: [{ emp_id: Number, name: String }],
+    rating:{
+        rating: { type: Number, required: false },
+        feedback: { type: String, required: false },
+    },
     assign_log: [
         {
             from: { emp_id: Number, name: String },
