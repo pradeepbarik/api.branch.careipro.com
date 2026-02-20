@@ -14,10 +14,11 @@ const requestParams = {
         task_type:Joi.string().allow('', null),
     }),
     tasksList: Joi.object({
-        case: Joi.string().valid('all_tasks', 'my_tasks', 'reported', 'watching').required(),
+        case: Joi.string().valid('all_tasks', 'my_tasks', 'reported', 'watching','employee').required(),
         status: Joi.string().allow('', null),
         status_not_in: Joi.string().allow('', null),
         priority: Joi.string().allow('', null),
+        emp_id:Joi.number()
     }),
     assignEmployeeToTask: Joi.object({
         emp_id: Joi.number().required(),
@@ -85,6 +86,8 @@ const manageTaskController = {
            let response = await taskManagementModel.watchingTasksList({emp_id: tokenInfo.eid, case: req.query.case});
            res.status(response.code).json(response);
            return;
+        }else if(req.query.case ==='employee' && req.query.emp_id){
+            emp_id=parseInt(<string>req.query.emp_id.toString());
         }
         let response = await taskManagementModel.tasksList({
             branch_id: tokenInfo.bid,
