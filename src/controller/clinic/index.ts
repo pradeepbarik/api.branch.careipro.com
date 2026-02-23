@@ -128,6 +128,37 @@ const requestParams = {
         sunday_2nd_session_start: Joi.string().allow(''),
         sunday_2nd_session_end: Joi.string().allow(''),
     }),
+    updateDoctorWeeklyBookingTiming: Joi.object({
+        service_loc_id: Joi.number(),
+        mon_limit: Joi.number().allow(''),
+        mon_booking_start_time: Joi.string().allow('', null),
+        mon_2nd_session_booking_start_time: Joi.string().allow('', null),
+        mon_2nd_session_limit: Joi.number().allow('', null),
+        tue_limit: Joi.number().allow(''),
+        tue_booking_start_time: Joi.string().allow('', null),
+        tue_2nd_session_booking_start_time: Joi.string().allow('', null),
+        tue_2nd_session_limit: Joi.number().allow('', null),
+        wed_limit: Joi.number().allow(''),
+        wed_booking_start_time: Joi.string().allow('', null),
+        wed_2nd_session_booking_start_time: Joi.string().allow('', null),
+        wed_2nd_session_limit: Joi.number().allow('', null),
+        thu_limit: Joi.number().allow(''),
+        thu_booking_start_time: Joi.string().allow('', null),
+        thu_2nd_session_booking_start_time: Joi.string().allow('', null),
+        thu_2nd_session_limit: Joi.number().allow('', null),
+        fri_limit: Joi.number().allow(''),
+        fri_booking_start_time: Joi.string().allow('', null),
+        fri_2nd_session_booking_start_time: Joi.string().allow('', null),
+        fri_2nd_session_limit: Joi.number().allow('', null),
+        sat_limit: Joi.number().allow(''),
+        sat_booking_start_time: Joi.string().allow('', null),
+        sat_2nd_session_booking_start_time: Joi.string().allow('', null),
+        sat_2nd_session_limit: Joi.number().allow('', null),
+        sun_limit: Joi.number().allow(''),
+        sun_booking_start_time: Joi.string().allow('', null),
+        sun_2nd_session_booking_start_time: Joi.string().allow('', null),
+        sun_2nd_session_limit: Joi.number().allow('', null)
+    }),
     updateClinicSpecialization: Joi.object({
         clinic_id: Joi.number().required(),
         branch_id: Joi.number().required(),
@@ -278,6 +309,7 @@ const requestParams = {
         second_session_start_time: Joi.string().allow(''),
         second_session_end_time: Joi.string().allow('')
     }),
+
     deleteDoctorMonthlyConsultingTiming: Joi.object({
         id: Joi.number(),
         cid: Joi.number().required(),
@@ -819,6 +851,9 @@ const clinicController = {
         } else if (query.tab === "similar_business") {
             let response = await doctorModel.getDoctorSettingsFromMongo(query.doctor_id, cid);
             res.status(response.code).json(response);
+        }else if(query.tab==="weekly_booking_timing"){
+            let response = await doctorModel.getDoctorWeeklyBookingTiming(query.doctor_id, query.service_loc_id);
+            res.status(response.code).json(response);
         } else {
             serviceNotAcceptable("Invalid tab name", res);
         }
@@ -910,6 +945,17 @@ const clinicController = {
                         return;
                     }
                     let response = await doctorModel.deleteMonthyConsultingTimeing({ id: body.id, doctor_id: doctor_id, service_loc_id: timings.service_loc_id, clinic_id: cid })
+                    res.status(response.code).json(response);
+                }
+            }else if(tab==="weekly_booking_timing"){
+                const {section,...timings} = restParams;
+                if(section==="weekly"){
+                    const validation: ValidationResult = requestParams.updateDoctorWeeklyBookingTiming.validate(timings);
+                    if (validation.error) {
+                        parameterMissingResponse(validation.error.details[0].message, res);
+                        return;
+                    }
+                    let response = await doctorModel.saveWeeklyBookingTiming(doctor_id, body.service_loc_id, timings)
                     res.status(response.code).json(response);
                 }
             } else if (tab === "slno_groups") {

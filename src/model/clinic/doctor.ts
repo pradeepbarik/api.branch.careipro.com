@@ -804,6 +804,54 @@ const doctorModel = {
         let settings = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id, city: doctor.city.toLowerCase() }).exec();
         return successResponse(settings || { similar_business_not_show: false, similar_business_sections: [], treated_health_conditions: [], treatments_available: [] });
     },
+    getDoctorWeeklyBookingTiming: async (doctor_id: number, service_location_id: number) => {
+        let timings= await DB.get_row("select mon_limit,mon_booking_start_time,mon_2nd_session_booking_start_time,mon_2nd_session_limit,tue_limit,tue_booking_start_time,tue_2nd_session_booking_start_time,tue_2nd_session_limit,wed_limit,wed_booking_start_time,wed_2nd_session_booking_start_time,wed_2nd_session_limit,thu_limit,thu_booking_start_time,thu_2nd_session_booking_start_time,thu_2nd_session_limit,fri_limit,fri_booking_start_time,fri_2nd_session_booking_start_time,fri_2nd_session_limit,sat_limit,sat_booking_start_time,sat_2nd_session_booking_start_time,sat_2nd_session_limit,sun_limit,sun_booking_start_time,sun_2nd_session_booking_start_time,sun_2nd_session_limit from doctor_servicelocation_setting where doctor_id=? and service_location_id=?", [doctor_id, service_location_id]);
+        if(!timings){
+            timings={
+                mon_limit:0,mon_booking_start_time:"",mon_2nd_session_booking_start_time:"",mon_2nd_session_limit:0,
+                tue_limit:0,tue_booking_start_time:"",tue_2nd_session_booking_start_time:"",tue_2nd_session_limit:0,
+                wed_limit:0,wed_booking_start_time:"",wed_2nd_session_booking_start_time:"",wed_2nd_session_limit:0,
+                thu_limit:0,thu_booking_start_time:"",thu_2nd_session_booking_start_time:"",thu_2nd_session_limit:0,
+                fri_limit:0,fri_booking_start_time:"",fri_2nd_session_booking_start_time:"",fri_2nd_session_limit:0,
+                sat_limit:0,sat_booking_start_time:"",sat_2nd_session_booking_start_time:"",sat_2nd_session_limit:0,
+                sun_limit:0,sun_booking_start_time:"",sun_2nd_session_booking_start_time:"",sun_2nd_session_limit:0,
+            }
+        }
+        return successResponse(timings);
+    },
+    saveWeeklyBookingTiming: async (doctor_id: number, service_location_id: number, timings: {
+    mon_limit: number,mon_booking_start_time: string,mon_2nd_session_booking_start_time: string,mon_2nd_session_limit: number,
+    tue_limit: number,tue_booking_start_time: string,tue_2nd_session_booking_start_time: string,tue_2nd_session_limit: number,
+    wed_limit: number,wed_booking_start_time: string,wed_2nd_session_booking_start_time: string,wed_2nd_session_limit: number,
+    thu_limit: number,thu_booking_start_time: string,thu_2nd_session_booking_start_time: string,thu_2nd_session_limit: number,
+    fri_limit: number,fri_booking_start_time: string,fri_2nd_session_booking_start_time: string,fri_2nd_session_limit: number,
+    sat_limit: number,sat_booking_start_time: string,sat_2nd_session_booking_start_time: string,sat_2nd_session_limit: number,
+    sun_limit: number,sun_booking_start_time: string,sun_2nd_session_booking_start_time: string,sun_2nd_session_limit: number,
+    })=>{
+        let updateres:any = await DB.query("update doctor_servicelocation_setting set mon_limit=?,mon_booking_start_time=?,mon_2nd_session_booking_start_time=?,mon_2nd_session_limit=?,tue_limit=?,tue_booking_start_time=?,tue_2nd_session_booking_start_time=?,tue_2nd_session_limit=?,wed_limit=?,wed_booking_start_time=?,wed_2nd_session_booking_start_time=?,wed_2nd_session_limit=?,thu_limit=?,thu_booking_start_time=?,thu_2nd_session_booking_start_time=?,thu_2nd_session_limit=?,fri_limit=?,fri_booking_start_time=?,fri_2nd_session_booking_start_time=?,fri_2nd_session_limit=?,sat_limit=?,sat_booking_start_time=?,sat_2nd_session_booking_start_time=?,sat_2nd_session_limit=?,sun_limit=?,sun_booking_start_time=?,sun_2nd_session_booking_start_time=?,sun_2nd_session_limit=? where doctor_id=? and service_location_id=?", [
+            timings.mon_limit,timings.mon_booking_start_time,timings.mon_2nd_session_booking_start_time,timings.mon_2nd_session_limit,
+            timings.tue_limit,timings.tue_booking_start_time,timings.tue_2nd_session_booking_start_time,timings.tue_2nd_session_limit,
+            timings.wed_limit,timings.wed_booking_start_time,timings.wed_2nd_session_booking_start_time,timings.wed_2nd_session_limit,
+            timings.thu_limit,timings.thu_booking_start_time,timings.thu_2nd_session_booking_start_time,timings.thu_2nd_session_limit,
+            timings.fri_limit,timings.fri_booking_start_time,timings.fri_2nd_session_booking_start_time,timings.fri_2nd_session_limit,
+            timings.sat_limit,timings.sat_booking_start_time,timings.sat_2nd_session_booking_start_time,timings.sat_2nd_session_limit,
+            timings.sun_limit,timings.sun_booking_start_time,timings.sun_2nd_session_booking_start_time,timings.sun_2nd_session_limit,
+            doctor_id,service_location_id
+        ]);
+        if(updateres.affectedRows===0){
+            await DB.query("insert into doctor_servicelocation_setting set doctor_id=?,service_location_id=?,mon_limit=?,mon_booking_start_time=?,mon_2nd_session_booking_start_time=?,mon_2nd_session_limit=?,tue_limit=?,tue_booking_start_time=?,tue_2nd_session_booking_start_time=?,tue_2nd_session_limit=?,wed_limit=?,wed_booking_start_time=?,wed_2nd_session_booking_start_time=?,wed_2nd_session_limit=?,thu_limit=?,thu_booking_start_time=?,thu_2nd_session_booking_start_time=?,thu_2nd_session_limit=?,fri_limit=?,fri_booking_start_time=?,fri_2nd_session_booking_start_time=?,fri_2nd_session_limit=?,sat_limit=?,sat_booking_start_time=?,sat_2nd_session_booking_start_time=?,sat_2nd_session_limit=?,sun_limit=?,sun_booking_start_time=?,sun_2nd_session_booking_start_time=?,sun_2nd_session_limit=?", [
+                doctor_id,service_location_id,
+                timings.mon_limit,timings.mon_booking_start_time,timings.mon_2nd_session_booking_start_time,timings.mon_2nd_session_limit,
+                timings.tue_limit,timings.tue_booking_start_time,timings.tue_2nd_session_booking_start_time,timings.tue_2nd_session_limit,
+                timings.wed_limit,timings.wed_booking_start_time,timings.wed_2nd_session_booking_start_time,timings.wed_2nd_session_limit,
+                timings.thu_limit,timings.thu_booking_start_time,timings.thu_2nd_session_booking_start_time,timings.thu_2nd_session_limit,
+                timings.fri_limit,timings.fri_booking_start_time,timings.fri_2nd_session_booking_start_time,timings.fri_2nd_session_limit,
+                timings.sat_limit,timings.sat_booking_start_time,timings.sat_2nd_session_booking_start_time,timings.sat_2nd_session_limit,
+                timings.sun_limit,timings.sun_booking_start_time,timings.sun_2nd_session_booking_start_time,timings.sun_2nd_session_limit
+            ]);
+        }
+        return successResponse(null,"Weekly booking timing updated successfully");
+    },
     updateSimilarBusinessSettings: async (data: {
         clinic_id: number,
         doctor_id: number,
