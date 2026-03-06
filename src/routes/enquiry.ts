@@ -4,4 +4,5 @@ import enquiryController from '../controller/enquiry';
 const routes=Router();
 routes.get('/get-enquiry-list',[apiRateLimit(30,30)],handelError(enquiryController.enquiryList));
 routes.post('/update-enquiry-status',[apiRateLimit(1,2),employeeValidation(1)],handelError(enquiryController.updateEnquiryStatus));
+routes.get('/get-dynamic-form-submissions-list',[apiRateLimit(1,1)],handelError(enquiryController.getDynamicFormSubmissionsList));
 export default routes;

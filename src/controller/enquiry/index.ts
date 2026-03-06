@@ -31,7 +31,7 @@ const enquiryController = {
             vertical: query.vertical,
             status: query.status
         });
-        res.jsonp(successResponse(enquiries,"enquiry list"));
+        res.json(successResponse(enquiries,"enquiry list"));
     },
     updateEnquiryStatus: async (req: Request, res: Response) => {
         const { tokenInfo,emp_info } = res.locals;
@@ -52,7 +52,20 @@ const enquiryController = {
             emp_name: emp_info?.first_name || "",
             comments: body.comments || ""
         });
-        res.jsonp(successResponse(null,"enquiry status updated"));
+        res.json(successResponse(null,"enquiry status updated"));
+    },
+    getDynamicFormSubmissionsList: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { query }: { query: any } = req;        
+        let submissions = await enquiryModel.getDynamicFormSubmissionsList({
+            city: tokenInfo.bd,
+            state: tokenInfo.bs,
+        });
+        res.status(submissions.code).json(submissions);
     }
 }
 export default enquiryController;

@@ -1,13 +1,15 @@
 import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
-import fs from 'fs';
+import fs, { existsSync } from 'fs';
 import path from 'path';
-import { banner_path } from '../constants';
+import { banner_path, dynamic_page_image_path } from '../constants';
 import { FormdataRequest } from '../types';
 import { unauthorizedResponse, parameterMissingResponse, successResponse, internalServerError } from '../services/response';
 import settingModel from '../model/settngs';
 import { get_current_datetime } from '../services/datetime';
 import { uploadFileToServer } from '../services/file-upload';
+import dynamicPageSettingsModel from '../model/settngs/page-settings';
+import { create } from 'domain';
 const requestParams = {
     getPageSettings: Joi.object({
         state: Joi.string().required(),
@@ -108,8 +110,8 @@ const requestParams = {
             doctor_ids: Joi.array().items(Joi.number()),
             clinic_ids: Joi.array().items(Joi.number()),
             listing_count: Joi.number().allow(0, ""),
-            banner:Joi.string().allow(''),
-            banner_redirection_url:Joi.string().allow('')
+            banner: Joi.string().allow(''),
+            banner_redirection_url: Joi.string().allow('')
         })
     }),
     updateBanner: Joi.object({
@@ -120,6 +122,20 @@ const requestParams = {
         banner_img_url: Joi.string().allow(''),
         redirection_url: Joi.string().allow(''),
         page: Joi.string().required(),
+    }),
+    getDynamicPagesList: Joi.object({
+        state: Joi.string(),
+        city: Joi.string(),
+        page_type: Joi.string().valid("ARTICLE", "FORM"),
+        vertical: Joi.string(),
+        globalPages: Joi.number().valid(0, 1).allow(""),
+        lang: Joi.string().allow(''),
+        category: Joi.string().allow('')
+    }),
+    uploadPageImage: Joi.object({
+        page_id: Joi.string().required(),
+        altText: Joi.string().required(), 
+        aspectRatio: Joi.string().required()
     })
 }
 const settingsController = {
@@ -206,15 +222,132 @@ const settingsController = {
                 parameterMissingResponse(validation.error.details[0].message, res);
                 return;
             }
-             await settingModel.savePhysiotherapyPageData({
+            await settingModel.savePhysiotherapyPageData({
                 state: body.state,
                 city: body.city,
-                page_name:body.page_name,
+                page_name: body.page_name,
                 popular_specialists: body.popular_specialists,
                 section: body.section
             });
         }
         res.json(successResponse({}, "success"))
+    },
+    getDynamicPagesList: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { query }: { query: any } = req;
+        let data = await dynamicPageSettingsModel.getPagesList({
+            state: query.state ? query.state.toLowerCase() : tokenInfo.bs.toLowerCase(),
+            city: query.city ? query.city.toLowerCase() : tokenInfo.bd.toLowerCase(),
+            page_type: query.page_type,
+            vertical: query.vertical,
+            globalPages: query.globalPages == 1 ? true : false,
+            lang: query.lang,
+            category: query.category
+        });
+        res.status(data.code).json(data);
+    },
+    createDynamicPage: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        let data = await dynamicPageSettingsModel.createDynamicPage(body);
+        res.status(data.code).json(data);
+    },
+    saveDynamicPageSettings: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        let updateRes = await dynamicPageSettingsModel.updatePageSettings({ updateData: body, _id: body._id, branch_state: tokenInfo.bs, branch_city: tokenInfo.bd });
+        res.status(updateRes.code).json(updateRes)
+    },
+    getArticleCategories: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let data = await dynamicPageSettingsModel.getArticleCategories();
+        res.status(data.code).json(data);
+    },
+    createArticleCategory: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        let data = await dynamicPageSettingsModel.createArticleCategory(body.category);
+        res.status(data.code).json(data);
+    },
+    uploadPageImage: async (req: FormdataRequest, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body, files } = req;
+        if (!files || !files.image) {
+            parameterMissingResponse("Image file is required", res);
+            return;
+        }
+        const validation: ValidationResult = requestParams.uploadPageImage.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        if(existsSync(dynamic_page_image_path) === false){
+            fs.mkdirSync(dynamic_page_image_path, { recursive: true });
+        }
+        let image_name = `${body.altText}-${body.page_id}`;
+        image_name = image_name.replace(/[^a-zA-Z0-9\s]/g, '');
+        image_name = image_name.replace(/\s/g, '-');
+        image_name = image_name + path.extname(files.image.originalFilename);
+        let oldPath = files.image.filepath;
+        let new_path = `${dynamic_page_image_path}${image_name}`;
+        try {
+            await uploadFileToServer(oldPath, new_path)
+        } catch (err: any) {
+            internalServerError(err.message, res);
+            return
+        }
+        let data = await dynamicPageSettingsModel.addPageImage({
+            page_id: body.page_id,
+            image: image_name,
+            altText: body.altText,
+            aspectRatio: body.aspectRatio
+        });
+        res.status(data.code).json(data);
+    },
+    deletePageImage: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        if (!body.page_id || !body.image) {
+            parameterMissingResponse("page_id and image name are required", res);
+            return;
+        }
+        let image_path = path.join(dynamic_page_image_path, body.image);
+        if (fs.existsSync(image_path)) {
+            fs.unlinkSync(image_path);
+        }
+        let data = await dynamicPageSettingsModel.deletePageImage({
+            page_id: body.page_id,
+            image: body.image
+        });
+        res.status(data.code).json(data);
     },
     getBanners: async (req: Request, res: Response) => {
         const { tokenInfo } = res.locals;

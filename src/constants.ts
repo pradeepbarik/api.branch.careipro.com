@@ -3,6 +3,7 @@ export const popular_clinic_image_path=asset_path+"images/popular-clinic-banner/
 export const city_icon_path=asset_path+"images/city-icon/";
 export const specialist_icon_path=asset_path+"images/doctor-specialist";
 export const banner_path=asset_path+"images/banners";
+export const dynamic_page_image_path=asset_path+"images/dynamic-page/";
 export const clinic_logo_path=asset_path+"images/clinic";
 export const doctor_logo_path=asset_path+"images/profile/doctor";
 export const user_profile_pic_path=asset_path+"images/profile/patient/";

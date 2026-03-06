@@ -1,5 +1,5 @@
 import { serviceNotAcceptable, successResponse } from "../../services/response";
-
+import dynamicPageModel, {dFormSubmissionsModel} from "../../mongo-schema/coll_pages";
 const enquiryModel = {
     getEnquiryList: async (params: {
         city: string,
@@ -61,6 +61,64 @@ const enquiryModel = {
             return successResponse(null, "enquiry status updated");
         } catch (err: any) {
             return serviceNotAcceptable(err.message)
+        }
+    },
+    getDynamicFormSubmissionsList: async (params: {
+        state: string,
+        city: string,
+        from_date?: string,
+        to_date?: string,
+        page_id?: number,
+        section_name?: string,
+    }) => {
+        try {
+            let query: any = {};
+            
+            if (params.state) {
+                query.state = params.state;
+            }
+            if (params.city) {
+                query.city = params.city;
+            }
+            if (params.page_id) {
+                query.page_id = params.page_id;
+            }
+            if (params.section_name) {
+                query.section_name = params.section_name;
+            }
+            const submissions = await dFormSubmissionsModel.find(query)
+                .sort({ submit_time: -1 })
+                .lean();
+            return successResponse(submissions, "Dynamic form submissions fetched successfully");
+        } catch (err: any) {
+            return serviceNotAcceptable(err.message);
+        }
+    },
+    getPagesList: async (params: {
+        state?: string,
+        city?: string,
+        vertical?: string,
+    }) => {
+        try {
+            let query: any = {};
+            
+            if (params.state) {
+                query.state = params.state;
+            }
+            if (params.city) {
+                query.city = params.city;
+            }
+            if (params.vertical) {
+                query.vertical = params.vertical;
+            }
+            
+            const pages = await dynamicPageModel.find(query)
+                .select('pageId pageType state city vertical seo_url heading subHeading seoDt')
+                .lean();
+            
+            return successResponse(pages, "Pages fetched successfully");
+        } catch (err: any) {
+            return serviceNotAcceptable(err.message);
         }
     }
 }

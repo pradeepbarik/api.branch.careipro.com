@@ -26,6 +26,13 @@ settingsRoutes.post('/categories',[apiRateLimit(3,20),parseFormData],handelError
 settingsRoutes.post('/update-category-setting',[apiRateLimit(3,20)],handelError(categoriesController.updateCategorySetting));
 settingsRoutes.get("/page-settings",[apiRateLimit(20,20)],handelError(settingsController.getPageSettings));
 settingsRoutes.post("/page-settings",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.savePageSettings));
+settingsRoutes.get("/dynamic-pages",[apiRateLimit(1,1)],handelError(settingsController.getDynamicPagesList));
+settingsRoutes.post("/create-dynamic-page",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.createDynamicPage));
+settingsRoutes.post("/update-dynamic-page",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.saveDynamicPageSettings));
+settingsRoutes.post("/upload-page-image",[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(settingsController.uploadPageImage));
+settingsRoutes.post("/delete-page-image",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.deletePageImage));
+settingsRoutes.get("/get-article-categories",[apiRateLimit(10,30)],handelError(settingsController.getArticleCategories));
+settingsRoutes.post("/create-article-category",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.createArticleCategory));
 settingsRoutes.get('/banners',[apiRateLimit(5,20)],handelError(settingsController.getBanners));
 settingsRoutes.post('/banner',[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(settingsController.updateBanner));
 settingsRoutes.post('/delete-banner',[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.deleteBanner));
