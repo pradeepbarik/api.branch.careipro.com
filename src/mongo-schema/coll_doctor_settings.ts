@@ -7,6 +7,7 @@ const doctorSettingsSchema = new Schema({
     treated_health_conditions: [{condition: String, severity_levels: [String],no_of_cases:Number}],
     treatments_available: [String],
     similar_business_sections: [{_id:false, heading: String, doctor_ids: [Number],clinic_ids:[Number]}],
+    faqs: [{question: String, answer: String}],
 });
 const doctorSettingsMongoModel = model(COLL_DOCTORS_SETTINGS, doctorSettingsSchema);
 export default doctorSettingsMongoModel;

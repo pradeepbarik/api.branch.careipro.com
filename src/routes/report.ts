@@ -11,4 +11,5 @@ reportRouter.get("/page-visit-summary",[apiRateLimit(10,10)],handelError(pageVis
 reportRouter.get("/page-visit-graph-data",[apiRateLimit(10,10)],handelError(pageVisiterController.getPageVisitReport));
 reportRouter.get("/site-visiters",[apiRateLimit(10,10)],handelError(pageVisiterController.getPageVisiters));
 reportRouter.get("/generate-clinic-daily-report",[apiRateLimit(10,10)],handelError(reportController.generateClinicDailyReport));
+reportRouter.get("/generate-doctors-rating-review-report",[apiRateLimit(10,10)],handelError(reportController.generateRatingReviewReport));
 export default reportRouter;

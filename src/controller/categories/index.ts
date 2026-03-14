@@ -1,11 +1,12 @@
 import path, { join } from 'path';
 import { Request, Response } from 'express';
-import Joi, { ValidationResult } from 'joi';
+import Joi, { number, ValidationResult } from 'joi';
 import { FormdataRequest } from '../../types';
 import { specialist_icon_path } from '../../constants';
 import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
-import { uploadFileToServer,deleteFile } from '../../services/file-upload';
-import {cleanString} from '../../helper/index';
+import { uploadFileToServer, deleteFile } from '../../services/file-upload';
+import { cleanString } from '../../helper/index';
+import { categoryDetailsModel } from '../../mongo-schema/coll_category_details';
 
 const requestParams = {
     getSpecialists: Joi.object({
@@ -33,19 +34,28 @@ const requestParams = {
         meta_description: Joi.string(),
         business_type: Joi.string()
     }),
-    updateCategorySetting:Joi.object({
-        cat_id:Joi.number().required(),
-        price:Joi.number(),
-        lead_charge:Joi.number(),
-        display_price:Joi.string().allow(''),
-        service_duration_display:Joi.string().allow(''),
+    updateCategorySetting: Joi.object({
+        cat_id: Joi.number().required(),
+        price: Joi.number(),
+        lead_charge: Joi.number(),
+        display_price: Joi.string().allow(''),
+        service_duration_display: Joi.string().allow(''),
     }),
-    updateDoctorScore:Joi.object({
-        data:Joi.array().items(Joi.object({
-            doctor_id:Joi.number().required(),
-            category_id:Joi.number().required(),
-            score:Joi.number().required()
+    updateDoctorScore: Joi.object({
+        data: Joi.array().items(Joi.object({
+            doctor_id: Joi.number().required(),
+            category_id: Joi.number().required(),
+            score: Joi.number().required()
         })).required()
+    }),
+    addCategoryFaq: Joi.object({
+        action: Joi.string().valid("add", "update", "delete", "move_up", "move_down").required(),
+        cat_id: Joi.number().required(),
+        faq_id: Joi.string(),
+        question: Joi.string().required(),
+        answer: Joi.string().required(),
+        state: Joi.string().optional().allow(''),
+        city: Joi.string().optional().allow(''),
     })
 }
 const categoriesController = {
@@ -63,12 +73,12 @@ const categoriesController = {
         }
         let categories: Array<{ id: number, name: string }> = [];
         let parent_categories: Array<{ id: number, name: string }> = [];
-        let rows = await DB.get_rows<{ id: number, name: string }>("select t1.*,t2.city,t2.price,t2.lead_charge,t2.display_price,t2.service_duration_display from (select * from specialists where group_category=? and parent_id=0 order by display_order) as t1 left join (select * from tbl_specialist_setting where city=?) as t2 on t1.id=t2.specialist_id", [query.business_type,tokenInfo.bd]);
+        let rows = await DB.get_rows<{ id: number, name: string }>("select t1.*,t2.city,t2.price,t2.lead_charge,t2.display_price,t2.service_duration_display from (select * from specialists where group_category=? and parent_id=0 order by display_order) as t1 left join (select * from tbl_specialist_setting where city=?) as t2 on t1.id=t2.specialist_id", [query.business_type, tokenInfo.bd]);
         if (rows.length) {
             for (let row of rows) {
                 categories.push(row);
                 parent_categories.push({ id: row.id, name: row.name });
-                let childRows = await DB.get_rows<{ id: number, name: string }>("select t1.*,t2.city,t2.price,t2.lead_charge,t2.display_price,t2.service_duration_display from (select * from specialists where group_category=? and parent_id=?) as t1 left join (select * from tbl_specialist_setting where city=?) as t2 on t1.id=t2.specialist_id", [query.business_type, row.id,tokenInfo.bd]);
+                let childRows = await DB.get_rows<{ id: number, name: string }>("select t1.*,t2.city,t2.price,t2.lead_charge,t2.display_price,t2.service_duration_display from (select * from specialists where group_category=? and parent_id=?) as t1 left join (select * from tbl_specialist_setting where city=?) as t2 on t1.id=t2.specialist_id", [query.business_type, row.id, tokenInfo.bd]);
                 categories = categories.concat(childRows);
             }
         }
@@ -91,7 +101,7 @@ const categoriesController = {
             icon = cleanString(body.name) + path.extname(files.images.originalFilename);
         }
         if (body.id) {
-            let row=await DB.get_row<{id:number,name:string,parent_id:number,enable:number,short_description:string, icon:string,seo_id:string}>("select * from specialists where id=?",[body.id]);
+            let row = await DB.get_row<{ id: number, name: string, parent_id: number, enable: number, short_description: string, icon: string, seo_id: string }>("select * from specialists where id=?", [body.id]);
             let q = "update specialists set ";
             let sqlparams = [];
             let updateFielsd = [];
@@ -107,7 +117,7 @@ const categoriesController = {
                 updateFielsd.push("enable=?")
                 sqlparams.push(body.enable);
             }
-            if (typeof body.short_description!== "undefined" && row?.short_description !== body.short_description) {
+            if (typeof body.short_description !== "undefined" && row?.short_description !== body.short_description) {
                 updateFielsd.push("short_description=?")
                 sqlparams.push(body.short_description);
             }
@@ -127,7 +137,7 @@ const categoriesController = {
                 updateFielsd.push("icon=?")
                 sqlparams.push(icon);
             }
-            if(!row?.seo_id){
+            if (!row?.seo_id) {
                 let seo_id = `CATG${row?.id}-${body.business_type}`;
                 updateFielsd.push("seo_id=?");
                 sqlparams.push(seo_id);
@@ -136,13 +146,13 @@ const categoriesController = {
                 q += updateFielsd.join(',');
                 sqlparams.push(body.id);
                 q += " where id=?";
-                await DB.query(q, sqlparams,true);
+                await DB.query(q, sqlparams, true);
                 if (icon) {
                     let oldPath = files.images.filepath;
                     let new_path = `${specialist_icon_path}/${icon}`;
                     uploadFileToServer(oldPath, new_path).then(() => { });
                 }
-                if(row && row.icon && row.icon!==icon){
+                if (row && row.icon && row.icon !== icon) {
                     deleteFile(`${specialist_icon_path}/${row.icon}`);
                 }
                 res.json(successResponse({}, "Updated successfully"))
@@ -167,8 +177,8 @@ const categoriesController = {
             }
         }
     },
-    updateCategorySetting:async (req:Request,res:Response)=>{
-        const {body}=req;
+    updateCategorySetting: async (req: Request, res: Response) => {
+        const { body } = req;
         const validation: ValidationResult = requestParams.updateCategorySetting.validate(body);
         if (validation.error) {
             parameterMissingResponse(validation.error.details[0].message, res);
@@ -179,12 +189,12 @@ const categoriesController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        await DB.query("insert into tbl_specialist_setting (specialist_id,city,price,lead_charge,display_price,service_duration_display) values (?,?,?,?,?,?) ON DUPLICATE KEY update price=?,lead_charge=?,display_price=?,service_duration_display=?",[body.cat_id,tokenInfo.bd,body.price,body.lead_charge,body.display_price,body.service_duration_display,body.price,body.lead_charge,body.display_price,body.service_duration_display],true);
-        res.json(successResponse({},"Updated successfully"));
+        await DB.query("insert into tbl_specialist_setting (specialist_id,city,price,lead_charge,display_price,service_duration_display) values (?,?,?,?,?,?) ON DUPLICATE KEY update price=?,lead_charge=?,display_price=?,service_duration_display=?", [body.cat_id, tokenInfo.bd, body.price, body.lead_charge, body.display_price, body.service_duration_display, body.price, body.lead_charge, body.display_price, body.service_duration_display], true);
+        res.json(successResponse({}, "Updated successfully"));
     },
-    getCategoryDoctors:async (req:Request,res:Response)=>{
+    getCategoryDoctors: async (req: Request, res: Response) => {
         const { query }: { query: any } = req;
-        if(!query.specialist_id){
+        if (!query.specialist_id) {
             parameterMissingResponse("specialist_id is required", res);
             return;
         }
@@ -193,10 +203,10 @@ const categoriesController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        let doctors=await DB.get_rows<{id:number,name:string,clinic_name:string,city:string}>(`select t1.*,doctors.name as doctor_name,clinics.name as clinic_name from (select * from doctor_specialization where specialist=? and spl_city=?) as t1 join (select id,name,clinic_id from doctor where city=?) as doctors on t1.doctor_id=doctors.id join clinics on doctors.clinic_id=clinics.id order by t1.score desc`,[query.specialist_id,tokenInfo.bd,tokenInfo.bd]);
-        res.json(successResponse({doctors:doctors},"Success"));
+        let doctors = await DB.get_rows<{ id: number, name: string, clinic_name: string, city: string }>(`select t1.*,doctors.name as doctor_name,clinics.name as clinic_name from (select * from doctor_specialization where specialist=? and spl_city=?) as t1 join (select id,name,clinic_id from doctor where city=?) as doctors on t1.doctor_id=doctors.id join clinics on doctors.clinic_id=clinics.id order by t1.score desc`, [query.specialist_id, tokenInfo.bd, tokenInfo.bd]);
+        res.json(successResponse({ doctors: doctors }, "Success"));
     },
-    updateDoctorScore:async (req:Request,res:Response)=>{
+    updateDoctorScore: async (req: Request, res: Response) => {
         const { body } = req;
         const validation: ValidationResult = requestParams.updateDoctorScore.validate(body);
         if (validation.error) {
@@ -208,10 +218,136 @@ const categoriesController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        for(let item of body.data){
-            await DB.query("update doctor_specialization set score=? where doctor_id=? and specialist=? and spl_city=?",[item.score,item.doctor_id,item.category_id,tokenInfo.bd]);
+        for (let item of body.data) {
+            await DB.query("update doctor_specialization set score=? where doctor_id=? and specialist=? and spl_city=?", [item.score, item.doctor_id, item.category_id, tokenInfo.bd]);
         }
-        res.json(successResponse({},"Updated successfully"));
+        res.json(successResponse({}, "Updated successfully"));
+    },
+    addCategoryFaq: async (req: Request, res: Response) => {
+        const { body } = req;
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        if (body.action === "add") {
+            const validation: ValidationResult = requestParams.addCategoryFaq.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            categoryDetailsModel.findOneAndUpdate({ cat_id: body.cat_id }, { $push: { faqs: { question: body.question, answer: body.answer,state: body.state.toLowerCase(), city: body.city.toLowerCase() } } }, { upsert: true, new: true }).then((doc: any) => {
+                res.json(successResponse({ faq_id: doc.faqs[doc.faqs.length - 1]._id }, "FAQ added successfully"));
+            }).catch((err) => {
+                internalServerError("something went wrong", res);
+            })
+        } else if (body.action === "update") {
+            const validation: ValidationResult = requestParams.addCategoryFaq.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            categoryDetailsModel.findOneAndUpdate({ cat_id: body.cat_id, "faqs._id": body.faq_id }, { $set: { "faqs.$.question": body.question, "faqs.$.answer": body.answer, "faqs.$.state": body.state.toLowerCase(), "faqs.$.city": body.city.toLowerCase() } }, { new: true }).then((doc: any) => {
+                res.json(successResponse({}, "FAQ updated successfully"));
+            }).catch((err) => {
+                internalServerError("something went wrong", res);
+            })
+        } else if (body.action === "delete") {
+            const validation: ValidationResult = Joi.object({
+                action: Joi.string().valid("delete").required(),
+                cat_id: Joi.number().required(),
+                faq_id: Joi.string().required(),
+            }).validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            categoryDetailsModel.findOneAndUpdate({ cat_id: body.cat_id }, { $pull: { faqs: { _id: body.faq_id } } }).then((doc: any) => {
+                res.json(successResponse({}, "FAQ deleted successfully"));
+            }).catch((err) => {
+                internalServerError("something went wrong", res);
+            })
+        } else if (body.action === "move_up" || body.action === "move_down") {
+            const validation: ValidationResult = Joi.object({
+                action: Joi.string().valid("move_up", "move_down").required(),
+                cat_id: Joi.number().required(),
+                faq_id: Joi.string().required(),
+            }).validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            categoryDetailsModel.findOne({ cat_id: body.cat_id }).then((doc: any) => {
+                if (doc) {
+                    let faqs = doc.faqs;
+                    let index = faqs.findIndex((f: any) => f._id.toString() === body.faq_id);
+                    if (index > -1) {
+                        if (body.action === "move_up" && index > 0) {
+                            let temp = faqs[index - 1];
+                            faqs[index - 1] = faqs[index];
+                            faqs[index] = temp;
+                        } else if (body.action === "move_down" && index < faqs.length - 1) {
+                            let temp = faqs[index + 1];
+                            faqs[index + 1] = faqs[index];
+                            faqs[index] = temp;
+                        }
+                        categoryDetailsModel.updateOne({ cat_id: body.cat_id }, { faqs: faqs }).then(() => {
+                            res.json(successResponse({}, "FAQ order updated successfully"));
+                        }).catch((err) => {
+                            internalServerError("something went wrong", res);
+                        })
+                    } else {
+                        parameterMissingResponse("invalid faq_id", res);
+                    }
+                } else {
+                    parameterMissingResponse("invalid cat_id", res);
+                }
+            }).catch((err) => {
+                internalServerError("something went wrong", res);
+            })
+        } else {
+            parameterMissingResponse("invalid action", res);
+        }
+    },
+    getCategoryFaq: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        if (!query.cat_id) {
+            parameterMissingResponse("cat_id is required", res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        // i want common faqs where city is blank faqs belongs to cat_id for given city
+        categoryDetailsModel.aggregate([
+            { $match: { cat_id: parseInt(query.cat_id) } },
+            {
+                $addFields: {
+                    faqs: {
+                        $filter: {
+                            input: "$faqs",
+                            as: "faq",
+                            cond: {
+                                $or: [
+                                    { $eq: ["$$faq.city", tokenInfo.bd.toLowerCase()] },
+                                    { $eq: ["$$faq.city", ""] }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+        ]).then((docs: any) => {
+            if (docs.length) {
+                res.json(successResponse({ faqs: docs[0].faqs }, "Success"));
+            } else {
+                res.json(successResponse({ faqs: [] }, "Success"));
+            }
+        }).catch((err) => {
+            internalServerError("something went wrong", res);
+        })
     }
 }
 export default categoriesController;
