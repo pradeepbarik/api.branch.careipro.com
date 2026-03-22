@@ -14,6 +14,7 @@ import reportRouter from './routes/report';
 import tasksRouter from './routes/tasks';
 import notesRouter from './routes/notes';
 import employeeRouter from './routes/employee';
+import AppointmentsRouter from './routes/appointments';
 const APP: Application = express();
 APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress, level: 1 }))
@@ -36,4 +37,5 @@ APP.use('/report', [xApiKeyValidation], reportRouter);
 APP.use("/tasks",[xApiKeyValidation],tasksRouter);
 APP.use("/notes",notesRouter);
 APP.use("/employee",[xApiKeyValidation],employeeRouter);
+APP.use("/appointments",[xApiKeyValidation],AppointmentsRouter);
 export default APP;

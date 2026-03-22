@@ -1,0 +1,13 @@
+import {Router} from 'express';
+import {apiRateLimit,handelError,employeeValidation,checkUnderBranch,parseFormData} from '../middleware';
+import appointmentController from '../controller/appointment';
+const AppointmentsRouter=Router();
+AppointmentsRouter.post("/appointments-list",[apiRateLimit(1,1)],handelError(appointmentController.getAppointmentsList));
+AppointmentsRouter.get("/patient-symptom-review",[apiRateLimit(1,1)],handelError(appointmentController.getPatientSymptomRecord));
+AppointmentsRouter.post("/add-patient-symptom-review",[employeeValidation(1)],handelError(appointmentController.addPatientSymptomReview));
+AppointmentsRouter.post("/update-patient-symptom-review",[employeeValidation(1)],handelError(appointmentController.updateSymptomReview));
+AppointmentsRouter.post("/delete-patient-symptom-review",[employeeValidation(1)],handelError(appointmentController.deleteSymptomReview));
+AppointmentsRouter.post("/submit-appointment-review",[employeeValidation(1)],handelError(appointmentController.submitAppointmentFeedBack));
+AppointmentsRouter.post("/add-follow-up-log",[employeeValidation(1)],handelError(appointmentController.addFollowUpLog));
+AppointmentsRouter.get("/get-appointment-detail-url",[employeeValidation(1)],handelError(appointmentController.getAppointmentDetailUrl));
+export default AppointmentsRouter;

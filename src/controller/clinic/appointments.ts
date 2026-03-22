@@ -37,7 +37,6 @@ const clinicAppointments = {
             todate,
             consult_status
         };
-
         const appointments = await getAppointmentsList(clinicId, params);
         let consult_dates: Array<string> = [];
         let finalAppointments: Record<string, any[]> = {}
