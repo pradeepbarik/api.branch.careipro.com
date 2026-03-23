@@ -205,6 +205,7 @@ const requestParams = {
         registration_no: Joi.string().allow(''),
         category: Joi.string().valid('allopathy', 'homeopathy', 'ayurveda').allow(''),
         qualification_disp: Joi.string().allow(''),
+        specialty: Joi.string().allow(''),
     }),
     saveDoctorSpecialization: Joi.object({
         service_loc_id: Joi.number().required(),

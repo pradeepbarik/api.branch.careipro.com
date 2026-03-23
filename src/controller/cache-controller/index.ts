@@ -174,18 +174,19 @@ const cacheController = {
         } else if (req.query.cache_type === "doctor_detail") {
             let city = tokenInfo.bd.toLowerCase();
             let state = tokenInfo.bs.toLowerCase();
-            if (req.query.doctor_id && req.query.clinic_id && req.query.service_loc_id) {
+            if (req.query.service_loc_id) {
                 try {
-                    fs.accessSync(`${cache_directory}/${state}/${city}/doctor-details/DR${req.query.doctor_id}-SL${req.query.service_loc_id}-C${req.query.clinic_id}`);
-                    fs.readdirSync(`${cache_directory}/${state}/${city}/doctor-details/DR${req.query.doctor_id}-SL${req.query.service_loc_id}-C${req.query.clinic_id}`).forEach((file) => {
-                        fs.unlinkSync(`${cache_directory}/${state}/${city}/doctor-details/DR${req.query.doctor_id}-SL${req.query.service_loc_id}-C${req.query.clinic_id}/${file}`);
+                    console.log(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}`);
+                    fs.accessSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}`);
+                    fs.readdirSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}`).forEach((file) => {
+                        fs.unlinkSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}/${file}`);
                     });
                 } catch (err:any) {
                     internalServerError("Something went wrong "+err.message, res);
                     return
                 }
             } else {
-                parameterMissingResponse("doctor_id, clinic_id and service_loc_id are required", res);
+                parameterMissingResponse("service_loc_id is required", res);
             }
         } else {
             parameterMissingResponse("Invalid cache type", res);

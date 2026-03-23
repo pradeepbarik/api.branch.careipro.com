@@ -12,4 +12,5 @@ export type TUpdateDoctorBasicInfoParams={
     registration_no?: string,
     category?: string,
     qualification_disp?: string,
+    specialty?: string,
 }
