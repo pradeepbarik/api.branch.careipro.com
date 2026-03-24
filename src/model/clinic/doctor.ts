@@ -3,7 +3,9 @@ import { TUpdateDoctorBasicInfoParams } from '../../types/clinic';
 import doctorSettingsMongoModel from '../../mongo-schema/coll_doctor_settings';
 const doctorModel = {
     getDoctorBasicInfo: async (doctor_id: number, clinic_id: number) => {
-        let row = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type,specialty from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id, doctor_id]);
+        let row:any = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type,specialty from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id, doctor_id]);
+        let faqs=await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).select("faqs").exec();
+        row.faqs = faqs?.faqs || [];
         return successResponse(row, "success");
     },
     getDoctorMediaContent: async (doctor_id: number, clinic_id: number) => {
@@ -895,6 +897,33 @@ const doctorModel = {
         }
 
         return successResponse({}, "Settings updated successfully");
+    },
+    addDoctorFaq: async (doctor_id: number,clinic_id:number, faq: { question: string, answer: string }) => {
+        let document=await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id,clinic_id:clinic_id }).exec();
+        if(document){
+            await doctorSettingsMongoModel.updateOne({ doctor_id: doctor_id,clinic_id:clinic_id }, { $push: { faqs: {
+                question: faq.question,
+                answer: faq.answer
+            } } }).exec();
+        }else{
+            let newDocument=new doctorSettingsMongoModel({
+                doctor_id: doctor_id,
+                clinic_id: clinic_id,
+                faqs:[{
+                    question: faq.question,
+                    answer: faq.answer
+                }],
+                similar_business_sections: [],
+                treated_health_conditions: [],
+                treatments_available: []
+            });
+            await newDocument.save();
+        }
+        return successResponse({}, "FAQ added successfully");
+    },
+    deleteDoctorFaq: async (doctor_id: number,clinic_id:number, faq_id: string) => {
+        await doctorSettingsMongoModel.updateOne({ doctor_id: doctor_id,clinic_id:clinic_id }, { $pull: { faqs: { _id: faq_id } } }).exec();
+        return successResponse({}, "FAQ deleted successfully");
     }
 }
 export default doctorModel;

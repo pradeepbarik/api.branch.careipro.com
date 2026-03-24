@@ -852,7 +852,7 @@ const clinicController = {
         } else if (query.tab === "similar_business") {
             let response = await doctorModel.getDoctorSettingsFromMongo(query.doctor_id, cid);
             res.status(response.code).json(response);
-        }else if(query.tab==="weekly_booking_timing"){
+        } else if (query.tab === "weekly_booking_timing") {
             let response = await doctorModel.getDoctorWeeklyBookingTiming(query.doctor_id, query.service_loc_id);
             res.status(response.code).json(response);
         } else {
@@ -948,9 +948,9 @@ const clinicController = {
                     let response = await doctorModel.deleteMonthyConsultingTimeing({ id: body.id, doctor_id: doctor_id, service_loc_id: timings.service_loc_id, clinic_id: cid })
                     res.status(response.code).json(response);
                 }
-            }else if(tab==="weekly_booking_timing"){
-                const {section,...timings} = restParams;
-                if(section==="weekly"){
+            } else if (tab === "weekly_booking_timing") {
+                const { section, ...timings } = restParams;
+                if (section === "weekly") {
                     const validation: ValidationResult = requestParams.updateDoctorWeeklyBookingTiming.validate(timings);
                     if (validation.error) {
                         parameterMissingResponse(validation.error.details[0].message, res);
@@ -1050,6 +1050,39 @@ const clinicController = {
                     treatments_available: restParams.treatments_available
                 })
                 res.status(response.code).json(response);
+            } else if (tab === "faq") {
+                if (restParams.action === "add_faq") {
+                    const validation: ValidationResult = Joi.object({
+                        cid: Joi.number().required(),
+                        service_loc_id: Joi.number().required(),
+                        action: Joi.string().valid("add_faq", "delete_faq").required(),
+                        question: Joi.string().required(),
+                        answer: Joi.string().required()
+                    }).validate(restParams);
+                    if (validation.error) {
+                        parameterMissingResponse(validation.error.details[0].message, res);
+                        return;
+                    }
+                    let response = await doctorModel.addDoctorFaq(parseInt(doctor_id.toString()), parseInt(cid), {
+                        question: restParams.question,
+                        answer: restParams.answer
+                    }
+                    )
+                    res.status(response.code).json(response);
+                } else if (restParams.action === "delete_faq") {
+                    const validation: ValidationResult = Joi.object({
+                        cid: Joi.number().required(),
+                        service_loc_id: Joi.number().required(),
+                        action: Joi.string().valid("add_faq", "delete_faq").required(),
+                        faq_id: Joi.number().required()
+                    }).validate(restParams);
+                    if (validation.error) {
+                        parameterMissingResponse(validation.error.details[0].message, res);
+                        return;
+                    }
+                    let response = await doctorModel.deleteDoctorFaq(parseInt(doctor_id.toString()), parseInt(cid), restParams.faq_id)
+                    res.status(response.code).json(response);
+                }
             } else {
                 serviceNotAcceptable("invalid tab name", res);
             }
