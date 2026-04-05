@@ -8,6 +8,7 @@ const doctorReportSchema = new Schema({
     total_online_bookings: { type: Number, default: 0 },
     avg_rating:{type:Number,default:0},
     total_rating:{type:Number,default:0},
+    total_review:{type:Number,default:0},
     one_star:{type:Number,default:0},
     two_star:{type:Number,default:0},
     three_star:{type:Number,default:0},

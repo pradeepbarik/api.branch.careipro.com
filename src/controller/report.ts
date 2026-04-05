@@ -105,13 +105,14 @@ const reportController = {
             doctor_id: number,
             avg_rating: number,
             total_rating: number,
+            total_review: number,
             one_star: number,
             two_star: number,
             three_star: number,
             four_star: number,
             five_star: number,
             clinic_id: number,
-        }>("select t1.*,doctor.clinic_id from (select doctor_id,avg(rating) as avg_rating,sum(1) as total_rating,sum(if(rating=1,1,0)) as one_star,sum(if(rating=2,1,0)) as two_star,sum(if(rating=3,1,0)) as three_star,sum(if(rating=4,1,0)) as four_star,sum(if(rating=5,1,0)) as five_star from booking_review where status='verified' group by doctor_id) as t1 left join doctor on t1.doctor_id=doctor.id",[]);
+        }>("select t1.*,doctor.clinic_id from (select doctor_id,avg(rating) as avg_rating,sum(1) as total_rating,sum(if(NULLIF(experience, '') IS NOT NULL OR NULLIF(review_tags,'') IS NOT NULL,1,0)) as total_review,sum(if(rating=1,1,0)) as one_star,sum(if(rating=2,1,0)) as two_star,sum(if(rating=3,1,0)) as three_star,sum(if(rating=4,1,0)) as four_star,sum(if(rating=5,1,0)) as five_star from booking_review where status='verified' group by doctor_id) as t1 left join doctor on t1.doctor_id=doctor.id",[]);
         doctors_rating_symmry.forEach(doctor => {
             res.write(JSON.stringify(doctor)+"\n");
             updateDoctorRatingSummary(doctor);
@@ -125,15 +126,16 @@ const reportController = {
     name: string,
     avg_rating: number|null,
     total_rating: number|null,
+    total_review: number|null,
     one_star: number|null,
     two_star: number|null,
     three_star: number|null,
     four_star: number|null,
     five_star: number|null,
-        }>(`select t3.id,t3.name,avg(t3.avg_rating) as avg_rating,sum(t3.total_rating) as total_rating,sum(t3.one_star) as one_star,sum(t3.two_star) as two_star,sum(t3.three_star) as three_star,sum(t3.four_star) as four_star,sum(t3.five_star) as five_star,t3.city from (
-select t1.*,t2.avg_rating,t2.total_rating,t2.one_star,t2.two_star,t2.three_star,t2.four_star,t2.five_star,d.city from 
+        }>(`select t3.id,t3.name,avg(t3.avg_rating) as avg_rating,sum(t3.total_rating) as total_rating,sum(t3.total_review) as total_review,sum(t3.one_star) as one_star,sum(t3.two_star) as two_star,sum(t3.three_star) as three_star,sum(t3.four_star) as four_star,sum(t3.five_star) as five_star,t3.city from (
+select t1.*,t2.avg_rating,t2.total_rating,t2.total_review,t2.one_star,t2.two_star,t2.three_star,t2.four_star,t2.five_star,d.city from 
 (select s.id,s.name,ds.doctor_id from specialists as s left join doctor_specialization as ds on s.id=ds.specialist where s.enable=1) as t1 left join 
-(select doctor_id,avg(rating) as avg_rating,sum(1) as total_rating,sum(if(rating=1,1,0)) as one_star,sum(if(rating=2,1,0)) as two_star,sum(if(rating=3,1,0)) as three_star,sum(if(rating=4,1,0)) as four_star,sum(if(rating=5,1,0)) as five_star from booking_review where status='verified' group by doctor_id) as t2 on t1.doctor_id=t2.doctor_id 
+(select doctor_id,avg(rating) as avg_rating,sum(1) as total_rating,sum(if(NULLIF(experience, '') IS NOT NULL OR NULLIF(review_tags,'') IS NOT NULL,1,0)) as total_review,sum(if(rating=1,1,0)) as one_star,sum(if(rating=2,1,0)) as two_star,sum(if(rating=3,1,0)) as three_star,sum(if(rating=4,1,0)) as four_star,sum(if(rating=5,1,0)) as five_star from booking_review where status='verified' group by doctor_id) as t2 on t1.doctor_id=t2.doctor_id 
 join doctor as d on t2.doctor_id=d.id
 ) as t3 group by t3.id,t3.city`,[]);
         specialist_rating_summary.forEach(specialist=>{
@@ -182,17 +184,19 @@ const updateDoctorRatingSummary = async (data:{
     clinic_id: number,
     avg_rating: number,
     total_rating: number,
+    total_review: number,
     one_star: number,
     two_star: number,
     three_star: number,
     four_star: number,
     five_star: number,
 }) => {
-    DB.query("update doctor set rating=?,rating_count=? where id=?", [data.avg_rating, data.total_rating, data.doctor_id]);
+    DB.query("update doctor set rating=?,rating_count=?,review_count=? where id=?", [data.avg_rating, data.total_rating, data.total_review, data.doctor_id]);
     let existingReport = await doctorReportModel.findOne({ doctor_id: data.doctor_id, clinic_id: data.clinic_id });
     if (existingReport) {
         existingReport.avg_rating = data.avg_rating;
         existingReport.total_rating = data.total_rating;
+        existingReport.total_review = data.total_review;
         existingReport.one_star = data.one_star;
         existingReport.two_star = data.two_star;
         existingReport.three_star = data.three_star;
@@ -205,6 +209,7 @@ const updateDoctorRatingSummary = async (data:{
             clinic_id: data.clinic_id,
             avg_rating: data.avg_rating,
             total_rating: data.total_rating,
+            total_review: data.total_review,
             one_star: data.one_star,
             two_star: data.two_star,
             three_star: data.three_star,
@@ -220,6 +225,7 @@ const updateSpecialistRatingSummary = async (data:{
     name: string,
     avg_rating: number|null,
     total_rating: number|null,
+    total_review: number|null,
     one_star: number|null,
     two_star: number|null,
     three_star: number|null,
@@ -232,6 +238,7 @@ const updateSpecialistRatingSummary = async (data:{
         existingReport.name = data.name;
         existingReport.avg_rating = data.avg_rating||0;
         existingReport.total_rating = data.total_rating||0;
+        existingReport.total_review = data.total_review||0;
         existingReport.one_star = data.one_star||0;
         existingReport.two_star = data.two_star||0;
         existingReport.three_star = data.three_star||0;
@@ -245,6 +252,7 @@ const updateSpecialistRatingSummary = async (data:{
             name: data.name,
             avg_rating: data.avg_rating||0,
             total_rating: data.total_rating||0,
+            total_review: data.total_review||0,
             one_star: data.one_star||0,
             two_star: data.two_star||0,
             three_star: data.three_star||0,

@@ -176,7 +176,6 @@ const cacheController = {
             let state = tokenInfo.bs.toLowerCase();
             if (req.query.service_loc_id) {
                 try {
-                    console.log(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}`);
                     fs.accessSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}`);
                     fs.readdirSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}`).forEach((file) => {
                         fs.unlinkSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}/${file}`);

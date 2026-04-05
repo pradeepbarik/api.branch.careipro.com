@@ -5,7 +5,8 @@ import {
     getApointmentRatingAndReviews,
     verifiedReview,
     rejectReview,
-    deleteReview
+    deleteReview,
+    makePublicReview
 } from '../../model/rating-and-review';
 const requestParams = {
     getAppointmentRatingandReviews: Joi.object({
@@ -96,6 +97,24 @@ const ratingAndReviewController = {
             return;
         }
         let response = await deleteReview({ id: body.id });
+        res.status(response.code).json(response);
+    },
+    makePublicReview: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = Joi.object({
+            id: Joi.number().required(),
+            is_public: Joi.number().valid(0, 1).required()
+        }).validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access");
+            return;
+        }
+        let response = await makePublicReview({ id: body.id, is_public: body.is_public });
         res.status(response.code).json(response);
     },
     getSiteFeedbacks: async (req: Request, res: Response) => {

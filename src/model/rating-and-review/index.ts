@@ -9,7 +9,7 @@ export const getApointmentRatingAndReviews = async (params: {
     status?:'unverified'|'verified'|'approved'|'unapproved',
 }) => {
     try {
-        let bookingReviewSql=`SELECT id,booking_id,user_id,doctor_id,service_loc_id,rating,visited_for,experience,ques_ans,review_date,status,replay,replay_date,score,review_tags FROM booking_review where `;
+        let bookingReviewSql=`SELECT id,booking_id,user_id,doctor_id,service_loc_id,rating,visited_for,experience,ques_ans,review_date,status,replay,replay_date,score,review_tags,is_public FROM booking_review where `;
         let bookingReviewSqlParams:Array<string|number>=[];
         let conditions=[];
         if(params.user_id){
@@ -69,6 +69,14 @@ export const deleteReview =async (params:TverifiedReviewParams) => {
     if(updateRes.affectedRows>=1){
         return successResponse(null,"Deleted successfully")
     }else{
+        return internalServerError("something went wrong")
+    }
+}
+export const makePublicReview = async (params: { id: number, is_public: number }) => {
+    let updateRes: any = await DB.query("update booking_review set is_public=? where id=?", [params.is_public, params.id]);
+    if (updateRes.affectedRows >= 1) {
+        return successResponse(null, params.is_public === 1 ? "Review made public successfully" : "Review made private successfully")
+    } else {
         return internalServerError("something went wrong")
     }
 }

@@ -7,5 +7,6 @@ ratingRoutes.get('/booking-patient-details',[apiRateLimit(30,30)],handelError(ra
 ratingRoutes.post('/verified-review',[apiRateLimit(40,60),employeeValidation(1)],handelError(ratingAndReviewController.verifiedReview));
 ratingRoutes.post('/reject-review',[apiRateLimit(40,60),employeeValidation(1)],handelError(ratingAndReviewController.rejectReview));
 ratingRoutes.post('/delete-review',[apiRateLimit(20,60),employeeValidation(1)],handelError(ratingAndReviewController.deleteReview));
+ratingRoutes.post('/make-public-review',[apiRateLimit(40,60),employeeValidation(1)],handelError(ratingAndReviewController.makePublicReview));
 ratingRoutes.get('/site-feedbacks',[apiRateLimit(10,30)],handelError(ratingAndReviewController.getSiteFeedbacks));
 export default ratingRoutes;

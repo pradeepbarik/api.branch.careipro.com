@@ -6,6 +6,7 @@ const categoryReportSchema = new Schema({
     name: String,
     avg_rating: Number,
     total_rating: Number,
+    total_review: Number,
     one_star: Number,
     two_star: Number,
     three_star: Number,
