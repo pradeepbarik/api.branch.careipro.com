@@ -122,6 +122,18 @@ const cacheController = {
                 internalServerError("Something went wrong", res);
                 return
             }
+        } else if (req.query.cache_type === "clinic_detail") {
+            try {
+                let city = tokenInfo.bd.toLowerCase();
+                let state = tokenInfo.bs.toLowerCase();
+                if (req.query.clinic_bid) {
+                    fs.accessSync(`${cache_directory}/${state}/${city}/${CLINICS_DETAIL_CACHE_DIR}/${req.query.clinic_bid}/details.json`);
+                    fs.unlink(`${cache_directory}/${state}/${city}/${CLINICS_DETAIL_CACHE_DIR}/${req.query.clinic_bid}/details.json`, () => { })
+                }
+            } catch (err) {
+                internalServerError("Something went wrong", res);
+                return
+            }
         } else if (req.query.cache_type === "caretakers_home_page") {
             try {
                 fs.accessSync(`${cache_directory}/${tokenInfo.bs.toLowerCase()}/${tokenInfo.bd}/${CARETAKER_SERVICE_HOMEPAGE_CACHE_FILE}`);
@@ -180,8 +192,8 @@ const cacheController = {
                     fs.readdirSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}`).forEach((file) => {
                         fs.unlinkSync(`${cache_directory}/${state}/${city}/doctor-details/SL${req.query.service_loc_id}/${file}`);
                     });
-                } catch (err:any) {
-                    internalServerError("Something went wrong "+err.message, res);
+                } catch (err: any) {
+                    internalServerError("Something went wrong " + err.message, res);
                     return
                 }
             } else {
