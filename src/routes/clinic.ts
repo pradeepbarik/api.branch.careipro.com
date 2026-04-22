@@ -26,6 +26,7 @@ clinicRoutes.post('/approve-doctor',[apiRateLimit(1,3),employeeValidation(1)],ha
 clinicRoutes.post('/change-doctor-active-status',[apiRateLimit(1,3),employeeValidation(1)],handelError(clinicController.changeDoctorActiveStatus));
 clinicRoutes.get('/clinic-banners',[apiRateLimit(1,3)],handelError(clinicController.clinicBanners));
 clinicRoutes.post('/upload-clinic-banner',[apiRateLimit(1,5),parseFormData],handelError(clinicController.uploadClinicBanner));
+clinicRoutes.post('/delete-clinic-banner',[apiRateLimit(1,5)],handelError(clinicController.deleteClinicBanner));
 clinicRoutes.get('/clinic-specialization',[apiRateLimit(30,30)],handelError(clinicController.clinicSpecializations));
 clinicRoutes.post('/clinic-specialization',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.updateClinicSpecialization));
 clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
@@ -34,4 +35,9 @@ clinicRoutes.post("/update-db-detail",[apiRateLimit(1,5)],clinicController.updat
 // appointments related routes
 clinicRoutes.post('/appointments',[apiRateLimit(5,10)],handelError(clinicAppointmentsController.apoointments));
 clinicRoutes.post('/bookings',[apiRateLimit(5,10)],handelError(clinicAppointmentsController.bookings));
+// medicines related routes
+clinicRoutes.post('/add-clinic-medicines',[apiRateLimit(1,5)],handelError(clinicController.addClinicMedicine));
+clinicRoutes.get('/get-clinic-medicines',[apiRateLimit(1,5)],handelError(clinicController.getClinicMedicines));
+clinicRoutes.post('/update-clinic-medicine',[apiRateLimit(1,5)],handelError(clinicController.updateClinicMedicine));
+clinicRoutes.post('/delete-clinic-medicine',[apiRateLimit(1,5)],handelError(clinicController.deleteClinicMedicine));
 export default clinicRoutes;

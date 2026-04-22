@@ -3,7 +3,10 @@ import { get_current_datetime } from '../../services/datetime';
 import { Iresponse, unauthorizedResponse, successResponse, internalServerError } from '../../services/response';
 import { doctorprofileChangeLogModel } from '../../mongo-schema/coll_doctor_tbl_change_log';
 import { clinicprofileChangeLogModel } from '../../mongo-schema/coll_clinic_tbl_chnage_logs';
+import clinicMedicineMongoModel from '../../mongo-schema/coll_clinic_medicines';
+import medicineMongoModel from '../../mongo-schema/coll_medicines';
 import { getGroupCategoryShortName } from '../../helper';
+import mongoose from 'mongoose';
 type TaddNewClinicParams = {
     branch_id: number,
     business_type: string,
@@ -115,7 +118,12 @@ const clinicModel = {
         show_patients_feedback?: number
         crm_contact_number?: string
         crm_name?:string|null,
-        patient_support_contact_no?:string|null
+        patient_support_contact_no?:string|null,
+        medicine_home_delivery?:number,
+        medicine_delivery_time_tag?:string|null,
+        medicine_min_order_tag?:string|null,
+        open_time?:string|null,
+        recommended_doctors?:number,
     }) => {
         try {
             let q = "update clinics set ";
@@ -237,11 +245,34 @@ const clinicModel = {
                 updateFields.push("patient_support_contact_no=?");
                 sql_params.push(params.patient_support_contact_no);
             }
+            if (params.medicine_home_delivery !== undefined) {
+                updateFields.push("medicine_home_delivery=?");
+                sql_params.push(params.medicine_home_delivery);
+            }
+            if (params.medicine_delivery_time_tag !== undefined) {
+                updateFields.push("medicine_delivery_time_tag=?");
+                sql_params.push(params.medicine_delivery_time_tag);
+            }
+            if (params.medicine_min_order_tag !== undefined) {
+                updateFields.push("medicine_min_order_tag=?");
+                sql_params.push(params.medicine_min_order_tag);
+            }
+            if (params.open_time !== undefined) {
+                updateFields.push("open_time=?");
+                sql_params.push(params.open_time);
+            }
+            if (params.recommended_doctors !== undefined) {
+                updateFields.push("recommended_doctors=?");
+                sql_params.push(params.recommended_doctors);
+            }
             if (updateFields.length > 0) {
                 q += updateFields.join(',');
                 q += " where id=? and branch_id=?";
                 sql_params.push(params.clinic_id, branch_id);
                 await DB.query(q, sql_params);
+            }
+            if(params.location_lat && params.location_lng){
+                await DB.query("update doctor_service_location set location_lat=?,location_lng=? where clinic_id=?", [params.location_lat, params.location_lng, params.clinic_id]);
             }
             return successResponse({}, "Updated Successfully");
         } catch (err: any) {
@@ -566,6 +597,106 @@ export const getClinicSpecialization = async (params: {
         return successResponse([], "succes")
     } catch (err: any) {
         return internalServerError(err.message)
+    }
+}
+export const addClinicMedicines = async (clinic_id:number,medicines:Array<{
+    medicine_id:string,
+    store_price:number,
+    discount_tag:string,
+    delivery_time_tag:string,
+}>)=>{
+    try {
+        // Check if document already exists
+        const existingDoc = await clinicMedicineMongoModel.findOne({ clinic_id: clinic_id });
+        
+        if (existingDoc) {
+            // Document exists - push new medicines to existing array
+            await clinicMedicineMongoModel.updateOne(
+                { clinic_id: clinic_id },
+                { 
+                    $push: { 
+                        medicines: { 
+                            $each: medicines.map(med => ({
+                                ...med,
+                                medicine_id: new mongoose.Types.ObjectId(med.medicine_id), // Convert medicine_id to ObjectId
+                            })) 
+                        } 
+                    } 
+                }
+            ).exec();
+        } else {
+            // Document doesn't exist - create new one with medicines
+            await clinicMedicineMongoModel.updateOne(
+                { clinic_id: clinic_id },
+                { 
+                    clinic_id: clinic_id, 
+                    medicines: medicines.map(med => ({
+                        ...med,
+                        medicine_id: new mongoose.Types.ObjectId(med.medicine_id), // Convert medicine_id to ObjectId
+                    }))
+                },
+                { upsert: true }
+            ).exec();
+        }
+        
+        return successResponse({}, "Medicines added successfully");
+    } catch (err: any) {
+        return internalServerError(err.message);
+    }
+}
+export const getClinicMedicines = async (clinic_id:number)=>{
+    try {
+        // fetch clinic medicines and populate with medicine details from medicineSchema
+        const clinicMedicines = await clinicMedicineMongoModel.findOne({ clinic_id: clinic_id }).exec();
+        
+        if (!clinicMedicines || !clinicMedicines.medicines || clinicMedicines.medicines.length === 0) {
+            return successResponse([], "Medicines fetched successfully");
+        }
+
+        // fetch all medicine details for the medicines in clinic
+        const medicineIds = clinicMedicines.medicines.map((m: any) => m.medicine_id);
+        const medicineDetails = await medicineMongoModel.find({ _id: { $in: medicineIds } }).select("_id dosage_form name generic_name image is_prescription_required manufacturer medical_type mrp seo_id strength uses_for").lean().exec();
+
+        // create a map of medicine details for easy lookup
+        const medicineDetailsMap = new Map();
+        medicineDetails.forEach((med: any) => {
+            medicineDetailsMap.set(med._id.toString(), med);
+        });
+
+        // merge clinic medicines with their full details
+        const enrichedMedicines = clinicMedicines.medicines.map((clinicMed: any) => {
+            const medicineDetail = medicineDetailsMap.get(clinicMed.medicine_id.toString());
+            return {
+                ...clinicMed.toObject ? clinicMed.toObject() : clinicMed,
+                medicineDetails: medicineDetail || null
+            };
+        });
+
+        return successResponse(enrichedMedicines, "Medicines fetched successfully");
+    } catch (err: any) {
+        return internalServerError(err.message);
+    }
+}
+export const deleteClinicMedicine = async (clinic_id:number,medicine_id:string)=>{
+    try {
+        await clinicMedicineMongoModel.updateOne(
+            { clinic_id: clinic_id },
+            { $pull: { medicines: { medicine_id: new mongoose.Types.ObjectId(medicine_id) } } }
+        ).exec();
+        return successResponse({}, "Medicine deleted successfully");
+    } catch (err: any) {
+        return internalServerError(err.message);
+    }
+}
+export const updateClinicMedicine=async (clinic_id:number, medicine:any)=>{
+    try {
+        await clinicMedicineMongoModel.updateOne(
+            { clinic_id: clinic_id, "medicines.medicine_id": new mongoose.Types.ObjectId(medicine.medicine_id) },
+            { $set: { "medicines.$.store_price": medicine.store_price, "medicines.$.discount_tag": medicine.discount_tag, "medicines.$.delivery_time_tag": medicine.delivery_time_tag } }
+        ).exec();
+        return successResponse({}, "Medicine updated successfully");
+    } catch (err: any) {
+        return internalServerError(err.message);
     }
 }
 export default clinicModel;

@@ -1,5 +1,6 @@
 import { successResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
 import { get_current_datetime } from '../../services/datetime';
+import { md5 } from '../../services/encryption';
 type staffListParams = {
     branch_id: number,
     clinic_id: number
@@ -48,7 +49,7 @@ export const addClinicStaff = async (params: TAddClinicStaffParam) => {
             userid = user.id;
             await DB.query("update users set user_type=?,is_clinic_owner=?,clinic_id=? where id=?", ['clinic_staff', is_clinic_owner, params.clinic_id,userid]);
         }
-        await DB.query("insert into clinic_staffs set clinic_id=?,mobile=?,name=?,join_date=?,status=?,password=md5(?),role=?,user_id=?,clinic_staff_type=?", [params.clinic_id, params.mobile_no, params.name,now,params.status,params.password,params.role,userid,params.clinic_staff_type]);
+        await DB.query("insert into clinic_staffs set clinic_id=?,mobile=?,name=?,join_date=?,status=?,password=?,role=?,user_id=?,clinic_staff_type=?", [params.clinic_id, params.mobile_no, params.name,now,params.status,md5(params.password),params.role,userid,params.clinic_staff_type]);
         return successResponse(null,"Clinic staff registered successfully")
     }catch(err:any){
         return internalServerError(err.message);

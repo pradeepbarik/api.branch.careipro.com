@@ -16,3 +16,5 @@ export const COLL_ARTICLE_CATEGORIES="coll_article_categories";
 export const COLL_DFORM_SUBMISSIONS="coll_dform_submissions";
 export const COLL_DOCTORS_SETTINGS="coll_doctors_settings";
 export const COLL_CATEGORY_DETAILS="coll_category_details";
+export const COLL_MEDICINES="coll_medicines";
+export const COLL_CLINIC_MEDICINES="coll_clinic_medicines";

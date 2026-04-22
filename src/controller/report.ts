@@ -82,11 +82,6 @@ const reportController = {
     },
     generateClinicDailyReport: async (req: Request, res: Response) => {
         const { query } = req;
-        const { tokenInfo } = res.locals;
-        if (typeof tokenInfo === 'undefined') {
-            parameterMissingResponse("permission denied! Please login to access", res);
-            return
-        }
         const validation: ValidationResult = reqSchema.generateClinicDailyReport.validate(query);
         if (validation.error) {
             parameterMissingResponse(validation.error.details[0].message, res);
@@ -94,9 +89,10 @@ const reportController = {
         }
         res.write("Processing clinic daily report generation...\n");
         DB.get_rows<any>("select clinic_id,doctor_id,date(consult_date) as consult_date,count(1) as total,sum(if(booked_through='online',1,0)) as online_booked_patients from booking where date(consult_date)>=? and date(consult_date)<=? group by clinic_id,doctor_id,date(consult_date)", [<string>query.from_date, <string>query.to_date]).then((rows) => {
-            rows.forEach((row, index) => {
-                updateClinicDailyReport(row, res, index === rows.length - 1)
-            })
+            for(let i=0;i<rows.length;i++){
+                updateClinicDailyReport(rows[i], res, i === rows.length - 1)
+            }
+             res.end();
         })
     },
     generateRatingReviewReport: async (req: Request, res: Response) => {
@@ -176,7 +172,6 @@ const updateClinicDailyReport = async (row: any, res: any, islast: boolean) => {
     if (islast) {
         res.write(`----------------------------------------\n`);
         res.write(`Clinic daily report generation completed.\n`);
-        res.end();
     }
 }
 const updateDoctorRatingSummary = async (data:{

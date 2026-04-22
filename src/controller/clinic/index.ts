@@ -3,7 +3,7 @@ import Joi, { ValidationResult } from 'joi';
 import path from 'path';
 import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
 import { banner_path, clinic_logo_path, doctor_logo_path } from '../../constants';
-import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization } from '../../model/clinic';
+import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization,addClinicMedicines,getClinicMedicines, deleteClinicMedicine, updateClinicMedicine } from '../../model/clinic';
 import { addClinicStaff, staffList } from '../../model/clinic-staff';
 import doctorModel from '../../model/clinic/doctor';
 import { encrypt } from '../../services/encryption';
@@ -87,7 +87,12 @@ const requestParams = {
         show_patients_feedback: Joi.number().allow(''),
         crm_contact_number: Joi.string().allow(''),
         crm_name: Joi.string().allow(''),
-        patient_support_contact_no: Joi.string().allow('')
+        patient_support_contact_no: Joi.string().allow(''),
+        medicine_home_delivery: Joi.number().allow(''),
+        medicine_delivery_time_tag: Joi.string().allow(''),
+        medicine_min_order_tag: Joi.string().allow(''),
+        open_time: Joi.string().allow(''),
+        recommended_doctors: Joi.string().allow(''),
     }),
     saveClinicTiming: Joi.object({
         clinic_id: Joi.number().required(),
@@ -440,7 +445,32 @@ const requestParams = {
         clinic_id: Joi.number().required(),
         mongo_db_connection_url: Joi.string().required(),
         mysql: Joi.any()
-    })
+    }),
+    addClinicMedicine: Joi.object({
+        clinic_id: Joi.number().required(),
+        medicines: Joi.array().items(Joi.object({
+            medicine_id: Joi.string().required(),
+            store_price: Joi.number().allow(''),
+            discount_tag: Joi.string().allow(''),
+            delivery_time_tag: Joi.string().allow(''),
+        }))
+    }),
+    getClinicMedicines: Joi.object({
+        clinic_id: Joi.number().required(),
+    }),
+    updateClinicMedicine: Joi.object({
+        clinic_id: Joi.number().required(),
+        medicine: Joi.object({
+            medicine_id: Joi.string().required(),
+            store_price: Joi.number().allow(''),
+            discount_tag: Joi.string().allow(''),
+            delivery_time_tag: Joi.string().allow(''),
+        })
+    }),
+    deleteClinicMedicine: Joi.object({
+        clinic_id: Joi.number().required(),
+        medicine_id: Joi.string().required()
+    }),
 }
 const clinicController = {
     updateDbDetails: async (req: Request, res: Response) => {
@@ -679,7 +709,12 @@ const clinicController = {
             tag_line: body.tag_line,
             crm_contact_number: body.crm_contact_number,
             crm_name: body.crm_name,
-            patient_support_contact_no: body.patient_support_contact_no
+            patient_support_contact_no: body.patient_support_contact_no,
+            medicine_home_delivery: body.medicine_home_delivery,
+            medicine_delivery_time_tag: body.medicine_delivery_time_tag,
+            medicine_min_order_tag: body.medicine_min_order_tag,
+            open_time: body.open_time,
+            recommended_doctors: body.recommended_doctors
         }
         if (typeof body.enable_enquiry !== "undefined") {
             postdata.enable_enquiry = body.enable_enquiry;
@@ -1246,8 +1281,9 @@ const clinicController = {
             image_name = body.banner_img_url;
         }
         if (!body.banner_img_url && files.banner) {
+            let now = new Date().getTime();
             let oldPath = files.banner.filepath;
-            image_name = `${body.banner_description}-${body.user_type}${body.user_id}}`;
+            image_name = `${body.banner_description}-${now}}`;
             image_name = image_name.replace(/[^a-zA-Z0-9\s]/g, '');
             image_name = image_name.replace(/\s/g, '-');
             image_name = image_name + path.extname(files.banner.originalFilename);
@@ -1276,6 +1312,32 @@ const clinicController = {
             ])
         }
         res.json(successResponse("Banner Updated successfully"))
+    },
+    deleteClinicBanner: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = Joi.object({
+            id: Joi.number().required(),
+            image: Joi.string().required(),
+            user_id: Joi.number().required(),
+            user_type: Joi.string().valid("clinic", "doctor").required()
+        }).validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let banner_iamge_path = `${banner_path}/${body.image}`;
+        try {
+            await deleteFile(banner_iamge_path);
+            await DB.query("delete from banners where id=? and user_id=? and user_type=? limit 1", [body.id, body.user_id, body.user_type]);
+            res.json(successResponse({}, "Banner deleted successfully"));
+        } catch (err: any) {
+            internalServerError("Something went wrong", res);
+        }
     },
     updateClinicLogo: async (req: FormdataRequest, res: Response) => {
         const { tokenInfo } = res.locals;
@@ -1349,6 +1411,66 @@ const clinicController = {
         } else {
             res.json(parameterMissingResponse("Please select an image", res));
         }
+    },
+    addClinicMedicine: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.addClinicMedicine.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await addClinicMedicines(body.clinic_id, body.medicines)
+        res.status(response.code).json(response);
+    },
+    getClinicMedicines: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.getClinicMedicines.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await getClinicMedicines(query.clinic_id)
+        res.status(response.code).json(response);
+    },
+    deleteClinicMedicine: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.deleteClinicMedicine.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await deleteClinicMedicine(body.clinic_id, body.medicine_id)
+        res.status(response.code).json(response);
+    },
+    updateClinicMedicine: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.updateClinicMedicine.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await updateClinicMedicine(body.clinic_id, body.medicine)
+        res.status(response.code).json(response);
     }
 }
 export default clinicController;

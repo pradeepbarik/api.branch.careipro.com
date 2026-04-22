@@ -1,7 +1,8 @@
-import mysql, { QueryError, Pool, RowDataPacket } from 'mysql2';
+import mysql, { QueryError, Pool } from 'mysql2';
 import mongoose from 'mongoose';
 import { DEVELOPMENT_DB, PRODUCTION_DB, DBCONFIG, MONGO_DB_CONNECTION_URL, PRODUCTION_MONGO_DB_CONNECTION_URL, MANAGEMENT_MONGO_DEV_DB_CONNECTION_URL, MANAGEMENT_MONGO_DB_CONNECTION_URL } from './config';
 import { get_current_datetime } from './services/datetime';
+import { log_sql_queries } from './config';
 const logError = (user_id: string, err_event: string, err_message: string) => {
     let now = get_current_datetime();
     console.log(err_message);
@@ -22,7 +23,7 @@ const getDbmethods = (connection: Pool): IDbmethods => {
     return {
         query: function (sql: string, params: Array<string | number | null>, logquery: boolean = false) {
             return new Promise((resolve, reject) => {
-                if (logquery) {
+                if (logquery || log_sql_queries) {
                     console.log(connection.format(sql, params));
                 }
                 let fstword = sql.split(' ')[0];
@@ -48,7 +49,7 @@ const getDbmethods = (connection: Pool): IDbmethods => {
         },
         get_row: <T>(sql: string, params: Array<number | string>, logquery: boolean = false): Promise<T | null> => {
             return new Promise((resolve, reject) => {
-                if (logquery) {
+                if (logquery || log_sql_queries) {
                     console.log(connection.format(sql, params));
                 }
                 connection.query(sql, params, (err, result) => {
@@ -65,7 +66,7 @@ const getDbmethods = (connection: Pool): IDbmethods => {
         },
         get_rows: <T>(sql: string, params: Array<string | number | string[]>, logquery: boolean = false): Promise<T[]> => {
             return new Promise((resolve, reject) => {
-                if (logquery) {
+                if (logquery || log_sql_queries) {
                     console.log(connection.format(sql, params));
                 }
                 connection.query(sql, params, (err, result) => {
@@ -83,7 +84,7 @@ const getDbmethods = (connection: Pool): IDbmethods => {
         },
         build_query: function (sql: string, params: Array<string | number | Array<string | number>>, logquery?: boolean) {
             const query = connection.format(sql, params);
-            if (logquery) {
+            if (logquery || log_sql_queries) {
                 console.log(query);
             }
             return query;

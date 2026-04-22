@@ -12,5 +12,7 @@ routes.post('/update-clinic-info-change-tracker', handelError(homeController.upd
 routes.get('/create-booking-case', [apiRateLimit(1, 1)], handelError(appointmentController.createBookingCase));
 routes.get("/appointment-mysql-to-mongo", appointmentController.moveMysqlToMongo);
 routes.get("/generate-clinic-reports", handelError(reportController.generateClinicReports));
+routes.get("/generate-clinic-daily-report", handelError(reportController.generateClinicDailyReport));
+routes.get("/generate-doctors-rating-review-report",handelError(reportController.generateRatingReviewReport))
 routes.get("/send-about-careipro-sms",commonapiController.sendAboutCareiproSmsToUsers);
 export default routes;

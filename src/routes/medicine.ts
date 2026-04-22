@@ -1,0 +1,10 @@
+import { Router } from "express";
+import {apiRateLimit,handelError,parseFormData,employeeValidation} from '../middleware';
+import medicineController from "../controller/medicine";
+const medicineRoutes = Router();
+medicineRoutes.post("/add-new-medicine",[apiRateLimit(1,2),employeeValidation(1)],handelError(medicineController.addnewmedicine));
+medicineRoutes.get("/get-medicine-list",[apiRateLimit(1,2),employeeValidation(0)],handelError(medicineController.getmedicinelist));
+medicineRoutes.get("/get-medicine-detail",[apiRateLimit(1,2),employeeValidation(0)],handelError(medicineController.getMedicineDetail));
+medicineRoutes.post("/update-medicine",[apiRateLimit(1,2),employeeValidation(1)],handelError(medicineController.updateMedicine));
+medicineRoutes.get("/search-medicines",[apiRateLimit(10,2),employeeValidation(0)],handelError(medicineController.searchMedicines));
+export default medicineRoutes;
