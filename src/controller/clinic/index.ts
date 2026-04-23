@@ -309,7 +309,7 @@ const requestParams = {
         cid: Joi.number().required(),
         every_month: Joi.string().valid('1', '2', '3', '4', '5', 'last'),
         no_of_times: Joi.number().allow(''),
-        day_name: Joi.string().valid('week', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'),
+        day_name: Joi.string().valid('week', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'),
         first_session_start_time: Joi.string().allow(''),
         first_session_end_time: Joi.string().allow(''),
         second_session_start_time: Joi.string().allow(''),
