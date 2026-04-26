@@ -93,6 +93,7 @@ const requestParams = {
         medicine_min_order_tag: Joi.string().allow(''),
         open_time: Joi.string().allow(''),
         recommended_doctors: Joi.string().allow(''),
+        discount_msg: Joi.string().allow('')
     }),
     saveClinicTiming: Joi.object({
         clinic_id: Joi.number().required(),
@@ -714,7 +715,8 @@ const clinicController = {
             medicine_delivery_time_tag: body.medicine_delivery_time_tag,
             medicine_min_order_tag: body.medicine_min_order_tag,
             open_time: body.open_time,
-            recommended_doctors: body.recommended_doctors
+            recommended_doctors: body.recommended_doctors,
+            discount_msg: body.discount_msg,
         }
         if (typeof body.enable_enquiry !== "undefined") {
             postdata.enable_enquiry = body.enable_enquiry;

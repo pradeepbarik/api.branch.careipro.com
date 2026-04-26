@@ -7,6 +7,7 @@ import clinicMedicineMongoModel from '../../mongo-schema/coll_clinic_medicines';
 import medicineMongoModel from '../../mongo-schema/coll_medicines';
 import { getGroupCategoryShortName } from '../../helper';
 import mongoose from 'mongoose';
+import { md5 } from '../../services/encryption';
 type TaddNewClinicParams = {
     branch_id: number,
     business_type: string,
@@ -54,9 +55,9 @@ const clinicModel = {
     },
     addNewClinic: async (params: TaddNewClinicParams) => {
         //C12-ODBHC
-        let q = 'insert into clinics set name=?,username=?,password=md5(?),email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type=?,business_type=?';
-        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, params.password, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type, params.business_type]);
-        if (insertRes.affectedRows >= 1) {
+        let q = 'insert into clinics set name=?,username=?,password=?,email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type=?,business_type=?';
+        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, md5(params.password), params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type, params.business_type]);
+        if (insertRes && insertRes.affectedRows >= 1) {
             let clinic_id = insertRes.insertId;
             let now = get_current_datetime();
             q = 'insert into clinic_detail (clinic_id,register_date,registered_by_emp_id) values (?,?,?)';
@@ -123,7 +124,9 @@ const clinicModel = {
         medicine_delivery_time_tag?:string|null,
         medicine_min_order_tag?:string|null,
         open_time?:string|null,
-        recommended_doctors?:number,
+        recommended_doctors?:string|null,
+        discount_msg?:string|null
+
     }) => {
         try {
             let q = "update clinics set ";
@@ -264,6 +267,10 @@ const clinicModel = {
             if (params.recommended_doctors !== undefined) {
                 updateFields.push("recommended_doctors=?");
                 sql_params.push(params.recommended_doctors);
+            }
+            if (params.discount_msg !== undefined) {
+                updateFields.push("discount_msg=?");
+                sql_params.push(params.discount_msg);
             }
             if (updateFields.length > 0) {
                 q += updateFields.join(',');
