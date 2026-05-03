@@ -176,7 +176,7 @@ const clinicModel = {
                 updateFields.push("verified=?");
                 sql_params.push(params.verified);
             }
-            if (params.active) {
+            if (typeof params.active !== 'undefined') {
                 updateFields.push("active=?");
                 sql_params.push(params.active);
             }

@@ -232,7 +232,8 @@ const requestParams = {
         service_loc_id: Joi.number().allow(''),
         service_loc_setting_id: Joi.number().required(),
         cid: Joi.number().required(),
-        payment_type: Joi.string().valid('while_booking', 'at_clinic', 'all'),//ENUM('while_booking', 'at_clinic', 'after_consulting', 'all')
+        payment_type: Joi.string().valid('while_booking', 'at_clinic','after_consulting','partial_payment_while_booking'),//ENUM('while_booking', 'at_clinic', 'after_consulting')
+        token_amount: Joi.number().allow(''),
         cash_recived_mode: Joi.string().valid('one', 'multiple'),//ENUM('one', 'multiple')
         advance_booking_enable: Joi.number().valid(0, 1),
         emergency_booking_close: Joi.number().valid(0, 1),

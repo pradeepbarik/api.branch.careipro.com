@@ -260,7 +260,7 @@ const doctorModel = {
         let q = `select t1.availability,t1.slno_type,t1.doctor_id,t2.* from (
             SELECT id,doctor_id,availability,slno_type FROM doctor_service_location where clinic_id=?
             ) as t1 left join (
-            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode from doctor_servicelocation_setting where service_location_id in (select id from doctor_service_location where clinic_id=?)
+            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,partial_payment_amount_while_booking as token_amount from doctor_servicelocation_setting where service_location_id in (select id from doctor_service_location where clinic_id=?)
             ) as t2 on t1.id=t2.service_location_id`;
         let sqlparams = [clinic_id, clinic_id];
         let rows = await DB.get_rows(q, sqlparams);
@@ -270,7 +270,7 @@ const doctorModel = {
         let q = `select t1.availability,t1.slno_type,t1.site_service_charge,t2.* from (
             SELECT id,availability,slno_type,site_service_charge FROM doctor_service_location where id=? and doctor_id=? and clinic_id=?
             ) as t1 left join (
-            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,display_consulting_timing,display_booking_timing,show_patients_feedback,consulting_timing_messages from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
+            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,display_consulting_timing,display_booking_timing,show_patients_feedback,consulting_timing_messages,partial_payment_amount_while_booking as token_amount from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
             ) as t2 on t1.id=t2.service_location_id`;
         let sqlparams = [service_loc_id, doctor_id, clinic_id, service_loc_id, doctor_id];
         let row: any = await DB.get_row(q, sqlparams);
@@ -327,6 +327,7 @@ const doctorModel = {
     updateDoctorSettings: async (doctor_id: number, clinic_id: number, service_loc_id: number, params: {
         service_loc_setting_id: number,
         payment_type?: string,
+        token_amount?: number,
         cash_recived_mode?: string,
         advance_booking_enable?: number,
         emergency_booking_close?: number,
@@ -375,6 +376,10 @@ const doctorModel = {
             updateFields.push("payment_type=?");
             sqlParams.push(params.payment_type);
         }
+        if (typeof params.token_amount !== 'undefined') {
+            updateFields.push("partial_payment_amount_while_booking=?");
+            sqlParams.push(params.token_amount);
+        }
         if (params.advance_booking_enable == 0 || params.advance_booking_enable == 1) {
             updateFields.push("advance_booking_enable=?");
             sqlParams.push(params.advance_booking_enable);
@@ -383,7 +388,7 @@ const doctorModel = {
             updateFields.push("emergency_booking_close=?");
             sqlParams.push(params.emergency_booking_close);
         }
-        if (params.booking_close_message) {
+        if (typeof params.booking_close_message !== 'undefined') {
             updateFields.push("booking_close_message=?");
             sqlParams.push(params.booking_close_message);
         }
@@ -430,6 +435,10 @@ const doctorModel = {
         if (typeof params.display_booking_timing !== 'undefined') {
             updateFields.push("display_booking_timing=?");
             sqlParams.push(params.display_booking_timing);
+        }
+        if (typeof params.token_amount !== 'undefined') {
+            updateFields.push("partial_payment_amount_while_booking=?");
+            sqlParams.push(params.token_amount);
         }
         if (updateFields.length > 0) {
             if (params.service_loc_setting_id) {
