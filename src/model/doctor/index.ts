@@ -1,3 +1,4 @@
+import doctorSettingsMongoModel from "../../mongo-schema/coll_doctor_settings";
 import { get_current_datetime } from "../../services/datetime";
 import { ILoggedinEmpInfo } from "../../types"
 
@@ -55,6 +56,20 @@ const doctorModel = {
                 throw new Error('Something went wrong ! Please contact with support team');
             }
             const doctor_id = insert_res.insertId;
+            new doctorSettingsMongoModel({
+                doctor_id: parseInt(doctor_id.toString()),
+                clinic_id: params.clinic_id?parseInt(params.clinic_id.toString()):0,
+                treated_health_conditions: [],
+                treatments_available: [],
+                similar_business_sections: [],
+                faqs: [],
+                sms_email_settings: {
+                    online_booking: {sms_to_patient: false,sms_to_vendor: false,patient_support_contact_no: "",watcher_emails:[]},
+                    offline_booking: {sms_to_patient: false,sms_to_vendor: false,patient_support_contact_no: "",watcher_emails:[]},
+                    booking_request: {sms_to_patient: false,sms_to_vendor: false,patient_support_contact_no: "",watcher_emails:[]},
+                    send_enquiry: {sms_to_patient: false,sms_to_vendor: false,patient_support_contact_no: "",watcher_emails:[]},
+                }
+            })
             DB.query("insert into doctor_detail set doctor_id=?,register_time=?,register_by='employee',register_by_id=?,other_information=?", [doctor_id, now, emp_info.id, params.other_information||""]);
             insert_res = await DB.query("insert into doctor_service_location set doctor_id=?,clinic=?,clinic_id=?,city=?,place=?,location=?,contact_no=?,location_lat=?,location_lng=?,service_charge=?,active=-5", [
                 doctor_id, params.clinic_name || "", params.clinic_id, params.dist, params.area_name, params.location, params.contact_no, params.latitude, params.longitude, params.consultation_fee||0

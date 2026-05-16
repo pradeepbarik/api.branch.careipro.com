@@ -365,6 +365,34 @@ const requestParams = {
             no_of_cases: Joi.number().allow('')
         }))
     }),
+    saveDoctorSmsEmailSettings: Joi.object({
+        service_loc_id: Joi.number().allow(''),
+        cid: Joi.number().required(),
+        online_booking: Joi.object({
+            sms_to_patient: Joi.number().valid(true, false),
+            patient_support_contact_no: Joi.string().allow(''),
+            sms_to_vendor: Joi.number().valid(true, false),
+            watcher_emails: Joi.array().items(Joi.string())
+        }),
+        offline_booking: Joi.object({
+            sms_to_patient: Joi.number().valid(true, false),
+            patient_support_contact_no: Joi.string().allow(''),
+            sms_to_vendor: Joi.number().valid(true, false),
+            watcher_emails: Joi.array().items(Joi.string())
+        }),
+        booking_request: Joi.object({
+            sms_to_patient: Joi.number().valid(true, false),
+            patient_support_contact_no: Joi.string().allow(''),
+            sms_to_vendor: Joi.number().valid(true, false),
+            watcher_emails: Joi.array().items(Joi.string())
+        }),
+        send_enquiry: Joi.object({
+            sms_to_patient: Joi.number().valid(true, false),
+            patient_support_contact_no: Joi.string().allow(''),
+            sms_to_vendor: Joi.number().valid(true, false),
+            watcher_emails: Joi.array().items(Joi.string())
+        })
+    }),
     approveDoctor: Joi.object({
         clinic_id: Joi.number().required(),
         doctor_id: Joi.number().required(),
@@ -893,6 +921,9 @@ const clinicController = {
         } else if (query.tab === "weekly_booking_timing") {
             let response = await doctorModel.getDoctorWeeklyBookingTiming(query.doctor_id, query.service_loc_id);
             res.status(response.code).json(response);
+        }else if(query.tab === "sms_email_settings"){
+            let response = await doctorModel.getDoctorSmsEmailSettings(query.doctor_id, cid);
+            res.status(response.code).json(response);
         } else {
             serviceNotAcceptable("Invalid tab name", res);
         }
@@ -1121,6 +1152,14 @@ const clinicController = {
                     let response = await doctorModel.deleteDoctorFaq(parseInt(doctor_id.toString()), parseInt(cid), restParams.faq_id)
                     res.status(response.code).json(response);
                 }
+            }else if(tab === "sms_email_settings"){
+                const validation: ValidationResult = requestParams.saveDoctorSmsEmailSettings.validate(restParams);
+                if (validation.error) {
+                    parameterMissingResponse(validation.error.details[0].message, res);
+                    return;
+                }
+                let response = await doctorModel.saveDoctorSmsEmailSettings(parseInt(doctor_id.toString()), parseInt(cid), restParams)
+                res.status(response.code).json(response);
             } else {
                 serviceNotAcceptable("invalid tab name", res);
             }

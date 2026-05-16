@@ -3,8 +3,8 @@ import { TUpdateDoctorBasicInfoParams } from '../../types/clinic';
 import doctorSettingsMongoModel from '../../mongo-schema/coll_doctor_settings';
 const doctorModel = {
     getDoctorBasicInfo: async (doctor_id: number, clinic_id: number) => {
-        let row:any = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type,specialty from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id, doctor_id]);
-        let faqs=await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).select("faqs").exec();
+        let row: any = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type,specialty from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id, doctor_id]);
+        let faqs = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).select("faqs").exec();
         row.faqs = faqs?.faqs || [];
         return successResponse(row, "success");
     },
@@ -907,32 +907,146 @@ const doctorModel = {
 
         return successResponse({}, "Settings updated successfully");
     },
-    addDoctorFaq: async (doctor_id: number,clinic_id:number, faq: { question: string, answer: string }) => {
-        let document=await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id,clinic_id:clinic_id }).exec();
-        if(document){
-            await doctorSettingsMongoModel.updateOne({ doctor_id: doctor_id,clinic_id:clinic_id }, { $push: { faqs: {
-                question: faq.question,
-                answer: faq.answer
-            } } }).exec();
-        }else{
-            let newDocument=new doctorSettingsMongoModel({
+    addDoctorFaq: async (doctor_id: number, clinic_id: number, faq: { question: string, answer: string }) => {
+        let document = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).exec();
+        if (document) {
+            await doctorSettingsMongoModel.updateOne({ doctor_id: doctor_id, clinic_id: clinic_id }, {
+                $push: {
+                    faqs: {
+                        question: faq.question,
+                        answer: faq.answer
+                    }
+                }
+            }).exec();
+        } else {
+            let newDocument = new doctorSettingsMongoModel({
                 doctor_id: doctor_id,
                 clinic_id: clinic_id,
-                faqs:[{
+                faqs: [{
                     question: faq.question,
                     answer: faq.answer
                 }],
                 similar_business_sections: [],
                 treated_health_conditions: [],
-                treatments_available: []
+                treatments_available: [],
             });
             await newDocument.save();
         }
         return successResponse({}, "FAQ added successfully");
     },
-    deleteDoctorFaq: async (doctor_id: number,clinic_id:number, faq_id: string) => {
-        await doctorSettingsMongoModel.updateOne({ doctor_id: doctor_id,clinic_id:clinic_id }, { $pull: { faqs: { _id: faq_id } } }).exec();
+    deleteDoctorFaq: async (doctor_id: number, clinic_id: number, faq_id: string) => {
+        await doctorSettingsMongoModel.updateOne({ doctor_id: doctor_id, clinic_id: clinic_id }, { $pull: { faqs: { _id: faq_id } } }).exec();
         return successResponse({}, "FAQ deleted successfully");
+    },
+    getDoctorSmsEmailSettings: async (doctor_id: number, clinic_id: number) => {
+        let settings:any = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).select('sms_email_settings').exec();
+        if(!settings || !settings.sms_email_settings){
+            settings = {
+                sms_email_settings: {
+                    online_booking: {
+                        sms_to_patient: false,
+                        patient_support_contact_no: "",
+                        sms_to_vendor: false,
+                        watcher_emails: []
+                    },
+                    offline_booking: {
+                        sms_to_patient: false,
+                        patient_support_contact_no: "",
+                        sms_to_vendor: false,
+                        watcher_emails: []
+                    },
+                    booking_request: {
+                        sms_to_patient: false,
+                        patient_support_contact_no: "",
+                        sms_to_vendor: false,
+                        watcher_emails: []
+                    },
+                    send_enquiry: {
+                        sms_to_patient: false,
+                        patient_support_contact_no: "",
+                        sms_to_vendor: false,
+                        watcher_emails: []
+                    }
+                }
+            }   
+        }
+        return successResponse({ sms_email_settings: settings?.sms_email_settings }, "sms email settings fetched successfully");
+    },
+    saveDoctorSmsEmailSettings: async (doctor_id: number, clinic_id: number, params: {
+        online_booking?: {
+            sms_to_patient?: boolean,
+            patient_support_contact_no?: string,
+            sms_to_vendor?: boolean,
+            watcher_emails?: string[]
+        },
+        offline_booking?: {
+            sms_to_patient?: boolean,
+            patient_support_contact_no?: string,
+            sms_to_vendor?: boolean,
+            watcher_emails?: string[]
+        },
+        booking_request?: {
+            sms_to_patient?: boolean,
+            patient_support_contact_no?: string,
+            sms_to_vendor?: boolean,
+            watcher_emails?: string[]
+        },
+        send_enquiry?: {
+            sms_to_patient?: boolean,
+            patient_support_contact_no?: string,
+            sms_to_vendor?: boolean,
+            watcher_emails?: string[]
+        }
+    }) => {
+        let settings = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).exec();
+        if (settings) {
+            await doctorSettingsMongoModel.updateOne(
+                { doctor_id: doctor_id, clinic_id: clinic_id },
+                {
+                    $set: {
+                        sms_email_settings: {
+                            online_booking: {
+                                sms_to_patient: params.online_booking?.sms_to_patient ?? settings.sms_email_settings?.online_booking?.sms_to_patient ?? false,
+                                patient_support_contact_no: params.online_booking?.patient_support_contact_no ?? settings.sms_email_settings?.online_booking?.patient_support_contact_no ?? "",
+                                sms_to_vendor: params.online_booking?.sms_to_vendor ?? settings.sms_email_settings?.online_booking?.sms_to_vendor ?? false,
+                                watcher_emails: params.online_booking?.watcher_emails ?? settings.sms_email_settings?.online_booking?.watcher_emails ?? []
+                            },
+                            offline_booking: {
+                                sms_to_patient: params.offline_booking?.sms_to_patient ?? settings.sms_email_settings?.offline_booking?.sms_to_patient ?? false,
+                                patient_support_contact_no: params.offline_booking?.patient_support_contact_no ?? settings.sms_email_settings?.offline_booking?.patient_support_contact_no ?? "",
+                                sms_to_vendor: params.offline_booking?.sms_to_vendor ?? settings.sms_email_settings?.offline_booking?.sms_to_vendor ?? false,
+                                watcher_emails: params.offline_booking?.watcher_emails ?? settings.sms_email_settings?.offline_booking?.watcher_emails ?? []
+                            },
+                            booking_request: {
+                                sms_to_patient: params.booking_request?.sms_to_patient ?? settings.sms_email_settings?.booking_request?.sms_to_patient ?? false,
+                                patient_support_contact_no: params.booking_request?.patient_support_contact_no ?? settings.sms_email_settings?.booking_request?.patient_support_contact_no ?? "",
+                                sms_to_vendor: params.booking_request?.sms_to_vendor ?? settings.sms_email_settings?.booking_request?.sms_to_vendor ?? false,
+                                watcher_emails: params.booking_request?.watcher_emails ?? settings.sms_email_settings?.booking_request?.watcher_emails ?? []
+                            },
+                            send_enquiry: {
+                                sms_to_patient: params.send_enquiry?.sms_to_patient ?? settings.sms_email_settings?.send_enquiry?.sms_to_patient ?? false,
+                                patient_support_contact_no: params.send_enquiry?.patient_support_contact_no ?? settings.sms_email_settings?.send_enquiry?.patient_support_contact_no ?? "",
+                                sms_to_vendor: params.send_enquiry?.sms_to_vendor ?? settings.sms_email_settings?.send_enquiry?.sms_to_vendor ?? false,
+                                watcher_emails: params.send_enquiry?.watcher_emails ?? settings.sms_email_settings?.send_enquiry?.watcher_emails ?? []
+                            }
+                        }
+                    }
+                }
+            ).exec();
+        } else {
+            let newSettings = new doctorSettingsMongoModel({
+                doctor_id: doctor_id,
+                clinic_id: clinic_id,
+                sms_email_settings: params,
+                faqs: [],
+                similar_business_sections: [],
+                treated_health_conditions: [],
+                treatments_available: []
+            });
+            await newSettings.save();
+        }
+
+        return successResponse(null, "SMS/Email settings saved successfully");
     }
 }
 export default doctorModel;

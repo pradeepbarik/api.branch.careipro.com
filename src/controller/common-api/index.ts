@@ -1,7 +1,8 @@
-import { Request, Response } from 'express';
+import { query, Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
 import { unauthorizedResponse, parameterMissingResponse, successResponse } from '../../services/response';
 import axios from 'axios';
+import { decrypt, encrypt } from '../../services/encryption';
 const requestParams = {
     searchOtp: Joi.object({
         mobile: Joi.number().required()
@@ -21,20 +22,36 @@ const commonapiController = {
             return;
         }
         let rows = await DB.get_rows("select * from otp where mobile_no=? order create_time desc", [query.mobile]);
-        res.json(successResponse(rows,"success"))
+        res.json(successResponse(rows, "success"))
     },
-    sendAboutCareiproSmsToUsers:async (req:Request,res:Response)=>{
-        let from=req.query.from;
-        let to=req.query.to;
-        let users:any=await DB.get_rows("select firstname,mobile from users where id>=? and id<=? and user_type='user'",[<string>from,<string>to]);
-        users.forEach((u:any)=>{
-            axios.post("http://139.59.87.157/webservice/v1/patient-app/send-sms",{
-                sms_template_id:"1207175223783922585",
-                "city":"Bhadrak",
-                data:[{name:u.firstname,mobile:u.mobile}]
+    sendAboutCareiproSmsToUsers: async (req: Request, res: Response) => {
+        let from = req.query.from;
+        let to = req.query.to;
+        let users: any = await DB.get_rows("select firstname,mobile from users where id>=? and id<=? and user_type='user'", [<string>from, <string>to]);
+        users.forEach((u: any) => {
+            axios.post("http://139.59.87.157/webservice/v1/patient-app/send-sms", {
+                sms_template_id: "1207175223783922585",
+                "city": "Bhadrak",
+                data: [{ name: u.firstname, mobile: u.mobile }]
             })
         })
-        res.json(successResponse(users,"success"))
+        res.json(successResponse(users, "success"))
+    },
+    generateBusinessPublicKey: async (req: Request, res: Response) => {
+        const validation: ValidationResult = Joi.object({
+            business_id: Joi.string().required(),
+            clinic_id: Joi.number().required(),
+            state: Joi.string().required(),
+            city: Joi.string().required(),
+        }).validate(req.query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { query }: { query: any } = req;
+        const publicKey = encrypt(`${query.clinic_id}|${query.business_id}|${query.state}|${query.city}`);
+        console.log("decoded public key", decrypt(publicKey));
+        res.json(successResponse({ publicKey }, "success"))
     }
 }
 export default commonapiController
