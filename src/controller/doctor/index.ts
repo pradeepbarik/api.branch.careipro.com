@@ -58,7 +58,7 @@ const doctorController = {
             q += " and partner_type=?";
             sqlParams.push(<string>req.query.partner_type);
         }
-        let rows = await DB.get_rows("select doctors.*,t2.id as service_location_id,t2.clinic as clinic_name from (" + q + ") as doctors join doctor_service_location as t2 on doctors.id=t2.doctor_id", sqlParams);
+        let rows = await DB.get_rows("select doctors.*,t2.id as service_location_id,t2.clinic as clinic_name,t2.service_charge,t2.site_service_charge,t3.payment_type,t3.book_by,t3.enable_enquiry,t3.show_patients_feedback from (" + q + ") as doctors join doctor_service_location as t2 on doctors.id=t2.doctor_id left join doctor_servicelocation_setting as t3 on t2.id=t3.service_location_id", sqlParams);
         res.json(successResponse(rows, "doctors list fetched successfully"));
     },
     addNewDoctor: async (req: FormdataRequest, res: Response) => {

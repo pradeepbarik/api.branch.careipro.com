@@ -136,7 +136,7 @@ const appointmentController = {
         if (!tokenInfo) {
             return unauthorizedResponse("Something went wrong", res)
         }
-        let sql = "select id,today_booking_id,userid,user_type,doctor_id,clinic_id,servicelocation_id,patient_name,patient_mobile,patient_address,patient_age,patient_gender,booked_through,booking_charge,service_charge,total_amount,booking_time,consult_date,status,payment_status,ask_for_feedback,city,follow_up_status,follow_up_log from booking where clinic_id in (select id from clinics where branch_id=? and business_type='CLINIC')";
+        let sql = "select id,today_booking_id,userid,user_type,doctor_id,clinic_id,servicelocation_id,patient_name,patient_mobile,patient_address,patient_age,patient_gender,booked_through,booking_charge,service_charge,total_amount,booking_time,consult_date,status,payment_status,ask_for_feedback,city,follow_up_status,follow_up_log,pre_paid_amount,merchant,device from booking where clinic_id in (select id from clinics where branch_id=? and business_type='CLINIC')";
         let conditions: Array<string | number> = [tokenInfo.bid];
         if (req.body.consult_date) {
             sql += " and date(consult_date)=?";
