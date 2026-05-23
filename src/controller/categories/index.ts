@@ -203,7 +203,7 @@ const categoriesController = {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
         }
-        let doctors = await DB.get_rows<{ id: number, name: string, clinic_name: string, city: string }>(`select t1.*,doctors.name as doctor_name,clinics.name as clinic_name from (select * from doctor_specialization where specialist=? and spl_city=?) as t1 join (select id,name,clinic_id from doctor where city=?) as doctors on t1.doctor_id=doctors.id join clinics on doctors.clinic_id=clinics.id order by t1.score desc`, [query.specialist_id, tokenInfo.bd, tokenInfo.bd]);
+        let doctors = await DB.get_rows<{ id: number, name: string, clinic_name: string, city: string }>(`select t1.*,doctors.name as doctor_name,clinics.name as clinic_name from (select * from doctor_specialization where specialist=? and spl_city=?) as t1 join (select id,name,clinic_id from doctor where city=?) as doctors on t1.doctor_id=doctors.id left join clinics on doctors.clinic_id=clinics.id order by t1.score desc`, [query.specialist_id, tokenInfo.bd, tokenInfo.bd]);
         res.json(successResponse({ doctors: doctors }, "Success"));
     },
     updateDoctorScore: async (req: Request, res: Response) => {
