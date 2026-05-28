@@ -18,3 +18,4 @@ export const COLL_DOCTORS_SETTINGS="coll_doctors_settings";
 export const COLL_CATEGORY_DETAILS="coll_category_details";
 export const COLL_MEDICINES="coll_medicines";
 export const COLL_CLINIC_MEDICINES="coll_clinic_medicines";
+export const COLL_PG_ORDERS="coll_pg_orders";
