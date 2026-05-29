@@ -19,3 +19,4 @@ export const COLL_CATEGORY_DETAILS="coll_category_details";
 export const COLL_MEDICINES="coll_medicines";
 export const COLL_CLINIC_MEDICINES="coll_clinic_medicines";
 export const COLL_PG_ORDERS="coll_pg_orders";
+export const COLL_SEARCH_TEXTS="coll_search_texts";
