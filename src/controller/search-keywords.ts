@@ -38,6 +38,7 @@ const reqSchema={
             target:Joi.string()
         }),
         resolver:Joi.object().required(),
+        doctor_info:Joi.object().allow(null)
     })
 }
 const searchKeywordsController = {
@@ -53,6 +54,13 @@ const searchKeywordsController = {
             if (existing) {
                 return serviceNotAcceptable("Search text already exists", res);
             }
+            let doctor_info = undefined;
+            if(value.type === 'doctor' && value.resolver?.doctor_id){
+                if(!value.doctor_info){
+                    return serviceNotAcceptable("Doctor info is required for doctor type keywords", res);
+                }
+                doctor_info = value.doctor_info || undefined;
+            }
             const doc = await searchTextsModel.create({
                 text: value.text.trim().toLowerCase(),
                 ln: value.ln,
@@ -63,6 +71,7 @@ const searchKeywordsController = {
                 vertical: value.vertical,
                 resolver_url: value.resolver_url?.url ? value.resolver_url : undefined,
                 resolver: value.resolver,
+                doctor_info: doctor_info,
                 click_count: 0,
             });
             return res.json(successResponse(doc, "Search text added successfully"));
@@ -119,6 +128,21 @@ const searchKeywordsController = {
                 .sort({ click_count: -1, text: 1 })
                 .limit(value.limit);
             return res.json(successResponse(rows));
+        } catch (err) {
+            return internalServerError("Something went wrong", res);
+        }
+    },
+    delete: async (req: Request, res: Response) => {
+        const { id } = req.params;
+        if (!id) {
+            return parameterMissingResponse("id is required", res);
+        }
+        try {
+            const doc = await searchTextsModel.findByIdAndDelete(id);
+            if (!doc) {
+                return serviceNotAcceptable("Keyword not found", res);
+            }
+            return res.json(successResponse(null, 'Deleted successfully'));
         } catch (err) {
             return internalServerError("Something went wrong", res);
         }

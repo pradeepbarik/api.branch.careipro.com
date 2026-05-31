@@ -18,6 +18,7 @@ clinicRoutes.get('/get-doctors-list',[apiRateLimit(4,4)],handelError(clinicContr
 clinicRoutes.get("/get-all-doctors",[apiRateLimit(4,4)],handelError(doctorController.getAllDoctors));
 clinicRoutes.post('/add-new-doctor',[apiRateLimit(1,10),parseFormData,employeeValidation(1),checkUnderBranch],handelError(doctorController.addNewDoctor));
 clinicRoutes.get('/get-doctors-for-drop-down',[apiRateLimit(30,60)],handelError(clinicController.getDoctorsForDropDown));
+clinicRoutes.get('/get-doctor-searchable-info',[apiRateLimit(30,60)],handelError(clinicController.getDoctorSearchableInfo));
 clinicRoutes.get('/doctor-complete-details',[apiRateLimit(1,3)],handelError(clinicController.doctorCompleteDetails));
 clinicRoutes.get('/doctor-info',[apiRateLimit(30,60)],handelError(clinicController.getDoctorinfo));
 clinicRoutes.post('/save-doctor-info',[apiRateLimit(10,60)],handelError(clinicController.saveDoctorInfo))

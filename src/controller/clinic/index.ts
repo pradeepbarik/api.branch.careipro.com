@@ -3,7 +3,7 @@ import Joi, { ValidationResult } from 'joi';
 import path from 'path';
 import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
 import { banner_path, clinic_logo_path, doctor_logo_path } from '../../constants';
-import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization,addClinicMedicines,getClinicMedicines, deleteClinicMedicine, updateClinicMedicine } from '../../model/clinic';
+import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization, addClinicMedicines, getClinicMedicines, deleteClinicMedicine, updateClinicMedicine } from '../../model/clinic';
 import { addClinicStaff, staffList } from '../../model/clinic-staff';
 import doctorModel from '../../model/clinic/doctor';
 import { encrypt } from '../../services/encryption';
@@ -232,7 +232,7 @@ const requestParams = {
         service_loc_id: Joi.number().allow(''),
         service_loc_setting_id: Joi.number().required(),
         cid: Joi.number().required(),
-        payment_type: Joi.string().valid('while_booking', 'at_clinic','after_consulting','partial_payment_while_booking'),//ENUM('while_booking', 'at_clinic', 'after_consulting')
+        payment_type: Joi.string().valid('while_booking', 'at_clinic', 'after_consulting', 'partial_payment_while_booking'),//ENUM('while_booking', 'at_clinic', 'after_consulting')
         token_amount: Joi.number().allow(''),
         cash_recived_mode: Joi.string().valid('one', 'multiple'),//ENUM('one', 'multiple')
         advance_booking_enable: Joi.number().valid(0, 1),
@@ -921,7 +921,7 @@ const clinicController = {
         } else if (query.tab === "weekly_booking_timing") {
             let response = await doctorModel.getDoctorWeeklyBookingTiming(query.doctor_id, query.service_loc_id);
             res.status(response.code).json(response);
-        }else if(query.tab === "sms_email_settings"){
+        } else if (query.tab === "sms_email_settings") {
             let response = await doctorModel.getDoctorSmsEmailSettings(query.doctor_id, cid);
             res.status(response.code).json(response);
         } else {
@@ -1152,7 +1152,7 @@ const clinicController = {
                     let response = await doctorModel.deleteDoctorFaq(parseInt(doctor_id.toString()), parseInt(cid), restParams.faq_id)
                     res.status(response.code).json(response);
                 }
-            }else if(tab === "sms_email_settings"){
+            } else if (tab === "sms_email_settings") {
                 const validation: ValidationResult = requestParams.saveDoctorSmsEmailSettings.validate(restParams);
                 if (validation.error) {
                     parameterMissingResponse(validation.error.details[0].message, res);
@@ -1513,6 +1513,18 @@ const clinicController = {
         }
         let response = await updateClinicMedicine(body.clinic_id, body.medicine)
         res.status(response.code).json(response);
+    },
+    getDoctorSearchableInfo: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = Joi.object({ doctor_id: Joi.number().required() }).validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let doctor_info = await DB.get_row("select t1.*,t2.id as service_loc_id from (select id as doctor_id,name,experience,position,city,state,market_name,partner_type,business_type,specialty,seo_url,rating from doctor where id=?) as t1 join (select id,doctor_id from doctor_service_location where doctor_id=?) as t2 on t1.doctor_id=t2.doctor_id", [
+            query.doctor_id, query.doctor_id
+        ],true);
+        res.json(successResponse(doctor_info));
     }
 }
 export default clinicController;

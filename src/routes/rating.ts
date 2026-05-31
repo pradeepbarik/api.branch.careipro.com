@@ -9,4 +9,5 @@ ratingRoutes.post('/reject-review',[apiRateLimit(40,60),employeeValidation(1)],h
 ratingRoutes.post('/delete-review',[apiRateLimit(20,60),employeeValidation(1)],handelError(ratingAndReviewController.deleteReview));
 ratingRoutes.post('/make-public-review',[apiRateLimit(40,60),employeeValidation(1)],handelError(ratingAndReviewController.makePublicReview));
 ratingRoutes.get('/site-feedbacks',[apiRateLimit(10,30)],handelError(ratingAndReviewController.getSiteFeedbacks));
+ratingRoutes.post('/update-site-feedback',[apiRateLimit(20,60)],handelError(ratingAndReviewController.updateSiteFeedback));
 export default ratingRoutes;

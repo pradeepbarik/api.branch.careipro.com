@@ -120,12 +120,71 @@ const ratingAndReviewController = {
     getSiteFeedbacks: async (req: Request, res: Response) => {
         const { tokenInfo } = res.locals;
         if (typeof tokenInfo === 'undefined') {
-            unauthorizedResponse("permission denied! Please login to access");
-            return
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return;
         }
-        // Implement the logic to get site feedbacks here
-        // For now, returning a success response with an empty array
-        successResponse({}, "Site feedbacks fetched successfully");
+        const { query }: { query: any } = req;
+        const validation = Joi.object({
+            status: Joi.string().valid('open', 'seen', 'close', '').allow('').optional(),
+            from_date: Joi.string().allow('').optional(),
+            to_date: Joi.string().allow('').optional(),
+            campaign: Joi.string().allow('').optional(),
+            from: Joi.number().default(0),
+        }).validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let conditions: string[] = [];
+        let params: any[] = [];
+        if (query.status) {
+            conditions.push('status = ?');
+            params.push(query.status);
+        }
+        if (query.campaign) {
+            conditions.push('campaign like ?');
+            params.push(`%${query.campaign}%`);
+        }
+        if (query.from_date) {
+            conditions.push('date(feedback_date) >= ?');
+            params.push(query.from_date);
+        }
+        if (query.to_date) {
+            conditions.push('date(feedback_date) <= ?');
+            params.push(query.to_date);
+        }
+        const where = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : '';
+        const from = parseInt(query.from || 0);
+        params.push(from, 30);
+        const rows = await DB.get_rows(
+            `SELECT user_id, guser_id, mobile_no, message, rating, feedback_date, status, management_comment, campaign, user_name FROM site_feedback ${where} ORDER BY feedback_date DESC LIMIT ?,?`,
+            params
+        );
+        res.json(successResponse(rows, "success"));
+    },
+    updateSiteFeedback: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return;
+        }
+        const { body }: { body: any } = req;
+        const validation = Joi.object({
+            user_id: Joi.number().required(),
+            guser_id: Joi.number().allow(null).optional(),
+            feedback_date: Joi.string().required(),
+            status: Joi.string().valid('open', 'seen', 'close').required(),
+            management_comment: Joi.string().allow('', null).optional(),
+        }).validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        await DB.query(
+            `UPDATE site_feedback SET status=?, management_comment=? WHERE user_id=? AND feedback_date=?`,
+            [body.status, body.management_comment || null, body.user_id, body.feedback_date]
+        );
+        res.json(successResponse({}, "Feedback updated successfully"));
     }
 }
 export default ratingAndReviewController;

@@ -8,7 +8,9 @@ const searchTextsSchema=new Schema({
     icon:String,
     rating:Number,
     vertical:{type:String,index:true},
+    city:String,
     resolver_url:{url:String,target:String},
+    doctor_info:Schema.Types.Mixed,
     resolver:Schema.Types.Mixed,
     click_count:Number,
 })
