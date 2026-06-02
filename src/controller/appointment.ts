@@ -114,7 +114,7 @@ const appointmentController = {
             return unauthorizedResponse("Something went wrong", res)
         }
         let today = get_current_datetime(true);
-        let rows = await DB.get_rows("select clinics.name as clinic_name,doctor.name as doctor_name,t1.* from (select doctor_id,clinic_id,count(1) as total_booking,sum(if(booked_through='online',1,0)) as online,sum(if(booked_through!='online',1,0)) as offline from booking where city=? and date(booking_time)=? group by doctor_id,clinic_id) as t1 join doctor on t1.doctor_id=doctor.id join clinics on t1.clinic_id=clinics.id order by t1.total_booking", [tokenInfo.bd, today]);
+        let rows = await DB.get_rows("select clinics.name as clinic_name,doctor.name as doctor_name,t1.* from (select doctor_id,clinic_id,count(1) as total_booking,sum(if(booked_through='online',1,0)) as online,sum(if(booked_through!='online',1,0)) as offline,sum(if(status='waiting',1,0)) as booking_request,sum(if(follow_up_status='pending',1,0)) as pending_followup from booking where city=? and date(booking_time)=? group by doctor_id,clinic_id) as t1 join doctor on t1.doctor_id=doctor.id left join clinics on t1.clinic_id=clinics.id order by t1.total_booking", [tokenInfo.bd, today]);
         return res.json(successResponse(rows, "Today's booked appointments"));
     },
     getTodaysPatientsDoctorList: async (req: Request, res: Response) => {
@@ -123,7 +123,7 @@ const appointmentController = {
             return unauthorizedResponse("Something went wrong", res)
         }
         let date = req.query.date ? <string>req.query.date : get_current_datetime(true);
-        let rows = await DB.get_rows("select clinics.name as clinic_name,doctor.name as doctor_name,t1.* from (select doctor_id,clinic_id,count(1) as total_booking,sum(if(booked_through='online',1,0)) as online,sum(if(booked_through!='online',1,0)) as offline from booking where city=? and date(consult_date)=? group by doctor_id,clinic_id) as t1 join doctor on t1.doctor_id=doctor.id join clinics on t1.clinic_id=clinics.id order by t1.total_booking", [tokenInfo.bd, date]);
+        let rows = await DB.get_rows("select clinics.name as clinic_name,doctor.name as doctor_name,t1.* from (select doctor_id,clinic_id,count(1) as total_booking,sum(if(booked_through='online',1,0)) as online,sum(if(booked_through!='online',1,0)) as offline,sum(if(status='waiting',1,0)) as booking_request,sum(if(follow_up_status='pending',1,0)) as pending_followup from booking where city=? and date(consult_date)=? group by doctor_id,clinic_id) as t1 join doctor on t1.doctor_id=doctor.id join clinics on t1.clinic_id=clinics.id order by t1.total_booking", [tokenInfo.bd, date]);
         return res.json(successResponse(rows, "Today's booked appointments"));
     },
     getAppointmentsList: async (req: Request, res: Response) => {
