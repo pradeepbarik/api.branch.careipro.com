@@ -5,6 +5,7 @@ import dataChangesTrackerModel from '../model/data_changes_metadata';
 const requestParams = {
     getDistricts:Joi.object({
         state:Joi.string().allow(''),
+        search_text:Joi.string().allow('')
     }),
     updateClinicInfoChangeTracker:Joi.object({
         clinic_id:Joi.number().required(),
@@ -30,7 +31,12 @@ const homeController = {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
         }
-        let rows = await DB.get_rows("select id,name,city_icon,is_serviceable,name_ln,short_code from tbl_districts where state=? order by name", [query.state]);
+        if(query.search_text){
+            let rows = await DB.get_rows("select id,name,state,city_icon,is_serviceable,name_ln,short_code from tbl_districts where name like ? order by name", [`%${query.search_text}%`]);
+            res.json(successResponse(rows, "success"));
+            return;
+        }
+        let rows = await DB.get_rows("select id,name,state,city_icon,is_serviceable,name_ln,short_code from tbl_districts where state=? order by name", [query.state]);
         res.json(successResponse(rows, "success"));
     },
     updateClinicInfoChangeTracker:async (req: Request, res: Response)=>{

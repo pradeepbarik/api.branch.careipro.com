@@ -8,6 +8,7 @@ export const clinic_logo_path=asset_path+"images/clinic";
 export const doctor_logo_path=asset_path+"images/profile/doctor";
 export const user_profile_pic_path=asset_path+"images/profile/patient/";
 export const employee_document_path=asset_path+"employee_document/";
+export const ad_path=asset_path+"ads/";
 export const HOME_PAGE_CACHE_FILE = "home-page.json";
 export const DOCTORS_PAGE_CACHE_FILE = "doctors-page.json";
 export const CLINICS_PAGE_CACHE_FILE = "clinics-page.json";

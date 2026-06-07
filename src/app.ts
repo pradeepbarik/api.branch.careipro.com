@@ -19,6 +19,7 @@ import medicineRoutes from './routes/medicine';
 import smsTransactionRoutes from './routes/sms-transaction';
 import onlineTransactionRoutes from './routes/online-transaction';
 import searchKeywordRoutes from './routes/search-keyword';
+import adsRoutes from './routes/ads';
 const APP: Application = express();
 APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress, level: 1 }))
@@ -46,4 +47,5 @@ APP.use("/medicine",[xApiKeyValidation],medicineRoutes);
 APP.use("/sms-transaction",[xApiKeyValidation],smsTransactionRoutes);
 APP.use("/online-transaction",[xApiKeyValidation],onlineTransactionRoutes);
 APP.use("/search-keyword",[xApiKeyValidation],searchKeywordRoutes);
+APP.use("/ads",[xApiKeyValidation],adsRoutes);
 export default APP;
