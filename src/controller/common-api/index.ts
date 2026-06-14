@@ -3,6 +3,7 @@ import Joi, { ValidationResult } from 'joi';
 import { unauthorizedResponse, parameterMissingResponse, successResponse } from '../../services/response';
 import axios from 'axios';
 import { decrypt, encrypt } from '../../services/encryption';
+import coll_pg_orders_model from '../../mongo-schema/pg/coll_pg_orders';
 const requestParams = {
     searchOtp: Joi.object({
         mobile: Joi.number().required()
@@ -52,6 +53,18 @@ const commonapiController = {
         const publicKey = encrypt(`${query.clinic_id}|${query.business_id}|${query.state}|${query.city}`);
         console.log("decoded public key", decrypt(publicKey));
         res.json(successResponse({ publicKey }, "success"))
+    },
+    test: async (req: Request, res: Response) => {
+        let docs = await coll_pg_orders_model.find();
+        for (let doc of docs) {
+            doc.branch_id = 1;
+            if (doc.patient_info) {
+                doc.clinic_id = doc.patient_info.clinic_id;
+                doc.doctor_id = doc.patient_info.doctor_id;
+            }
+            await doc.save();
+        }
+        res.json(successResponse("test success", "success"))
     }
 }
 export default commonapiController

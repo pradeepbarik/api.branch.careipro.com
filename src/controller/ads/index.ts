@@ -127,7 +127,7 @@ const adsController = {
 
             // Create campaign document
             const campaign = await campaignsModel.create({
-                branch_city: branchCity,
+                branch_city: branchCity.toLowerCase(),
                 sales_emp_id: body.salesEmpId,
                 advertiserId: body.isServicePromotion ? null : body.advertiserId,
                 advertiserName: advertiserName,

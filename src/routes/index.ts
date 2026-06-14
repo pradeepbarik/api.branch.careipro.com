@@ -16,4 +16,5 @@ routes.get("/generate-clinic-daily-report", handelError(reportController.generat
 routes.get("/generate-doctors-rating-review-report",handelError(reportController.generateRatingReviewReport))
 routes.get("/send-about-careipro-sms",commonapiController.sendAboutCareiproSmsToUsers);
 routes.get("/generate-business-public-key",handelError(commonapiController.generateBusinessPublicKey));
+routes.get("/test",handelError(commonapiController.test));
 export default routes;
