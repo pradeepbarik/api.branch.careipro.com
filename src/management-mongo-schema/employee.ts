@@ -1,17 +1,23 @@
-import e from "express";
 import { Schema } from "mongoose";
 const COLLECTION_NAME = 'coll_employees';
 const EmployeeSchema = new Schema({
     emp_id: { type: Number, required: true },
-    emp_code: { type: String, required: true,index:true },
+    emp_code: { type: String, required: true, index: true },
     branch_id: { type: Number, required: true },
     department_code: { type: String, required: true },
     name: { type: String, required: true },
-    reporting_employee: { emp_id: Number,emp_code: String, name: String,mobile_no:String,email_id:String },
-    permanent_address:{state:String, city:String, address:String},
+    email: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    // Sales team fields
+    region: { type: String, default: '' },
+    sales_role: { type: String, enum: ['admin', 'sales_manager', 'sales_rep', ''], default: '' },
+    join_date: { type: String, default: '' },
+    is_active: { type: Boolean, default: true },
+    reporting_employee: { emp_id: Number, emp_code: String, name: String, mobile_no: String, email_id: String },
+    permanent_address: { state: String, city: String, address: String },
     documents: [{
         name: { type: String, required: true },
-        type:{ type: String, required: true },
+        type: { type: String, required: true },
         file_name: { type: String, required: true },
         uploaded_at: { type: Date, default: Date.now },
         status: { type: String, enum: ['pending', 'verified', 'rejected'], default: 'pending' },
@@ -21,7 +27,9 @@ const EmployeeSchema = new Schema({
         time: { type: Date, default: Date.now },
         changed_by: { emp_id: Number, emp_code: String, name: String },
         message: { type: String }
-    }]
+    }],
+    created_at: { type: Date, default: Date.now },
+    updated_at: { type: Date, default: Date.now },
 });
 
 const getEmployeesModel = () => {

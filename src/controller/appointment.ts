@@ -11,6 +11,17 @@ const requestParams = {
         booking_date: Joi.string().allow(""),
     })
 }
+const appointmentBookingCancellReason={
+    "patient_plan_changes":{reason:"Patient Plan Changes","booking_status":"patient_cancelled"},
+    "patient_not_available":{reason:"Patient Not Available at given timing","booking_status":"patient_cancelled"},
+    "patient_not_interested":{reason:"Patient Not Interested","booking_status":"patient_cancelled"},
+    "doctor_not_available":{reason:"Doctor Not Available","booking_status":"doctor_cancelled"},
+    "slot_filled_up":{reason:"Booking Limit Filled Up No Slot available","booking_status":"doctor_cancelled"},
+    "service_charge_high":{reason:"Booking Service Charge is High","booking_status":"patient_cancelled"},
+    "nearby_patient":{reason:"Patient location is nearby to clinic! Directly he can book appointment at clinic","booking_status":"patient_cancelled"},
+    "duplicate_booking":{ reason: 'Duplicate Booking', booking_status: 'patient_cancelled' },
+    "test_booking":{reason:"Test Booking","booking_status":"patient_cancelled"},
+}
 const appointmentController = {
     moveMysqlToMongo: async (req: Request, res: Response) => {
         let bookings = await DB.get_rows<any>("select t1.*,t2.document,t2.logs,br.rating,br.rating_date,br.visited_for,br.experience,br.ques_ans,br.review_date,br.replay,br.replay_date,br.status as rating_status,br.rating_processed,br.review_processed,br.score,br.review_tags from booking_backup as t1 left join booking_detail_backup as t2 on t1.id=t2.booking_id left join booking_review as br on t1.id=br.booking_id where t1.vertical='DOCTOR' and t1.clinic_id>0 and t1.user_type IS NOT NULL and date(t1.booking_time) between ? and ? order by booking_time", [<string>req.query.start_date, <string>req.query.end_date], true);
@@ -136,8 +147,8 @@ const appointmentController = {
         if (!tokenInfo) {
             return unauthorizedResponse("Something went wrong", res)
         }
-        let sql = "select id,today_booking_id,userid,user_type,doctor_id,clinic_id,servicelocation_id,patient_name,patient_mobile,patient_address,patient_age,patient_gender,booked_through,booking_charge,service_charge,total_amount,booking_time,consult_date,status,payment_status,ask_for_feedback,city,follow_up_status,follow_up_log,pre_paid_amount,merchant,device from booking where clinic_id in (select id from clinics where branch_id=? and business_type='CLINIC')";
-        let conditions: Array<string | number> = [tokenInfo.bid];
+        let sql = "select id,today_booking_id,userid,user_type,doctor_id,clinic_id,servicelocation_id,patient_name,patient_mobile,patient_address,patient_age,patient_gender,booked_through,booking_charge,service_charge,total_amount,booking_time,consult_date,status,payment_status,ask_for_feedback,city,follow_up_status,follow_up_log,pre_paid_amount,merchant,device,doctor_name,clinic_name,booked_by_user_name,booked_by_user_mobile from booking where city=? and vertical='DOCTOR'";
+        let conditions: Array<string | number> = [tokenInfo.bd];
         if (req.body.consult_date) {
             sql += " and date(consult_date)=?";
             conditions.push(req.body.consult_date);
@@ -146,7 +157,7 @@ const appointmentController = {
             sql += " and date(booking_time)=?";
             conditions.push(req.body.booking_date);
         }
-        sql = "select t1.*, doctor.name as doctor_name, clinics.name as clinic_name,br.id as rev_id, br.rating, br.rating_date, br.review_date, br.experience, br.status as rating_status, br.review_tags, br.score from (" + sql + ") as t1 join (select id,name from doctor where branch_id=?) as doctor on t1.doctor_id=doctor.id join (select id,name from clinics where branch_id=?) as clinics on t1.clinic_id=clinics.id left join booking_review as br on t1.id=br.booking_id";
+        sql = "select t1.*, clinics.name as clinic_name,clinics.clinic_mobno,clinics.clinic_alt_mobno,br.id as rev_id, br.rating, br.rating_date, br.review_date, br.experience, br.status as rating_status, br.review_tags, br.score from (" + sql + ") as t1 join (select id,name,mobile as clinic_mobno,alt_mob_no as clinic_alt_mobno from clinics where branch_id=?) as clinics on t1.clinic_id=clinics.id left join booking_review as br on t1.id=br.booking_id";
         conditions.push(tokenInfo.bid);
         conditions.push(tokenInfo.bid);
         sql += " order by booking_time desc";
@@ -340,7 +351,77 @@ const appointmentController = {
             appointment_detail_url: bookingDetailLink,
             encoded_booking_id: encryptBookingid
         }, "message data fetched successfully"))
+    },
+    confirmBookingRequest:async(req: Request, res: Response)=>{
+        const validation: ValidationResult = Joi.object({
+            booking_id: Joi.number().required(),
+            consulting_date: Joi.string().required(),
+            consulting_time: Joi.string().required(),
+            sl_no: Joi.string().required(),
+        }).validate(req.body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (!tokenInfo || !emp_info) {
+            return unauthorizedResponse("Something went wrong", res);
+        }
+        let booking_id = req.body.booking_id;
+        let consulting_time =moment(req.body.consulting_date + ' ' + req.body.consulting_time).format('YYYY-MM-DD HH:mm:ss');
+        let sl_no = req.body.sl_no;
+        let now = get_current_datetime();
+        let booking = await DB.get_row<{ follow_up_log: string | null }>("select follow_up_log from booking where id=?", [booking_id]);
+        let follow_up_log_arr = booking && booking.follow_up_log ? JSON.parse(booking.follow_up_log) : [];
+        follow_up_log_arr.push({
+            time: now,
+            status: 'booking_request_confirmed',
+            notes: `Booking confirmed for ${consulting_time} with sl no ${sl_no}`,
+            emp_id: emp_info.id,
+            emp_name: emp_info.first_name
+        })
+         DB.query("update booking set follow_up_log=? where id=? limit 1", [JSON.stringify(follow_up_log_arr), booking_id]);
+         DB.query("update booking set consult_date=?,today_booking_id=?,status='confirmed' where id=? limit 1", [ consulting_time, sl_no, booking_id]);
+        DB.query("update booking_detail set req_confirmed_by=?,req_confirmed_time=? where booking_id=?", [emp_info.id, now, booking_id]);
+        return res.json(successResponse({}, "Booking confirmed successfully"));
+    },
+    cancellBookingRequest:async(req: Request, res: Response)=>{
+        const validation: ValidationResult = Joi.object({
+            booking_id: Joi.number().required(),
+            cancel_type: Joi.string().required(),
+        }).validate(req.body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (!tokenInfo || !emp_info) {
+            return unauthorizedResponse("Something went wrong", res);
+        }
+        let booking_id = req.body.booking_id;
+        const cancel_type: string = req.body.cancel_type;
+        let cancel_reason = "";
+        let booking_status = "";
+        if (!(cancel_type in appointmentBookingCancellReason)) {
+            return res.json(serviceNotAcceptable("Invalid cancel type"));
+        }
+        const cancelEntry = appointmentBookingCancellReason[cancel_type as keyof typeof appointmentBookingCancellReason];
+        cancel_reason = cancelEntry.reason;
+        booking_status = cancelEntry.booking_status;
+        let now = get_current_datetime();
+        let booking = await DB.get_row<{ follow_up_log: string | null }>("select follow_up_log from booking where id=?", [booking_id]);
+        let follow_up_log_arr = booking && booking.follow_up_log ? JSON.parse(booking.follow_up_log) : [];
+        follow_up_log_arr.push({
+            time: now,
+            status: 'booking_request_cancelled',
+            notes: `Booking cancelled: (${booking_status}) with reason: ${cancel_reason}`,
+            emp_id: emp_info.id,
+            emp_name: emp_info.first_name
+        })
+         DB.query("update booking set follow_up_log=? where id=? limit 1", [JSON.stringify(follow_up_log_arr), booking_id]);
+         DB.query("update booking set status=? where id=? limit 1", [booking_status, booking_id]);
+         DB.query("update booking_detail set req_cancelled_by=?,req_cancelled_time=?,req_cancell_reason=? where booking_id=?", [emp_info.id, now, `${cancel_type}:${cancel_reason}`, booking_id]);
+        return res.json(successResponse({}, "Booking cancelled successfully"));
     }
-
 }
 export default appointmentController;

@@ -10,4 +10,6 @@ AppointmentsRouter.post("/delete-patient-symptom-review",[employeeValidation(1)]
 AppointmentsRouter.post("/submit-appointment-review",[employeeValidation(1)],handelError(appointmentController.submitAppointmentFeedBack));
 AppointmentsRouter.post("/add-follow-up-log",[employeeValidation(1)],handelError(appointmentController.addFollowUpLog));
 AppointmentsRouter.get("/get-appointment-detail-url",[employeeValidation(1)],handelError(appointmentController.getAppointmentDetailUrl));
+AppointmentsRouter.post("/confirm-booking",[employeeValidation(1)],handelError(appointmentController.confirmBookingRequest));
+AppointmentsRouter.post("/cancel-booking",[employeeValidation(1)],handelError(appointmentController.cancellBookingRequest));
 export default AppointmentsRouter;

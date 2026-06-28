@@ -22,6 +22,7 @@ const reqestParsms = {
         email_id: Joi.string().email().required(),
         mobile_no: Joi.string().required(),
         department_code: Joi.string().required(),
+        sales_role: Joi.string().valid('admin', 'sales_manager', 'sales_rep').allow('').optional(),
         designation: Joi.string().required(),
         state: Joi.string().required(),
         city: Joi.string().required(),
@@ -101,19 +102,30 @@ const employeeController = {
             let emp_code = department.department_code + String(insertRes.insertId).padStart(6, '0');
             const EmployeesModel = getEmployeesModel();
             EmployeesModel.create({
-                emp_id: insertRes.insertId, emp_code: emp_code, branch_id: tokenInfo.bid, department_code: department.department_code, name: body.first_name + " " + body.last_name, reporting_employee: { emp_id: body.reporter_emp_id, emp_code: reportingEmployeeDetail.emp_code, name: reportingEmployeeDetail.first_name + " " + reportingEmployeeDetail.last_name, mobile_no: reportingEmployeeDetail.mobile_no, email_id: reportingEmployeeDetail.email_id }, permanent_address: { state: body.state, city: body.city, address: body.location }, documents: [], profile_change_log: [{
+                emp_id: insertRes.insertId,
+                emp_code: emp_code,
+                branch_id: tokenInfo.bid,
+                department_code: department.department_code,
+                name: body.first_name + " " + body.last_name,
+                email: body.email_id,
+                phone: body.mobile_no,
+                join_date: join_date,
+                sales_role: body.sales_role || '',
+                is_active: false, // starts inactive; set to true via activateEmployee
+                reporting_employee: { emp_id: body.reporter_emp_id, emp_code: reportingEmployeeDetail.emp_code, name: reportingEmployeeDetail.first_name + " " + reportingEmployeeDetail.last_name, mobile_no: reportingEmployeeDetail.mobile_no, email_id: reportingEmployeeDetail.email_id },
+                permanent_address: { state: body.state, city: body.city, address: body.location },
+                documents: [],
+                profile_change_log: [{
                     time: new Date(now), changed_by: { emp_id: emp_info.id, emp_code: emp_info.emp_code, name: emp_info.first_name }, message: `Employee created with name ${body.first_name} ${body.last_name}(${emp_code})`
                 }]
             });
             DB.query("update employee set emp_code=? where id=?", [emp_code, insertRes.insertId]);
             DB.query("insert into employee_detail set emp_id=?,register_date=?", [insertRes.insertId, join_date]);
-            DB.get_row("select id from users where mobile=?", [body.mobile_no]).then((user: any) => {
-                if (!user) {
-                    DB.query("insert into users set firstname=?,lastname=?,mobile=?,email=?,city=?,state=?,location=?,gender=?,user_type=?,emp_id=?", [body.first_name, body.last_name, body.mobile_no, body.email_id, body.city, body.state, body.location, body.gender, 'user', insertRes.insertId]).then((userRes: any) => {
-                        DB.query("insert into user_detail set user_id=?,signup_date=?", [userRes.insertId, now]);
-                    });
-                }
-            });
+            let user = await DB.get_row("select id from users where mobile=?", [body.mobile_no]);
+            if (!user) {
+                let userRes:any = await DB.query("insert into users set firstname=?,lastname=?,mobile=?,email=?,city=?,state=?,location=?,gender=?,user_type=?,emp_id=?", [body.first_name, body.last_name, body.mobile_no, body.email_id, body.city, body.state, body.location, body.gender, 'user', insertRes.insertId],true);
+                DB.query("insert into user_detail set user_id=?,signup_date=?", [userRes.insertId, now],true);
+            }
             res.json(successResponse({ emp_id: insertRes.insertId }, "Employee added successfully"));
         } else {
             serviceNotAcceptable("Failed to add employee", res);
@@ -130,10 +142,28 @@ const employeeController = {
         let employee = await DB.get_row<{ id: number }>("select employee.id, employee.emp_code, first_name, last_name, email_id as email, mobile_no as mobile, department_id, designation,gender, status, photo,department.name as department,department.department_code,employee_detail.register_date as join_date,branch.name as branch_name,branch.state as branch_state,branch.district as branch_district,branch.location as branch_location from employee join department on employee.department_id=department.id join branch on employee.branch_id=branch.id left join employee_detail on employee.id=employee_detail.emp_id where employee.emp_code=?", [emp_code], true);
         if (employee) {
             let reportees = await DB.get_rows("select emp_code, concat(first_name, ' ', last_name) as name,status,designation from employee where reporting_emp_id=?", [employee.id]);
-            res.json(successResponse({ ...employee, reportees: reportees, permanent_address: employeeDoc?.permanent_address, reporting_employee: employeeDoc?.reporting_employee, documents: employeeDoc?.documents }, "Employee details fetched successfully"));
+            res.json(successResponse({ ...employee, reportees: reportees, sales_role: employeeDoc?.sales_role ?? '', permanent_address: employeeDoc?.permanent_address, reporting_employee: employeeDoc?.reporting_employee, documents: employeeDoc?.documents }, "Employee details fetched successfully"));
         } else {
             serviceNotAcceptable("Employee not found", res);
         }
+    },
+    updateSalesRole: async (req: Request, res: Response) => {
+        const schema = Joi.object({
+            emp_code: Joi.string().required(),
+            sales_role: Joi.string().valid('admin', 'sales_manager', 'sales_rep').required(),
+        });
+        const { error } = schema.validate(req.body);
+        if (error) return res.status(400).json({ success: false, message: error.details[0].message });
+        const { emp_info, tokenInfo } = res.locals;
+        if (!tokenInfo || !emp_info) { unauthorizedResponse("permission denied", res); return; }
+        const { body } = req;
+        const EmployeesModel = getEmployeesModel();
+        const result = await EmployeesModel.updateOne(
+            { emp_code: body.emp_code },
+            { $set: { sales_role: body.sales_role, updated_at: new Date() } }
+        );
+        if (result.matchedCount === 0) { serviceNotAcceptable("Employee not found", res); return; }
+        res.json(successResponse({}, "Sales role updated successfully"));
     },
     changeReportingEmployee: async (req: Request, res: Response) => {
         let emp_code = <string>req.body.emp_code;
@@ -185,7 +215,10 @@ const employeeController = {
         let now = get_current_datetime();
         await DB.query("update employee set status='active' where emp_code=?", [emp_code]);
         const EmployeesModel = getEmployeesModel();
-        await EmployeesModel.updateOne({ emp_code: emp_code }, { $push: { profile_change_log: { time: new Date(now), changed_by: { emp_id: emp_info.id, emp_code: emp_info.emp_code, name: `${emp_info.first_name}` }, message: `Profile activated` } } });
+        await EmployeesModel.updateOne({ emp_code: emp_code }, {
+            $set: { is_active: true, updated_at: new Date() },
+            $push: { profile_change_log: { time: new Date(now), changed_by: { emp_id: emp_info.id, emp_code: emp_info.emp_code, name: `${emp_info.first_name}` }, message: `Profile activated` } }
+        });
         res.json(successResponse({}, "Profile activated successfully"));
     },
     deActiveEmployee: async (req: Request, res: Response) => {
@@ -202,7 +235,10 @@ const employeeController = {
         let now = get_current_datetime();
         await DB.query("update employee set status='in_active' where emp_code=?", [emp_code]);
         const EmployeesModel = getEmployeesModel();
-        await EmployeesModel.updateOne({ emp_code: emp_code }, { $push: { profile_change_log: { time: new Date(now), changed_by: { emp_id: emp_info.id, emp_code: emp_info.emp_code, name: `${emp_info.first_name}` }, message: `Profile deactivated` } } });
+        await EmployeesModel.updateOne({ emp_code: emp_code }, {
+            $set: { is_active: false, updated_at: new Date() },
+            $push: { profile_change_log: { time: new Date(now), changed_by: { emp_id: emp_info.id, emp_code: emp_info.emp_code, name: `${emp_info.first_name}` }, message: `Profile deactivated` } }
+        });
         res.json(successResponse({}, "Profile deactivated successfully"));
     },
     uploadProfilePicture: async (req: FormdataRequest, res: Response) => {

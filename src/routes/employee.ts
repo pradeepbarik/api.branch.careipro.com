@@ -12,5 +12,6 @@ employeeRouter.post("/deactivate-employee",[apiRateLimit(1,5),employeeValidation
 employeeRouter.post("/upload-profile-picture",[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(employeeController.uploadProfilePicture));
 employeeRouter.post("/upload-employee-document",[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(employeeController.uploadEmployeeDocument));
 employeeRouter.post("/delete-employee-document",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.deleteDocument));
+employeeRouter.post("/update-sales-role",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.updateSalesRole));
 
 export default employeeRouter;

@@ -20,13 +20,14 @@ import smsTransactionRoutes from './routes/sms-transaction';
 import onlineTransactionRoutes from './routes/online-transaction';
 import searchKeywordRoutes from './routes/search-keyword';
 import adsRoutes from './routes/ads';
+import leadDashboardRouter from './lead-dashboard/routes/index';
 const APP: Application = express();
 APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress, level: 1 }))
 APP.use(express.json());
 //APP.use(requestOriginValidation);
 APP.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'https://branch.careipro.com'],
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173', 'https://branch.careipro.com'],
     optionsSuccessStatus: 200
 }))
 APP.use(responseTime);
@@ -48,4 +49,5 @@ APP.use("/sms-transaction",[xApiKeyValidation],smsTransactionRoutes);
 APP.use("/online-transaction",[xApiKeyValidation],onlineTransactionRoutes);
 APP.use("/search-keyword",[xApiKeyValidation],searchKeywordRoutes);
 APP.use("/ads",[xApiKeyValidation],adsRoutes);
+APP.use("/lead-dashboard",[xApiKeyValidation],leadDashboardRouter);
 export default APP;

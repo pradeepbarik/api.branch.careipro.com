@@ -1,6 +1,7 @@
 import { encrypt, decrypt, md5 } from '../../services/encryption';
 import { moment, formatDateTime } from '../../services/datetime';
 import { successResponse, unauthorizedResponse, Iresponse } from '../../services/response';
+import getEmployeesModel from '../../management-mongo-schema/employee';
 export interface ILoginParams {
     user_name: string,
     password: string,
@@ -24,14 +25,22 @@ type LoginResponse = {
     branch_location: string,
     dept_id: number,
     dept_name: string,
-    dept_code: string
-
+    dept_code: string,
+    sales_role: string,
 }
 export const login = async (params: ILoginParams): Promise<Iresponse<LoginResponse | null>> => {
     let employee: any = await DB.get_row(`select employee.*,branch.name as branch_name,branch.district as branch_dist,branch.state as branch_state,branch.location as branch_location,dept.name as dept_name,dept.department_code as dept_code from (
         select id as emp_id,first_name,last_name,emp_code,branch_id,department_id as dept_id,photo,mobile_no as mob_no,email_id,status from employee where username=? and password=? and branch_id=?
         ) as employee join branch on employee.branch_id=branch.id join department as dept on employee.dept_id=dept.id`, [params.user_name, md5(params.password), params.branch_id]);
     if (employee) {
+        // Read sales_role from MongoDB so the dashboard knows the rep's role within the sales team
+        const EmployeesModel = getEmployeesModel();
+        const empDoc = await EmployeesModel
+            .findOne({ emp_id: employee.emp_id })
+            .select('sales_role')
+            .lean() as any;
+        const sales_role: string = empDoc?.sales_role ?? '';
+
         let token = encrypt(JSON.stringify({
             log_ip: params.IP,
             eid: employee.emp_id,
@@ -40,6 +49,7 @@ export const login = async (params: ILoginParams): Promise<Iresponse<LoginRespon
             bid: employee.branch_id,
             did: employee.dept_id,
             dc: employee.dept_code,
+            sr: sales_role,
             mob: employee.mob_no,
             bs: employee.branch_state,
             bd: employee.branch_dist,
@@ -62,7 +72,8 @@ export const login = async (params: ILoginParams): Promise<Iresponse<LoginRespon
             branch_location: employee.branch_location,
             dept_id: employee.dept_id,
             dept_name: employee.dept_name,
-            dept_code: employee.dept_code
+            dept_code: employee.dept_code,
+            sales_role,
         };
         return successResponse(result)
     } else {
