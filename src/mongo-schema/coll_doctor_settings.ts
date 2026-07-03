@@ -13,7 +13,8 @@ const doctorSettingsSchema = new Schema({
         offline_booking: {sms_to_patient: Boolean,patient_support_contact_no: String,sms_to_vendor: Boolean,watcher_emails:[String]},
         booking_request: {sms_to_patient: Boolean,patient_support_contact_no: String,sms_to_vendor: Boolean,watcher_emails:[String]},
         send_enquiry: {sms_to_patient: Boolean,patient_support_contact_no: String,sms_to_vendor: Boolean,watcher_emails:[String]},
-    }
+    },
+    attributes: {type:Schema.Types.Mixed,default:{}},
 });
 const doctorSettingsMongoModel = model(COLL_DOCTORS_SETTINGS, doctorSettingsSchema);
 export default doctorSettingsMongoModel;

@@ -293,6 +293,12 @@ const doctorModel = {
         } else {
             row.treatments_available = "";
         }
+        let attributesMap: { [key: string]: { name: string, values: string[] } } = (doctorSettingDocument as any)?.attributes || {};
+        row.attributes = Object.keys(attributesMap).map(key_name => ({
+            key_name,
+            name: attributesMap[key_name]?.name || "",
+            values: attributesMap[key_name]?.values || []
+        }));
         return successResponse(row);
     },
     getDoctorSlnoGroups: async (service_loc_id: number) => {
@@ -476,6 +482,32 @@ const doctorModel = {
             await newDoctorSettingDocument.save();
         }
         return successResponse(null, "Treated health conditions updated successfully");
+    },
+    updateDoctorAttributes: async ({ doctor_id, clinic_id, attributes }: { doctor_id: number, clinic_id: number, attributes: { key_name: string, name: string, values: string[] }[] }) => {
+        let attributesMap: { [key: string]: { name: string, values: string[] } } = {};
+        attributes.forEach(attr => {
+            if (attr.key_name && attr.key_name.trim()) {
+                attributesMap[attr.key_name.trim()] = {
+                    name: (attr.name || "").trim(),
+                    values: (attr.values || []).map(v => v.trim()).filter(v => v)
+                };
+            }
+        });
+        let doctorSettingDocument = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).exec();
+        if (doctorSettingDocument) {
+            (doctorSettingDocument as any).attributes = attributesMap;
+            doctorSettingDocument.markModified("attributes");
+            await doctorSettingDocument.save();
+        } else {
+            let newDoctorSettingDocument = new doctorSettingsMongoModel({
+                doctor_id: doctor_id,
+                clinic_id: clinic_id,
+                attributes: attributesMap,
+                similar_business_sections: []
+            });
+            await newDoctorSettingDocument.save();
+        }
+        return successResponse(null, "Attributes updated successfully");
     },
     getconsultingTiming: async (doctor_id: number, clinic_id: number, service_loc_id: number) => {
         let weeklytimingRow: any = await DB.get_row("select id,availability,sunday,sunday_1st_session_start,sunday_1st_session_end,sunday_2nd_session_start,sunday_2nd_session_end,monday,monday_1st_session_start,monday_1st_session_end,monday_2nd_session_start,monday_2nd_session_end,tuesday,tuesday_1st_session_start,tuesday_1st_session_end,tuesday_2nd_session_start,tuesday_2nd_session_end,wednesday,wednesday_1st_session_start,wednesday_1st_session_end,wednesday_2nd_session_start,wednesday_2nd_session_end,thursday,thursday_1st_session_start,thursday_1st_session_end,thursday_2nd_session_start,thursday_2nd_session_end,friday,friday_1st_session_start,friday_1st_session_end,friday_2nd_session_start,friday_2nd_session_end,saturday,saturday_1st_session_start,saturday_1st_session_end,saturday_2nd_session_start,saturday_2nd_session_end,sunday_3rd_session_start,sunday_3rd_session_end,monday_3rd_session_start,monday_3rd_session_end,tuesday_3rd_session_start,tuesday_3rd_session_end,wednesday_3rd_session_start,wednesday_3rd_session_end,thursday_3rd_session_start,thursday_3rd_session_end,friday_3rd_session_start,friday_3rd_session_end,saturday_3rd_session_start,saturday_3rd_session_end from doctor_service_location where id=? and doctor_id=? and clinic_id=?", [service_loc_id, doctor_id, clinic_id]);

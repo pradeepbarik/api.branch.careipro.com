@@ -365,6 +365,15 @@ const requestParams = {
             no_of_cases: Joi.number().allow('')
         }))
     }),
+    doctorAttributes: Joi.object({
+        cid: Joi.number(),
+        service_loc_id: Joi.number().required(),
+        attributes: Joi.array().items(Joi.object({
+            key_name: Joi.string().required(),
+            name: Joi.string().allow(''),
+            values: Joi.array().items(Joi.string().allow(''))
+        }))
+    }),
     saveDoctorSmsEmailSettings: Joi.object({
         service_loc_id: Joi.number().allow(''),
         cid: Joi.number().required(),
@@ -1117,6 +1126,18 @@ const clinicController = {
                     doctor_id: parseInt(doctor_id),
                     conditions: restParams.treated_health_conditions,
                     treatments_available: restParams.treatments_available
+                })
+                res.status(response.code).json(response);
+            } else if (tab === "attributes") {
+                const validation: ValidationResult = requestParams.doctorAttributes.validate(restParams);
+                if (validation.error) {
+                    parameterMissingResponse(validation.error.details[0].message, res);
+                    return;
+                }
+                let response = await doctorModel.updateDoctorAttributes({
+                    clinic_id: parseInt(cid),
+                    doctor_id: parseInt(doctor_id),
+                    attributes: restParams.attributes
                 })
                 res.status(response.code).json(response);
             } else if (tab === "faq") {
