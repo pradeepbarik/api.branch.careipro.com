@@ -7,6 +7,9 @@ import targetsRouter from "./targets";
 import projectsRouter from "./projects";
 import incentiveSlabsRouter from "./incentive-slabs";
 import dashboardRouter from "./dashboard";
+import routineTasksRouter from "./routine-tasks";
+import routineDayLogsRouter from "./routine-day-logs";
+import routineTaskCompletionsRouter from "./routine-task-completions";
 
 const leadDashboardRouter = Router();
 
@@ -18,5 +21,8 @@ leadDashboardRouter.use("/targets", targetsRouter);
 leadDashboardRouter.use("/projects", projectsRouter);
 leadDashboardRouter.use("/incentive-slabs", incentiveSlabsRouter);
 leadDashboardRouter.use("/dashboard", dashboardRouter);
+leadDashboardRouter.use("/routine-tasks", routineTasksRouter);
+leadDashboardRouter.use("/routine-day-logs", routineDayLogsRouter);
+leadDashboardRouter.use("/routine-task-completions", routineTaskCompletionsRouter);
 
 export default leadDashboardRouter;

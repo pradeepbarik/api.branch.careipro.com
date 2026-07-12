@@ -6,6 +6,7 @@ export const banner_path=asset_path+"images/banners";
 export const dynamic_page_image_path=asset_path+"images/dynamic-page/";
 export const clinic_logo_path=asset_path+"images/clinic";
 export const doctor_logo_path=asset_path+"images/profile/doctor";
+export const media_path = asset_path+"media/";
 export const user_profile_pic_path=asset_path+"images/profile/patient/";
 export const employee_document_path=asset_path+"employee_document/";
 export const ad_path=asset_path+"ads/";

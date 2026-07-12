@@ -36,6 +36,14 @@ const salesRepsController = {
         res.status(response.code).json(response);
     },
 
+    me: async (_req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (!tokenInfo) { unauthorizedResponse("permission denied", res); return; }
+
+        const response = await salesRepsModel.me({ emp_id: tokenInfo.eid });
+        res.status(response.code).json(response);
+    },
+
     create: async (req: Request, res: Response) => {
         const { tokenInfo } = res.locals;
         if (!tokenInfo) { unauthorizedResponse("permission denied", res); return; }

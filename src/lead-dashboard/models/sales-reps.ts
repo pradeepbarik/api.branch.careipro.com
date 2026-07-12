@@ -14,6 +14,17 @@ const salesRepsModel = {
         return successResponse(reps, "Sales reps fetched successfully");
     },
 
+    // Resolves the calling employee's own Mongo record by emp_id, with no department_code
+    // filter — unlike list(), this must succeed for any authenticated employee so the
+    // frontend can reliably learn its own Mongo _id (used as repId) even if this employee
+    // isn't tagged department_code "SALES".
+    me: async (params: { emp_id: number }) => {
+        const EmployeesModel = getEmployeesModel();
+        const emp = await EmployeesModel.findOne({ emp_id: params.emp_id }).lean();
+        if (!emp) return serviceNotAcceptable("Employee not found");
+        return successResponse(emp, "Employee fetched successfully");
+    },
+
     create: async (params: {
         branch_id: number;
         name: string;

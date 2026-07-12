@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
 import path from 'path';
 import { parameterMissingResponse, successResponse, unauthorizedResponse, serviceNotAcceptable, internalServerError } from '../../services/response';
-import { banner_path, clinic_logo_path, doctor_logo_path } from '../../constants';
+import { banner_path, clinic_logo_path, doctor_logo_path, media_path } from '../../constants';
 import cliniModel, { getDoctors, getDoctorCompleteDetails, approveDoctor, changeDoctorActiveStatus, getClinicBanners, getClinicSpecialization, addClinicMedicines, getClinicMedicines, deleteClinicMedicine, updateClinicMedicine } from '../../model/clinic';
 import { addClinicStaff, staffList } from '../../model/clinic-staff';
 import doctorModel from '../../model/clinic/doctor';
@@ -11,6 +11,7 @@ import { FormdataRequest } from '../../types';
 import { get_current_datetime } from '../../services/datetime';
 import { uploadFileToServer, deleteFile } from '../../services/file-upload';
 import fs from 'fs';
+import doctorSettingsMongoModel from '../../mongo-schema/coll_doctor_settings';
 const requestParams = {
     getLoginToken: Joi.object({
         clinic_id: Joi.number().required(),
@@ -1475,6 +1476,107 @@ const clinicController = {
             res.json(parameterMissingResponse("Please select an image", res));
         }
     },
+    uploadDoctorMedia: async (req: FormdataRequest, res: Response) => {
+        const { body, files } = req;
+        const validation: ValidationResult = Joi.object({
+            action: Joi.string().valid("add", "update", "delete").required(),
+            doctor_id: Joi.number().required(),
+            clinic_id: Joi.number().required(),
+            media_id: Joi.string().when('action', { is: Joi.valid('update', 'delete'), then: Joi.required(), otherwise: Joi.optional() }),
+            service_loc_id: Joi.number().when('action', { is: 'add', then: Joi.required(), otherwise: Joi.optional() }),
+            media_type: Joi.string().valid("image", "video").when('action', { is: 'add', then: Joi.required(), otherwise: Joi.optional() }),
+            media_url: Joi.string().allow(""),
+            media_description: Joi.string().allow(""),
+            display_order: Joi.number().when('action', { is: 'add', then: Joi.required(), otherwise: Joi.optional() }),
+            category: Joi.string().when('action', { is: 'add', then: Joi.required(), otherwise: Joi.optional() }),
+            aspect_ratio: Joi.string().when('action', { is: 'add', then: Joi.required(), otherwise: Joi.optional() }),
+        }).validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        if (body.action === "delete") {
+            let doctorSettings: any = await doctorSettingsMongoModel.findOne(
+                { doctor_id: body.doctor_id, clinic_id: body.clinic_id, "media._id": body.media_id },
+                { "media.$": 1 }
+            );
+            let mediaToDelete = doctorSettings?.media?.[0];
+            await doctorSettingsMongoModel.updateOne(
+                { doctor_id: body.doctor_id, clinic_id: body.clinic_id },
+                { $pull: { media: { _id: body.media_id } } }
+            );
+            // only clean up files we stored ourselves — skip externally provided media URLs
+            if (mediaToDelete?.media_url && !/^https?:\/\//i.test(mediaToDelete.media_url)) {
+                deleteFile(`${media_path}${mediaToDelete.media_url}`);
+            }
+            res.json(successResponse({}, "Media deleted successfully"));
+            return;
+        }
+        if (body.action === "update") {
+            internalServerError("Update action is not supported yet", res);
+            return;
+        }
+        let media_url = body.media_url;
+        if (!body.media_url && files && files.media_file) {
+            let doctor_media_path = `${tokenInfo.bs}/${tokenInfo.bd}/C${body.clinic_id}S${body.service_loc_id}D${body.doctor_id}`
+            let now = new Date().getTime();
+            let oldPath = files.media_file.filepath;
+            let media_name = `${body.media_description}-${now}}`;
+            media_name = media_name.replace(/[^a-zA-Z0-9\s]/g, '');
+            media_name = media_name.replace(/\s/g, '-');
+            media_name = media_name + path.extname(files.media_file.originalFilename);
+            let mediaDirectory = media_path + doctor_media_path;
+            // replace space to -
+            mediaDirectory = mediaDirectory.replace(/\s/g, '-');
+            if (fs.existsSync(mediaDirectory) == false) {
+                fs.mkdirSync(mediaDirectory, { recursive: true });
+            }
+            let new_path = `${mediaDirectory}/${media_name}`;
+            media_url = `${doctor_media_path}/${media_name}`;
+            try {
+                await uploadFileToServer(oldPath, new_path)
+            } catch (err: any) {
+                internalServerError(err.message, res);
+                return
+            }
+        }
+        await doctorSettingsMongoModel.updateOne({ doctor_id: body.doctor_id, clinic_id: body.clinic_id }, {
+            $push: {
+                media: {
+                    media_type: body.media_type,
+                    media_url: media_url,
+                    media_description: body.media_description,
+                    display_order: body.display_order,
+                    category: body.category,
+                    aspect_ratio: body.aspect_ratio
+                }
+            }
+        }, { upsert: true });
+        res.json(successResponse({}, "Media uploaded successfully"));
+    },
+    doctorMedia: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = Joi.object({
+            doctor_id: Joi.number().required(),
+            clinic_id: Joi.number().required()
+        }).validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let doctor_media = await doctorSettingsMongoModel.findOne({ doctor_id: query.doctor_id, clinic_id: query.clinic_id }, { media: 1, _id: 0 });
+        res.json(successResponse(doctor_media));
+    },
     addClinicMedicine: async (req: Request, res: Response) => {
         const { body }: { body: any } = req;
         const validation: ValidationResult = requestParams.addClinicMedicine.validate(body);
@@ -1544,7 +1646,7 @@ const clinicController = {
         }
         let doctor_info = await DB.get_row("select t1.*,t2.id as service_loc_id from (select id as doctor_id,name,experience,position,city,state,market_name,partner_type,business_type,specialty,seo_url,rating from doctor where id=?) as t1 join (select id,doctor_id from doctor_service_location where doctor_id=?) as t2 on t1.doctor_id=t2.doctor_id", [
             query.doctor_id, query.doctor_id
-        ],true);
+        ], true);
         res.json(successResponse(doctor_info));
     }
 }
