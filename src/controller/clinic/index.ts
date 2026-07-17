@@ -432,9 +432,12 @@ const requestParams = {
         email: Joi.string().allow(''),
         name: Joi.string().required(),
         status: Joi.string().required(),
-        password: Joi.string().required(),
+        password: Joi.string().allow(''),
         role: Joi.string().required(),
-        clinic_staff_type: Joi.string().required()
+        display_role: Joi.string().allow(''),
+        clinic_staff_type: Joi.string().required(),
+        assigned_doctors: Joi.array().items(Joi.number()).optional(),
+        user_id: Joi.number().optional()
     }),
     addClinicStaffNonRegistered: Joi.object({
         clinic_id: Joi.number().required(),
@@ -444,6 +447,7 @@ const requestParams = {
         status: Joi.string().allow(''),
         password: Joi.string().allow(''),
         role: Joi.string().allow(''),
+        display_role: Joi.string().allow(''),
         clinic_staff_type: Joi.string().required()
     }),
     getDoctorsForDropDown: Joi.object({
@@ -1303,8 +1307,11 @@ const clinicController = {
             email: body.email ? body.email : '',
             status: body.status ? body.status : null,
             role: body.role ? body.role : null,
+            display_role: body.display_role ? body.display_role : null,
             password: body.password ? body.password : '',
-            clinic_staff_type: body.clinic_staff_type
+            clinic_staff_type: body.clinic_staff_type,
+            assigned_doctors: body.assigned_doctors || [],
+            user_id: body.user_id || null
         });
         res.status(resonse.code).json(resonse);
     },
