@@ -19,6 +19,7 @@ const coll_pg_orders_schema=new Schema({
     patient_info:{
         book_by:{type:String,required:true},//app, call, manually
         case_id:{type:Number,required:true},
+        patient_id:{type:Number,default:0},
         userid:{type:Number,required:true},
         user_type:{type:String},
         doctor_id:{type:Number,required:true},
