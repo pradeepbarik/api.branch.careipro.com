@@ -9,6 +9,22 @@ const requestParams = {
         vertical: Joi.string().allow(""),
         status: Joi.string().allow(""),
         comments: Joi.string().allow(""),
+    }),
+    primeEnquiriesList: Joi.object({
+        status: Joi.string().allow("")
+    }),
+    updatePrimeEnquiry: Joi.object({
+        id: Joi.string().required(),
+        resolution_note: Joi.string().allow("")
+    }),
+    cancelPrimeEnquiry: Joi.object({
+        id: Joi.string().required()
+    }),
+    addPrimeEnquiryWatcher: Joi.object({
+        email: Joi.string().email({ tlds: false }).required()
+    }),
+    deletePrimeEnquiryWatcher: Joi.object({
+        id: Joi.number().required()
     })
 }
 const enquiryController = {
@@ -66,6 +82,97 @@ const enquiryController = {
             state: tokenInfo.bs,
         });
         res.status(submissions.code).json(submissions);
+    },
+    primeEnquiriesList: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.primeEnquiriesList.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let enquiries = await enquiryModel.getPrimeEnquiriesList({ status: query.status });
+        res.status(enquiries.code).json(enquiries);
+    },
+    updatePrimeEnquiry: async (req: Request, res: Response) => {
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.updatePrimeEnquiry.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let response = await enquiryModel.updatePrimeEnquiry({
+            id: body.id,
+            resolution_note: body.resolution_note || "",
+            responded_by_emp_id: emp_info?.id || tokenInfo.eid
+        });
+        res.status(response.code).json(response);
+    },
+    cancelPrimeEnquiry: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.cancelPrimeEnquiry.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let response = await enquiryModel.cancelPrimeEnquiry({ id: body.id });
+        res.status(response.code).json(response);
+    },
+    getPrimeEnquiryWatchers: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let response = await enquiryModel.getPrimeEnquiryWatchers();
+        res.status(response.code).json(response);
+    },
+    addPrimeEnquiryWatcher: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.addPrimeEnquiryWatcher.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let response = await enquiryModel.addPrimeEnquiryWatcher({
+            city: tokenInfo.bd,
+            email: body.email
+        });
+        res.status(response.code).json(response);
+    },
+    deletePrimeEnquiryWatcher: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.deletePrimeEnquiryWatcher.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let response = await enquiryModel.deletePrimeEnquiryWatcher(body.id);
+        res.status(response.code).json(response);
     }
 }
 export default enquiryController;

@@ -6,6 +6,7 @@ employeeRouter.get("/employee-list",[apiRateLimit(5,10),employeeValidation(1)],h
 employeeRouter.post("/add-employee",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.addEmployee));
 employeeRouter.get("/employee-detail",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.employeeDetail));
 employeeRouter.post("/change-reporter",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.changeReportingEmployee));
+employeeRouter.post("/set-branch-manager",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.setBranchManager));
 employeeRouter.get("/delete-employee",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.deleteEmployee));
 employeeRouter.post("/activate-employee",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.activateEmployee));
 employeeRouter.post("/deactivate-employee",[apiRateLimit(1,5),employeeValidation(1)],handelError(employeeController.deActiveEmployee));

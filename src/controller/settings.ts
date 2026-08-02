@@ -9,7 +9,6 @@ import settingModel from '../model/settngs';
 import { get_current_datetime } from '../services/datetime';
 import { uploadFileToServer } from '../services/file-upload';
 import dynamicPageSettingsModel from '../model/settngs/page-settings';
-import { create } from 'domain';
 const requestParams = {
     getPageSettings: Joi.object({
         state: Joi.string().required(),

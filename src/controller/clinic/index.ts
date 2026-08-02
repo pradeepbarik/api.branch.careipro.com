@@ -251,6 +251,7 @@ const requestParams = {
         show_similar_business: Joi.number().valid(0, 1).allow(''),
         display_consulting_timing: Joi.string().allow(''),
         display_booking_timing: Joi.string().allow(''),
+        prime_member_only_booking: Joi.number().valid(0, 1),
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),

@@ -5,6 +5,7 @@ import popularDoctorController from '../controller/popular-doctor';
 import popularClinicController from '../controller/clinic/popular-clinic';
 import categoriesController from '../controller/categories';
 import settingsController from '../controller/settings';
+import membershipPlanController from '../controller/membership-plan';
 const settingsRoutes=Router();
 //get-missed-village-list - customer app location selection when customer didn't find his village and added by him manually
 settingsRoutes.get('/get-missed-village-list',[apiRateLimit(1,3)],handelError(locationController.getMissedareaList));
@@ -40,4 +41,6 @@ settingsRoutes.post('/banner',[apiRateLimit(1,5),employeeValidation(1),parseForm
 settingsRoutes.post('/delete-banner',[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.deleteBanner));
 settingsRoutes.get("/category-doctors",[apiRateLimit(10,30)],handelError(categoriesController.getCategoryDoctors));
 settingsRoutes.post('/update-doctor-score',[apiRateLimit(5,20),employeeValidation(1)],handelError(categoriesController.updateDoctorScore));
+settingsRoutes.get('/membership-plans',[apiRateLimit(30,60)],handelError(membershipPlanController.getPlans));
+settingsRoutes.post('/membership-plans',[apiRateLimit(10,30)],handelError(membershipPlanController.savePlan));
 export default settingsRoutes;
