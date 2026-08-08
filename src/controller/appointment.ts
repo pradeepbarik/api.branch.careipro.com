@@ -9,8 +9,44 @@ const requestParams = {
     appointments: Joi.object({
         consult_date: Joi.string().allow(""),
         booking_date: Joi.string().allow(""),
+    }),
+    appointmentsDashboard: Joi.object({
+        from_date: Joi.string().required(),
+        to_date: Joi.string().required(),
     })
 }
+/**
+ * booking.status values the dashboard counts against. Kept in one place so the
+ * mapping can be corrected without touching the queries.
+ */
+const BOOKING_STATUS = {
+    booking_request: 'waiting',
+    consulted: 'confirmed',
+    // not written by the booking flow yet - counts stay 0 until the status is introduced
+    no_show: 'no_show',
+    cancelled: ['patient_cancelled', 'doctor_cancelled'],
+}
+type TAppointmentTotals = {
+    total_bookings: number;
+    online: number;
+    offline: number;
+    consulted: number;
+    cancelled: number;
+    no_show: number;
+    booking_requests_pending: number;
+    pending_followups: number;
+}
+/** sum() returns null over an empty set, so the dashboard gets explicit zeroes instead */
+const emptyAppointmentTotals = (): TAppointmentTotals => ({
+    total_bookings: 0,
+    online: 0,
+    offline: 0,
+    consulted: 0,
+    cancelled: 0,
+    no_show: 0,
+    booking_requests_pending: 0,
+    pending_followups: 0,
+})
 const appointmentBookingCancellReason={
     "patient_plan_changes":{reason:"Patient Plan Changes","booking_status":"patient_cancelled"},
     "patient_not_available":{reason:"Patient Not Available at given timing","booking_status":"patient_cancelled"},
@@ -136,6 +172,64 @@ const appointmentController = {
         let date = req.query.date ? <string>req.query.date : get_current_datetime(true);
         let rows = await DB.get_rows("select clinics.name as clinic_name,doctor.name as doctor_name,t1.* from (select doctor_id,clinic_id,count(1) as total_booking,sum(if(booked_through='online',1,0)) as online,sum(if(booked_through!='online',1,0)) as offline,sum(if(status='waiting',1,0)) as booking_request,sum(if(follow_up_status='pending',1,0)) as pending_followup from booking where city=? and date(consult_date)=? group by doctor_id,clinic_id) as t1 join doctor on t1.doctor_id=doctor.id join clinics on t1.clinic_id=clinics.id order by t1.total_booking", [tokenInfo.bd, date]);
         return res.json(successResponse(rows, "Today's booked appointments"));
+    },
+    getAppointmentsDashboard: async (req: Request, res: Response) => {
+        const validation: ValidationResult = requestParams.appointmentsDashboard.validate(req.query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (!tokenInfo) {
+            return unauthorizedResponse("Something went wrong", res)
+        }
+        const from_date = <string>req.query.from_date;
+        const to_date = <string>req.query.to_date;
+        // previous window of the same length, ending the day before from_date
+        const days_in_range = moment(to_date).diff(moment(from_date), 'days') + 1;
+        const prev_to_date = moment(from_date).subtract(1, 'days').format('YYYY-MM-DD');
+        const prev_from_date = moment(from_date).subtract(days_in_range, 'days').format('YYYY-MM-DD');
+
+        // sum() is null over an empty set, so every aggregate is coalesced to 0
+        const totalsSql = `select count(1) as total_bookings,
+            ifnull(sum(if(booked_through='online',1,0)),0) as online,
+            ifnull(sum(if(booked_through!='online',1,0)),0) as offline,
+            ifnull(sum(if(status='${BOOKING_STATUS.consulted}',1,0)),0) as consulted,
+            ifnull(sum(if(status in (${BOOKING_STATUS.cancelled.map(() => '?').join(',')}),1,0)),0) as cancelled,
+            ifnull(sum(if(status='${BOOKING_STATUS.no_show}',1,0)),0) as no_show,
+            ifnull(sum(if(status='${BOOKING_STATUS.booking_request}',1,0)),0) as booking_requests_pending,
+            ifnull(sum(if(follow_up_status='pending',1,0)),0) as pending_followups
+            from booking where city=? and date(booking_time) between ? and ?`;
+
+        const [totals, previous_totals, day_wise, hour_wise, top_doctors] = await Promise.all([
+            DB.get_row<TAppointmentTotals>(totalsSql, [...BOOKING_STATUS.cancelled, tokenInfo.bd, from_date, to_date]),
+            DB.get_row<TAppointmentTotals>(totalsSql, [...BOOKING_STATUS.cancelled, tokenInfo.bd, prev_from_date, prev_to_date]),
+            DB.get_rows(`select date(booking_time) as date,
+                sum(if(booked_through='online',1,0)) as online,
+                sum(if(booked_through!='online',1,0)) as offline
+                from booking where city=? and date(booking_time) between ? and ?
+                group by date(booking_time) order by date(booking_time)`, [tokenInfo.bd, from_date, to_date]),
+            DB.get_rows(`select hour(booking_time) as hour,count(1) as total
+                from booking where city=? and date(booking_time) between ? and ?
+                group by hour(booking_time) order by hour(booking_time)`, [tokenInfo.bd, from_date, to_date]),
+            DB.get_rows(`select clinics.name as clinic_name,doctor.name as doctor_name,t1.* from
+                (select doctor_id,clinic_id,count(1) as total_booking,
+                    sum(if(booked_through='online',1,0)) as online,
+                    sum(if(booked_through!='online',1,0)) as offline
+                    from booking where city=? and date(booking_time) between ? and ?
+                    group by doctor_id,clinic_id) as t1
+                join doctor on t1.doctor_id=doctor.id
+                left join clinics on t1.clinic_id=clinics.id
+                order by t1.total_booking desc limit 10`, [tokenInfo.bd, from_date, to_date]),
+        ]);
+
+        return res.json(successResponse({
+            totals: totals || emptyAppointmentTotals(),
+            previous_totals: previous_totals || null,
+            day_wise,
+            hour_wise,
+            top_doctors
+        }, "Appointments dashboard"));
     },
     getAppointmentsList: async (req: Request, res: Response) => {
         const validation: ValidationResult = requestParams.appointments.validate(req.body);
