@@ -51,7 +51,8 @@ const requestParams = {
     }),
     getClinicList: Joi.object({
         page: Joi.number().required(),
-        case: Joi.string().allow('')
+        case: Joi.string().allow(''),
+        search_text: Joi.string().allow(''),
     }),
     getClinicDetail: Joi.object({
         clinic_id: Joi.number().required(),
@@ -671,6 +672,19 @@ const clinicController = {
         if (query.case === 'clinic_list_for_ddl') {
             let q = "select id,name,market_name,category,business_type from clinics where branch_id=?";
             let rows = await DB.get_rows(q, [tokenInfo.bid]);
+            res.json(successResponse({
+                clinics: rows,
+            }))
+            return;
+        }else if(query.case === 'search_clinic'){
+            if(!query.search_text || query.search_text.trim() === "" || query.search_text.trim().length < 3){
+                res.json(successResponse({
+                    clinics: [],
+                }))
+                return;
+            }
+            let q = `select id,name,market_name,category,business_type from clinics where branch_id=? and name like ?`;
+            let rows = await DB.get_rows(q, [tokenInfo.bid, `%${query.search_text}%`]);
             res.json(successResponse({
                 clinics: rows,
             }))

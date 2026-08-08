@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { query, Request, Response } from "express";
 import Joi from "joi";
 import { internalServerError, parameterMissingResponse, serviceNotAcceptable, successResponse, unauthorizedResponse } from "../../services/response";
 import doctorModel from "../../model/doctor";
@@ -47,6 +47,21 @@ const doctorController = {
         if (typeof tokenInfo === 'undefined') {
             unauthorizedResponse("permission denied! Please login to access", res);
             return
+        }
+        if(req.query.case == "search_doctor"){
+            if(!req.query.search_text){
+                parameterMissingResponse("search_text is required", res);
+                return;
+            }
+            let clinic_condition = "";
+            if(req.query.clinic_id){
+                clinic_condition = " and clinic_id="+req.query.clinic_id;
+            }
+            let q="select t1.*,t1.id as service_location_id from (select id,name,position,city,clinic_id from doctor where branch_id=? and city=? "+clinic_condition+" and name like ?) as t1 join doctor_service_location as t2 on t1.id=t2.doctor_id";
+            let sqlParams=[tokenInfo.bid,tokenInfo.bd,`%${req.query.search_text}%`];
+            let rows=await DB.get_rows(q,sqlParams);
+            res.json(successResponse(rows,"doctors list fetched successfully"));
+            return;
         }
         let q = "select id,name,gender,experience,position,image,description,rating,clinic_id,seo_url,active,business_type,partner_type,market_name,city from doctor where branch_id=? and city=?";
         let sqlParams = [tokenInfo.bid, tokenInfo.bd];
