@@ -214,6 +214,7 @@ const requestParams = {
         category: Joi.string().valid('allopathy', 'homeopathy', 'ayurveda').allow(''),
         qualification_disp: Joi.string().allow(''),
         specialty: Joi.string().allow(''),
+        branded_hospital: Joi.string().allow(''),
     }),
     saveDoctorSpecialization: Joi.object({
         service_loc_id: Joi.number().required(),
@@ -253,6 +254,7 @@ const requestParams = {
         display_consulting_timing: Joi.string().allow(''),
         display_booking_timing: Joi.string().allow(''),
         prime_member_only_booking: Joi.number().valid(0, 1),
+        home_visit: Joi.number().valid(0, 1),
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),

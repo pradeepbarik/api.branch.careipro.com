@@ -13,4 +13,5 @@ export type TUpdateDoctorBasicInfoParams={
     category?: string,
     qualification_disp?: string,
     specialty?: string,
+    branded_hospital?: string,
 }

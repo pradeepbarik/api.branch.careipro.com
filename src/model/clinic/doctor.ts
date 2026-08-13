@@ -3,7 +3,7 @@ import { TUpdateDoctorBasicInfoParams } from '../../types/clinic';
 import doctorSettingsMongoModel from '../../mongo-schema/coll_doctor_settings';
 const doctorModel = {
     getDoctorBasicInfo: async (doctor_id: number, clinic_id: number) => {
-        let row: any = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type,specialty from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id, doctor_id]);
+        let row: any = await DB.get_row("select t1.*,ROUND(t2.service_charge) as service_charge,t2.site_service_charge,t3.other_information from (select id as doctor_id,name,gender,experience,image,position,description,active,display_order_for_clinic,registration_no,category,qualification_disp,city,partner_type,business_type,specialty,branded_hospital from doctor where id=? and clinic_id=?) as t1 join (select doctor_id,service_charge,site_service_charge from doctor_service_location where doctor_id=? and clinic_id=? limit 1) as t2 on t1.doctor_id=t2.doctor_id left join (select doctor_id,other_information from doctor_detail where doctor_id=?) as t3 on t1.doctor_id=t3.doctor_id", [doctor_id, clinic_id, doctor_id, clinic_id, doctor_id, doctor_id]);
         let faqs = await doctorSettingsMongoModel.findOne({ doctor_id: doctor_id, clinic_id: clinic_id }).select("faqs").exec();
         row.faqs = faqs?.faqs || [];
         return successResponse(row, "success");
@@ -63,6 +63,11 @@ const doctorModel = {
         if (params.specialty) {
             updateFields.push("specialty=?");
             sqlParams.push(params.specialty);
+        }
+        //allowed to be cleared, so an empty value is a valid update
+        if (typeof params.branded_hospital !== 'undefined') {
+            updateFields.push("branded_hospital=?");
+            sqlParams.push(params.branded_hospital);
         }
         if (updateFields.length > 0) {
             q += updateFields.join(',') + " where id=? and clinic_id=?";
@@ -267,8 +272,8 @@ const doctorModel = {
         return successResponse(rows);
     },
     getDoctorSettings: async (doctor_id: number, clinic_id: number, service_loc_id: number) => {
-        let q = `select t1.availability,t1.slno_type,t1.site_service_charge,t2.* from (
-            SELECT id,availability,slno_type,site_service_charge FROM doctor_service_location where id=? and doctor_id=? and clinic_id=?
+        let q = `select t1.availability,t1.slno_type,t1.site_service_charge,t1.home_visit,t2.* from (
+            SELECT id,availability,slno_type,site_service_charge,home_visit FROM doctor_service_location where id=? and doctor_id=? and clinic_id=?
             ) as t1 left join (
             select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,display_consulting_timing,display_booking_timing,show_patients_feedback,consulting_timing_messages,partial_payment_amount_while_booking as token_amount,prime_member_only_booking from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
             ) as t2 on t1.id=t2.service_location_id`;
@@ -351,6 +356,7 @@ const doctorModel = {
         display_consulting_timing?: string,
         display_booking_timing?: string,
         prime_member_only_booking?: number,
+        home_visit?: number,
     }) => {
         if (params.emergency_booking_close && !params.booking_close_message) {
             return parameterMissingResponse("Please provide emergency booking close reason");
@@ -365,6 +371,10 @@ const doctorModel = {
         if (typeof params.site_service_charge !== 'undefined') {
             updateFields.push("site_service_charge=?");
             sqlParams.push(params.site_service_charge);
+        }
+        if (params.home_visit == 0 || params.home_visit == 1) {
+            updateFields.push("home_visit=?");
+            sqlParams.push(params.home_visit);
         }
         if (updateFields.length > 0) {
             q += updateFields.join(',') + " where id=? and doctor_id=? and clinic_id=?";

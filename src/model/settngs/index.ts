@@ -34,6 +34,23 @@ const settingModel = {
             }
         }).exec()
     },
+    //sections are rendered in the order they are stored, so moving a section is a swap with its neighbour
+    moveSection: async (data: { state: string, city: string, page: string, section_id: string, direction: "up" | "down" }) => {
+        let document: any = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: data.page }).exec();
+        if (!document) {
+            return false;
+        }
+        let index = document.sections.findIndex((section: any) => section._id.toString() === data.section_id);
+        let swapWith = data.direction === "up" ? index - 1 : index + 1;
+        if (index === -1 || swapWith < 0 || swapWith >= document.sections.length) {
+            return false;
+        }
+        let sections = [...document.sections];
+        [sections[index], sections[swapWith]] = [sections[swapWith], sections[index]];
+        document.sections = sections;
+        await document.save();
+        return true;
+    },
     saveHomePageData: async (data: {
         state: string
         city: string,

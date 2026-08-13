@@ -49,6 +49,18 @@ const doctorController = {
             return
         }
         if(req.query.case == "search_doctor"){
+            //resolve doctors by ids, used to show already selected doctors in drop downs
+            if(req.query.doctor_ids){
+                let doctor_ids = (<string>req.query.doctor_ids).split(",").map((id) => parseInt(id)).filter((id) => !isNaN(id));
+                if(doctor_ids.length === 0){
+                    res.json(successResponse([],"doctors list fetched successfully"));
+                    return;
+                }
+                let q="select t1.*,t1.id as service_location_id from (select id,name,position,city,clinic_id from doctor where branch_id=? and city=? and id in ("+doctor_ids.map(() => "?").join(",")+")) as t1 join doctor_service_location as t2 on t1.id=t2.doctor_id";
+                let rows=await DB.get_rows(q,[tokenInfo.bid,tokenInfo.bd,...doctor_ids]);
+                res.json(successResponse(rows,"doctors list fetched successfully"));
+                return;
+            }
             if(!req.query.search_text){
                 parameterMissingResponse("search_text is required", res);
                 return;

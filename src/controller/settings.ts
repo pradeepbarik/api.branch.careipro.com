@@ -22,6 +22,14 @@ const requestParams = {
         page_name: Joi.string().required(),
         section_id: Joi.string().required()
     }),
+    moveSection: Joi.object({
+        move_section: Joi.number().required(),
+        state: Joi.string().required(),
+        city: Joi.string().required(),
+        page_name: Joi.string().required(),
+        section_id: Joi.string().required(),
+        direction: Joi.valid("up", "down").required()
+    }),
     saveDoctorsPageSetting: Joi.object({
         state: Joi.string().required(),
         city: Joi.string().required(),
@@ -163,6 +171,22 @@ const settingsController = {
                 section_id: body.section_id
             })
             res.json(successResponse({}, "Section Deleted Successfully"))
+            return;
+        }
+        if (body.move_section) {
+            const validation: ValidationResult = requestParams.moveSection.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            let moved = await settingModel.moveSection({
+                state: body.state,
+                city: body.city,
+                page: body.page_name,
+                section_id: body.section_id,
+                direction: body.direction
+            })
+            res.json(successResponse({}, moved ? "Section Moved Successfully" : "Section is already at the end"))
             return;
         }
         if (body.page_name === 'home') {
