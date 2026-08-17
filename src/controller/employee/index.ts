@@ -139,7 +139,7 @@ const employeeController = {
         }
         let EmployeeDetail = getEmployeesModel();
         const employeeDoc = await EmployeeDetail.findOne({ emp_code: emp_code })
-        let employee = await DB.get_row<{ id: number }>("select employee.id, employee.emp_code, first_name, last_name, email_id as email, mobile_no as mobile, department_id, designation,gender, status, photo, employee.branch_id, employee.is_branch_manager,department.name as department,department.department_code,employee_detail.register_date as join_date,branch.name as branch_name,branch.state as branch_state,branch.district as branch_district,branch.location as branch_location from employee join department on employee.department_id=department.id join branch on employee.branch_id=branch.id left join employee_detail on employee.id=employee_detail.emp_id where employee.emp_code=?", [emp_code], true);
+        let employee = await DB.get_row<{ id: number }>("select employee.id, employee.emp_code, first_name, last_name, email_id as email, mobile_no as mobile, department_id, designation,gender, status, photo, employee.branch_id, employee.is_branch_manager,department.name as department,department.department_code,employee_detail.register_date as join_date,branch.name as branch_name,branch.state as branch_state,branch.district as branch_district,branch.location as branch_location from employee join department on employee.department_id=department.id join branch on employee.branch_id=branch.id left join employee_detail on employee.id=employee_detail.emp_id where employee.emp_code=?", [emp_code]);
         if (employee) {
             let reportees = await DB.get_rows("select emp_code, concat(first_name, ' ', last_name) as name,status,designation from employee where reporting_emp_id=?", [employee.id]);
             res.json(successResponse({ ...employee, reportees: reportees, sales_role: employeeDoc?.sales_role ?? '', permanent_address: employeeDoc?.permanent_address, reporting_employee: employeeDoc?.reporting_employee, documents: employeeDoc?.documents }, "Employee details fetched successfully"));
@@ -164,6 +164,43 @@ const employeeController = {
         );
         if (result.matchedCount === 0) { serviceNotAcceptable("Employee not found", res); return; }
         res.json(successResponse({}, "Sales role updated successfully"));
+    },
+    departmentList: async (_req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let departments = await DB.get_rows("select id,name,department_code from department order by name", []);
+        res.json(successResponse(departments, "Department list fetched successfully"));
+    },
+    updateDepartment: async (req: Request, res: Response) => {
+        const schema = Joi.object({
+            emp_code: Joi.string().required(),
+            department_code: Joi.string().required(),
+        });
+        const { error } = schema.validate(req.body);
+        if (error) { serviceNotAcceptable(error.details[0].message, res); return; }
+        const { emp_info, tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body } = req;
+        let employee = await DB.get_row<{ id: number, department_id: number }>("select id,department_id from employee where emp_code=?", [body.emp_code]);
+        if (!employee) { serviceNotAcceptable("Employee not found", res); return; }
+        let department = await DB.get_row<{ id: number, name: string, department_code: string }>("select id,name,department_code from department where department_code=?", [body.department_code]);
+        if (!department) { serviceNotAcceptable("Department not found", res); return; }
+        let now = get_current_datetime();
+        await DB.query("update employee set department_id=? where id=?", [department.id, employee.id]);
+        const EmployeesModel = getEmployeesModel();
+        //emp_code carries the old department prefix but is left untouched, it is the key other
+        //collections and the mongo document itself are looked up by
+        await EmployeesModel.updateOne({ emp_code: body.emp_code }, {
+            $set: { department_code: department.department_code, updated_at: new Date() },
+            $push: { profile_change_log: { time: new Date(now), changed_by: { emp_id: emp_info.id, emp_code: emp_info.emp_code, name: `${emp_info.first_name}` }, message: `Department changed to ${department.name}` } }
+        });
+        res.json(successResponse({ department: department.name, department_code: department.department_code }, "Department updated successfully"));
     },
     changeReportingEmployee: async (req: Request, res: Response) => {
         let emp_code = <string>req.body.emp_code;
