@@ -20,7 +20,7 @@ const LeadSchema = new Schema({
         default: 'New Lead',
     },
     interest_level: { type: String, enum: ['Hot', 'Warm', 'Cold'], default: 'Warm' },
-    requirement: { type: String, enum: ['Software', 'Website', 'Both'], default: 'Software' },
+    requirement: { type: String, enum: ['Software', 'Website', 'Both', 'Free Listing', 'Business App'], default: 'Software' },
     project_id: { type: Schema.Types.ObjectId, ref: 'coll_sales_projects', default: null },
     module_id: { type: Schema.Types.ObjectId, ref: 'coll_sales_modules', default: null },
     last_contact_date: { type: String, default: '' },
