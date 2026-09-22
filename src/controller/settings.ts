@@ -68,6 +68,22 @@ const requestParams = {
             clinics_count: Joi.number().allow(0, "")
         })
     }),
+    saveTestScanPageSettings: Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required(),
+        page_name: Joi.string().required(),
+        popular_specialists: Joi.array().items(Joi.number()),
+        section: Joi.object({
+            _id: Joi.string().allow(''),
+            heading: Joi.string().required(),
+            viewType: Joi.string().required(),
+            enable: Joi.boolean().required(),
+            cat_id: Joi.array().items(Joi.number()),
+            clinic_ids: Joi.array().items(Joi.number()),
+            section_type: Joi.string().required(),
+            centers_count: Joi.number().allow(0, "")
+        })
+    }),
     saveHomePageSettings: Joi.object({
         state: Joi.string().required(),
         city: Joi.string().required(),
@@ -236,6 +252,20 @@ const settingsController = {
             await settingModel.saveCaretakersPageData({
                 state: body.state,
                 city: body.city,
+                popular_specialists: body.popular_specialists,
+                section: body.section
+            });
+        } else if (body.page_name === "tests-scans") {
+            const validation: ValidationResult = requestParams.saveTestScanPageSettings.validate(body);
+            if (validation.error) {
+                parameterMissingResponse(validation.error.details[0].message, res);
+                return;
+            }
+            //stores under page "tests-scans"; savePhysiotherapyPageData is the page_name driven variant
+            await settingModel.savePhysiotherapyPageData({
+                state: body.state,
+                city: body.city,
+                page_name: body.page_name,
                 popular_specialists: body.popular_specialists,
                 section: body.section
             });

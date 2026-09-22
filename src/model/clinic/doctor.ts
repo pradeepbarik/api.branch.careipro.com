@@ -275,7 +275,7 @@ const doctorModel = {
         let q = `select t1.availability,t1.slno_type,t1.site_service_charge,t1.home_visit,t2.* from (
             SELECT id,availability,slno_type,site_service_charge,home_visit FROM doctor_service_location where id=? and doctor_id=? and clinic_id=?
             ) as t1 left join (
-            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,display_consulting_timing,display_booking_timing,show_patients_feedback,consulting_timing_messages,partial_payment_amount_while_booking as token_amount,prime_member_only_booking from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
+            select id as service_loc_setting_id,service_location_id,payment_type,advance_booking_enable,rule,emergency_booking_close,booking_close_message,book_by,auto_fill,auto_fill_by,cash_recived_mode,show_group_name_while_booking,appointment_book_mode,allow_booking_request,slot_allocation_mode,enable_enquiry,show_similar_business,display_consulting_timing,display_booking_timing,show_patients_feedback,consulting_timing_messages,partial_payment_amount_while_booking as token_amount,prime_member_only_booking,redirection_service_loc_id from doctor_servicelocation_setting where service_location_id=? and doctor_id=?
             ) as t2 on t1.id=t2.service_location_id`;
         let sqlparams = [service_loc_id, doctor_id, clinic_id, service_loc_id, doctor_id];
         let row: any = await DB.get_row(q, sqlparams);
@@ -357,6 +357,7 @@ const doctorModel = {
         display_booking_timing?: string,
         prime_member_only_booking?: number,
         home_visit?: number,
+        redirection_service_loc_id?: number
     }) => {
         if (params.emergency_booking_close && !params.booking_close_message) {
             return parameterMissingResponse("Please provide emergency booking close reason");
@@ -460,6 +461,10 @@ const doctorModel = {
         if (params.prime_member_only_booking == 0 || params.prime_member_only_booking == 1) {
             updateFields.push("prime_member_only_booking=?");
             sqlParams.push(params.prime_member_only_booking);
+        }
+        if (typeof params.redirection_service_loc_id !== 'undefined') {
+            updateFields.push("redirection_service_loc_id=?");
+            sqlParams.push(params.redirection_service_loc_id);
         }
         if (updateFields.length > 0) {
             if (params.service_loc_setting_id) {

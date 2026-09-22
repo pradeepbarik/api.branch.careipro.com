@@ -95,7 +95,10 @@ const requestParams = {
         medicine_min_order_tag: Joi.string().allow(''),
         open_time: Joi.string().allow(''),
         recommended_doctors: Joi.string().allow(''),
-        discount_msg: Joi.string().allow('')
+        discount_msg: Joi.string().allow(''),
+        sample_home_collection: Joi.number().allow(''),
+        sample_home_collection_charge: Joi.number().allow(''),
+        partner_with: Joi.string().allow('')
     }),
     saveClinicTiming: Joi.object({
         clinic_id: Joi.number().required(),
@@ -255,6 +258,7 @@ const requestParams = {
         display_booking_timing: Joi.string().allow(''),
         prime_member_only_booking: Joi.number().valid(0, 1),
         home_visit: Joi.number().valid(0, 1),
+        redirection_service_loc_id: Joi.number().allow(''),
     }),
     updateDoctorWeeklyConsultingTiming: Joi.object({
         service_loc_id: Joi.number().allow(''),
@@ -777,6 +781,9 @@ const clinicController = {
             open_time: body.open_time,
             recommended_doctors: body.recommended_doctors,
             discount_msg: body.discount_msg,
+            sample_home_collection: body.sample_home_collection,
+            sample_home_collection_charge: body.sample_home_collection_charge,
+            partner_with: body.partner_with,
         }
         if (typeof body.enable_enquiry !== "undefined") {
             postdata.enable_enquiry = body.enable_enquiry;

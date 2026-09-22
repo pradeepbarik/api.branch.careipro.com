@@ -125,7 +125,10 @@ const clinicModel = {
         medicine_min_order_tag?:string|null,
         open_time?:string|null,
         recommended_doctors?:string|null,
-        discount_msg?:string|null
+        discount_msg?:string|null,
+        sample_home_collection?:number,
+        sample_home_collection_charge?:number,
+        partner_with?:string|null
 
     }) => {
         try {
@@ -271,6 +274,18 @@ const clinicModel = {
             if (params.discount_msg !== undefined) {
                 updateFields.push("discount_msg=?");
                 sql_params.push(params.discount_msg);
+            }
+            if (params.sample_home_collection !== undefined) {
+                updateFields.push("sample_home_collection=?");
+                sql_params.push(params.sample_home_collection);
+            }
+            if (params.sample_home_collection_charge !== undefined) {
+                updateFields.push("sample_home_collection_charge=?");
+                sql_params.push(params.sample_home_collection_charge);
+            }
+            if (params.partner_with !== undefined) {
+                updateFields.push("partner_with=?");
+                sql_params.push(params.partner_with);
             }
             if (updateFields.length > 0) {
                 q += updateFields.join(',');
