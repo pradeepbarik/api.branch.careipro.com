@@ -128,7 +128,8 @@ const clinicModel = {
         discount_msg?:string|null,
         sample_home_collection?:number,
         sample_home_collection_charge?:number,
-        partner_with?:string|null
+        partner_with?:string|null,
+        established_year?:number|null
 
     }) => {
         try {
@@ -286,6 +287,11 @@ const clinicModel = {
             if (params.partner_with !== undefined) {
                 updateFields.push("partner_with=?");
                 sql_params.push(params.partner_with);
+            }
+            if (params.established_year !== undefined) {
+                updateFields.push("established_year=?");
+                //empty input clears the column rather than writing 0
+                sql_params.push(params.established_year || null);
             }
             if (updateFields.length > 0) {
                 q += updateFields.join(',');

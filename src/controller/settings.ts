@@ -9,7 +9,21 @@ import settingModel from '../model/settngs';
 import { get_current_datetime } from '../services/datetime';
 import { uploadFileToServer } from '../services/file-upload';
 import dynamicPageSettingsModel from '../model/settngs/page-settings';
+import { CitySettingsModel } from '../mongo-schema/coll_city_settings';
 const requestParams = {
+    getCitySettings: Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required()
+    }),
+    saveCitySettings: Joi.object({
+        state: Joi.string().required(),
+        city: Joi.string().required(),
+        patient_support_contact_no: Joi.string().allow(''),
+        patient_support_staff_name: Joi.string().allow(''),
+        support_time_message: Joi.string().allow(''),
+        city_manager_name: Joi.string().allow(''),
+        city_manager_contact_no: Joi.string().allow('')
+    }),
     getPageSettings: Joi.object({
         state: Joi.string().required(),
         city: Joi.string().required(),
@@ -162,6 +176,42 @@ const requestParams = {
     })
 }
 const settingsController = {
+    /* Support contacts for a whole city, the fallback for clinics that have none of
+       their own. Keyed by city, which is the collection's unique index. */
+    getCitySettings: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.getCitySettings.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        let document = await CitySettingsModel.findOne({ city: query.city.toLowerCase() }).exec();
+        res.json(successResponse(document, "success"));
+    },
+    saveCitySettings: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.saveCitySettings.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        /* upsert so the first save for a city creates the document */
+        await CitySettingsModel.findOneAndUpdate(
+            { city: body.city.toLowerCase() },
+            {
+                $set: {
+                    state: body.state.toLowerCase(),
+                    patient_support_contact_no: body.patient_support_contact_no,
+                    patient_support_staff_name: body.patient_support_staff_name,
+                    support_time_message: body.support_time_message,
+                    city_manager_name: body.city_manager_name,
+                    city_manager_contact_no: body.city_manager_contact_no
+                }
+            },
+            { upsert: true }
+        ).exec();
+        res.json(successResponse({}, "success"));
+    },
     getPageSettings: async (req: Request, res: Response) => {
         const { query }: { query: any } = req;
         const validation: ValidationResult = requestParams.getPageSettings.validate(query);

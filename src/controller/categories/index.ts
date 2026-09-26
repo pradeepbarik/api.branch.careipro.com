@@ -21,6 +21,7 @@ const requestParams = {
         seo_url: Joi.string().required(),
         page_title: Joi.string().required(),
         meta_description: Joi.string().required(),
+        h1_tag: Joi.string().allow('').optional(),
         business_type: Joi.string().required()
     }),
     updatespecialist: Joi.object({
@@ -32,6 +33,7 @@ const requestParams = {
         seo_url: Joi.string(),
         page_title: Joi.string(),
         meta_description: Joi.string(),
+        h1_tag: Joi.string().allow(''),
         business_type: Joi.string()
     }),
     updateCategorySetting: Joi.object({
@@ -44,6 +46,13 @@ const requestParams = {
     updateDoctorScore: Joi.object({
         data: Joi.array().items(Joi.object({
             doctor_id: Joi.number().required(),
+            category_id: Joi.number().required(),
+            score: Joi.number().required()
+        })).required()
+    }),
+    updateClinicScore: Joi.object({
+        data: Joi.array().items(Joi.object({
+            clinic_id: Joi.number().required(),
             category_id: Joi.number().required(),
             score: Joi.number().required()
         })).required()
@@ -133,6 +142,13 @@ const categoriesController = {
                 updateFielsd.push("meta_description=?")
                 sqlparams.push(body.meta_description);
             }
+            /* tested for presence rather than truthiness, unlike the fields above, because the
+               h1 is optional: clearing it has to be possible, and a truthy test would make an
+               empty value look like "field not sent" and silently keep the old heading. */
+            if (typeof body.h1_tag !== "undefined") {
+                updateFielsd.push("h1_tag=?")
+                sqlparams.push(body.h1_tag);
+            }
             if (icon) {
                 updateFielsd.push("icon=?")
                 sqlparams.push(icon);
@@ -160,8 +176,8 @@ const categoriesController = {
                 serviceNotAcceptable("nothing to update", res)
             }
         } else {
-            let q = "insert into specialists set name=?,parent_id=?,enable=?,icon=?,short_description=?,seo_url=?,page_title=?,meta_description=?,group_category=?";
-            let insertRes: any = await DB.query(q, [body.name, body.parent_id, body.enable, icon, body.short_description, body.seo_url, body.page_title, body.meta_description, body.business_type]);
+            let q = "insert into specialists set name=?,parent_id=?,enable=?,icon=?,short_description=?,seo_url=?,page_title=?,meta_description=?,h1_tag=?,group_category=?";
+            let insertRes: any = await DB.query(q, [body.name, body.parent_id, body.enable, icon, body.short_description, body.seo_url, body.page_title, body.meta_description, body.h1_tag || null, body.business_type]);
             if (insertRes.affectedRows >= 1) {
                 if (files && files.images) {
                     let oldPath = files.images.filepath;
@@ -220,6 +236,44 @@ const categoriesController = {
         }
         for (let item of body.data) {
             await DB.query("update doctor_specialization set score=? where doctor_id=? and specialist=? and spl_city=?", [item.score, item.doctor_id, item.category_id, tokenInfo.bd]);
+        }
+        res.json(successResponse({}, "Updated successfully"));
+    },
+    getCategoryClinics: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        /* tested as a number, not for truthiness: the query string "0" is truthy, and 0 is
+           the id the facility rows are stored under, so letting it through returns one row
+           per facility instead of one per clinic. */
+        if (!(Number(query.specialist_id) > 0)) {
+            parameterMissingResponse("specialist_id is required", res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        /* clinic_specialization carries no city of its own, unlike doctor_specialization,
+           so the branch's city is applied through the clinic it points at. */
+        let clinics = await DB.get_rows<{ clinic_id: number, clinic_name: string, locality: string, market_name: string, business_type: string, score: string }>("select cs.clinic_id,cs.score,clinics.name as clinic_name,clinics.locality,clinics.market_name,clinics.business_type from clinic_specialization as cs join clinics on cs.clinic_id=clinics.id where cs.specialist_id=? and clinics.city=? order by cs.score desc,clinics.name asc", [query.specialist_id, tokenInfo.bd]);
+        res.json(successResponse({ clinics: clinics }, "Success"));
+    },
+    updateClinicScore: async (req: Request, res: Response) => {
+        const { body } = req;
+        const validation: ValidationResult = requestParams.updateClinicScore.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        /* the clinics join is what keeps a branch from scoring a clinic in another city,
+           since the row being updated has no city column to test */
+        for (let item of body.data) {
+            await DB.query("update clinic_specialization as cs join clinics on cs.clinic_id=clinics.id set cs.score=? where cs.clinic_id=? and cs.specialist_id=? and clinics.city=?", [item.score, item.clinic_id, item.category_id, tokenInfo.bd]);
         }
         res.json(successResponse({}, "Updated successfully"));
     },

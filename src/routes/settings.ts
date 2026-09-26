@@ -41,6 +41,10 @@ settingsRoutes.post('/banner',[apiRateLimit(1,5),employeeValidation(1),parseForm
 settingsRoutes.post('/delete-banner',[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.deleteBanner));
 settingsRoutes.get("/category-doctors",[apiRateLimit(10,30)],handelError(categoriesController.getCategoryDoctors));
 settingsRoutes.post('/update-doctor-score',[apiRateLimit(5,20),employeeValidation(1)],handelError(categoriesController.updateDoctorScore));
+settingsRoutes.get("/category-clinics",[apiRateLimit(10,30)],handelError(categoriesController.getCategoryClinics));
+settingsRoutes.post('/update-clinic-score',[apiRateLimit(5,20),employeeValidation(1)],handelError(categoriesController.updateClinicScore));
 settingsRoutes.get('/membership-plans',[apiRateLimit(30,60)],handelError(membershipPlanController.getPlans));
 settingsRoutes.post('/membership-plans',[apiRateLimit(10,30)],handelError(membershipPlanController.savePlan));
+settingsRoutes.get("/city-settings",[apiRateLimit(10,20)],handelError(settingsController.getCitySettings));
+settingsRoutes.post("/city-settings",[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.saveCitySettings));
 export default settingsRoutes;

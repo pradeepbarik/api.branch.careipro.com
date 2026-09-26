@@ -32,6 +32,10 @@ clinicRoutes.get('/doctor-media',[apiRateLimit(1,3)],handelError(clinicControlle
 clinicRoutes.post('/delete-clinic-banner',[apiRateLimit(1,5)],handelError(clinicController.deleteClinicBanner));
 clinicRoutes.get('/clinic-specialization',[apiRateLimit(30,30)],handelError(clinicController.clinicSpecializations));
 clinicRoutes.post('/clinic-specialization',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.updateClinicSpecialization));
+clinicRoutes.get('/clinic-social-videos',[apiRateLimit(30,30)],handelError(clinicController.getClinicSocialVideos));
+clinicRoutes.post('/clinic-social-videos',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.saveClinicSocialVideos));
+clinicRoutes.get('/clinic-facilities',[apiRateLimit(30,30)],handelError(clinicController.getClinicFacilities));
+clinicRoutes.post('/clinic-facilities',[apiRateLimit(1,3),employeeValidation(1),checkUnderBranch],handelError(clinicController.saveClinicFacilities));
 clinicRoutes.get('/get-clinic-staffs',[apiRateLimit(1,3)],handelError(clinicController.getClinicStaffs));
 clinicRoutes.post('/add-clinic-staff',[apiRateLimit(1,10)],handelError(clinicController.addClinicStaff));
 clinicRoutes.post("/update-db-detail",[apiRateLimit(1,5)],clinicController.updateDbDetails);

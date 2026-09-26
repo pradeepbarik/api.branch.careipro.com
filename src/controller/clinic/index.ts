@@ -10,6 +10,7 @@ import { encrypt } from '../../services/encryption';
 import { FormdataRequest } from '../../types';
 import { get_current_datetime } from '../../services/datetime';
 import { uploadFileToServer, deleteFile } from '../../services/file-upload';
+import { ClinicDetailsModel } from '../../mongo-schema/coll_clinic_details';
 import fs from 'fs';
 import doctorSettingsMongoModel from '../../mongo-schema/coll_doctor_settings';
 const requestParams = {
@@ -98,7 +99,8 @@ const requestParams = {
         discount_msg: Joi.string().allow(''),
         sample_home_collection: Joi.number().allow(''),
         sample_home_collection_charge: Joi.number().allow(''),
-        partner_with: Joi.string().allow('')
+        partner_with: Joi.string().allow(''),
+        established_year: Joi.number().allow('', null)
     }),
     saveClinicTiming: Joi.object({
         clinic_id: Joi.number().required(),
@@ -180,6 +182,30 @@ const requestParams = {
             score: Joi.number().allow(''),
             service_price: Joi.number().allow(''),
             service_price_display: Joi.string().allow('')
+        }))
+    }),
+    getClinicSocialVideos: Joi.object({
+        clinic_id: Joi.number().required()
+    }),
+    saveClinicSocialVideos: Joi.object({
+        clinic_id: Joi.number().required(),
+        branch_id: Joi.number().required(),
+        videos: Joi.array().items(Joi.object({
+            url: Joi.string().uri().required(),
+            title: Joi.string().max(150).allow(''),
+            aspect_ratio: Joi.string().valid('16:9', '9:16', '1:1', '4:3').required()
+        }))
+    }),
+    getClinicFacilities: Joi.object({
+        clinic_id: Joi.number().required()
+    }),
+    saveClinicFacilities: Joi.object({
+        clinic_id: Joi.number().required(),
+        branch_id: Joi.number().required(),
+        facilities: Joi.array().items(Joi.object({
+            facility: Joi.string().max(100).required(),
+            available: Joi.number().valid(0, 1).required(),
+            show: Joi.number().valid(0, 1).required()
         }))
     }),
     getSpecialists: Joi.object({
@@ -524,6 +550,21 @@ const requestParams = {
         medicine_id: Joi.string().required()
     }),
 }
+/* Worked out from the link rather than asked for, so the person adding a video does not
+   have to classify it and cannot get it wrong. */
+const videoSource = (url: string) => {
+    const link = (url || "").toLowerCase();
+    if (link.includes("youtube.com") || link.includes("youtu.be")) {
+        return "youtube";
+    }
+    if (link.includes("instagram.com")) {
+        return "instagram";
+    }
+    if (link.includes("facebook.com") || link.includes("fb.watch")) {
+        return "facebook";
+    }
+    return "other";
+}
 const clinicController = {
     updateDbDetails: async (req: Request, res: Response) => {
         const { body }: { body: any } = req;
@@ -784,6 +825,7 @@ const clinicController = {
             sample_home_collection: body.sample_home_collection,
             sample_home_collection_charge: body.sample_home_collection_charge,
             partner_with: body.partner_with,
+            established_year: body.established_year,
         }
         if (typeof body.enable_enquiry !== "undefined") {
             postdata.enable_enquiry = body.enable_enquiry;
@@ -866,6 +908,106 @@ const clinicController = {
         }
         await DB.query("delete from clinic_specialization where clinic_id=? and specialist_business_type=?", [body.clinic_id, body.specilization_business_type]);
         DB.query(query, [sqlParams], true);
+        res.json(successResponse({}, "success"));
+    },
+    /* Social media videos live in mongo rather than mysql, because they are a free form
+       list per clinic that only this page reads. clinic_id is stored as a string, which
+       is how the collection's unique index is defined. */
+    getClinicSocialVideos: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.getClinicSocialVideos.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let document: any = await ClinicDetailsModel.findOne({ clinic_id: String(query.clinic_id) }).exec();
+        res.json(successResponse(document ? document.socialMediaVideos || [] : [], "success"));
+    },
+    saveClinicSocialVideos: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.saveClinicSocialVideos.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let videos = (body.videos || [])
+            .filter((video: any) => (video.url || "").trim() !== "")
+            .map((video: any) => ({ ...video, source: videoSource(video.url) }));
+        /* Usual case is a clinic that already has a document, so try a plain update first
+           and leave state and city alone. They only need writing when the document is
+           being created, which is the one time the clinic has to be read from mysql. */
+        let updated = await ClinicDetailsModel.updateOne(
+            { clinic_id: String(body.clinic_id) },
+            { $set: { socialMediaVideos: videos } }
+        ).exec();
+        if (updated.matchedCount === 0) {
+            /* read from the clinic rather than the request, so the stored copy cannot
+               disagree with mysql */
+            let clinicRow = await DB.get_row<{ state: string, city: string }>("select state,city from clinics where id=?", [body.clinic_id]);
+            await ClinicDetailsModel.updateOne(
+                { clinic_id: String(body.clinic_id) },
+                {
+                    $set: {
+                        socialMediaVideos: videos,
+                        state: (clinicRow?.state || "").toLowerCase(),
+                        city: (clinicRow?.city || "").toLowerCase()
+                    }
+                },
+                { upsert: true }
+            ).exec();
+        }
+        res.json(successResponse({}, "success"));
+    },
+    /* Facilities live in clinic_specialization alongside the specialisations, marked by
+       specialist_business_type FACILITIES with specialist_id 0, because they are free text
+       per clinic rather than picks from the specialists master list. */
+    getClinicFacilities: async (req: Request, res: Response) => {
+        const { query }: { query: any } = req;
+        const validation: ValidationResult = requestParams.getClinicFacilities.validate(query);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        //`show` is a reserved word, so it stays quoted
+        let rows = await DB.get_rows("select facility,available,`show` from clinic_specialization where clinic_id=? and specialist_business_type='FACILITIES' order by facility", [query.clinic_id]);
+        res.json(successResponse(rows, "success"));
+    },
+    saveClinicFacilities: async (req: Request, res: Response) => {
+        const { body }: { body: any } = req;
+        const validation: ValidationResult = requestParams.saveClinicFacilities.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        const { tokenInfo, emp_info } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        /* replace the whole set, the same way specialisations are saved */
+        await DB.query("delete from clinic_specialization where clinic_id=? and specialist_business_type='FACILITIES'", [body.clinic_id]);
+        let facilities = (body.facilities || []).filter((row: any) => (row.facility || "").trim() !== "");
+        if (facilities.length > 0) {
+            let sqlParams: any = facilities.map((row: any) => [
+                body.clinic_id, 0, 'FACILITIES', row.facility.trim(), row.available, row.show
+            ]);
+            await DB.query("insert into clinic_specialization (clinic_id,specialist_id,specialist_business_type,facility,available,`show`) values ?", [sqlParams], true);
+        }
         res.json(successResponse({}, "success"));
     },
     getDoctorsList: async (req: Request, res: Response) => {

@@ -183,6 +183,34 @@ const cacheController = {
                 internalServerError("Something went wrong", res);
                 return
             }
+        } else if (req.query.cache_type === "clinic_list_by_specialist") {
+            let city = tokenInfo.bd.toLowerCase();
+            let state = tokenInfo.bs.toLowerCase();
+            let specialist_id = req.query.specialist_id;
+            if (specialist_id === undefined) {
+                parameterMissingResponse("specialist_id is required", res);
+                return;
+            }
+            /* the clinic list cache is nested one level deeper than the doctor one, under the
+               market it was built for, and the branch admin scores a category across the whole
+               city. so every market's copy of this category goes.
+
+               a market with nothing cached is not a failure. there is simply nothing to clear,
+               and reporting an error for it would train the operator to ignore the message. */
+            try {
+                let clinicsCacheDir = `${cache_directory}/${state}/${city}/clinics`;
+                if (fs.existsSync(clinicsCacheDir)) {
+                    for (let market of fs.readdirSync(clinicsCacheDir)) {
+                        let categoryDir = `${clinicsCacheDir}/${market}/catid-${specialist_id}`;
+                        if (fs.existsSync(categoryDir)) {
+                            await fs.promises.rm(categoryDir, { recursive: true, force: true });
+                        }
+                    }
+                }
+            } catch (err) {
+                internalServerError("Something went wrong", res);
+                return
+            }
         } else if (req.query.cache_type === "doctor_detail") {
             let city = tokenInfo.bd.toLowerCase();
             let state = tokenInfo.bs.toLowerCase();
