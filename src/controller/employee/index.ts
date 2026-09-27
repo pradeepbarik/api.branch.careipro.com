@@ -67,7 +67,7 @@ const employeeController = {
             q += " and employee.status=?";
             params.push(<string>query.status);
         }
-        let employees = await DB.get_rows(q, params, true);
+        let employees = await DB.get_rows(q, params);
         res.json({ success: true, data: employees });
     },
     addEmployee: async (req: Request, res: Response) => {

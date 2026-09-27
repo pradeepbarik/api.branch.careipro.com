@@ -21,6 +21,7 @@ import onlineTransactionRoutes from './routes/online-transaction';
 import searchKeywordRoutes from './routes/search-keyword';
 import adsRoutes from './routes/ads';
 import leadDashboardRouter from './lead-dashboard/routes/index';
+import attendanceRoutes from './routes/attendance';
 const APP: Application = express();
 APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress, level: 1 }))
@@ -50,4 +51,5 @@ APP.use("/online-transaction",[xApiKeyValidation],onlineTransactionRoutes);
 APP.use("/search-keyword",[xApiKeyValidation],searchKeywordRoutes);
 APP.use("/ads",[xApiKeyValidation],adsRoutes);
 APP.use("/lead-dashboard",[xApiKeyValidation],leadDashboardRouter);
+APP.use("/attendance",[xApiKeyValidation],attendanceRoutes);
 export default APP;
