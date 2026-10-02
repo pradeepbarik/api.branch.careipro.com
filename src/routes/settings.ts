@@ -39,6 +39,9 @@ settingsRoutes.post("/create-article-category",[apiRateLimit(1,5),employeeValida
 settingsRoutes.get('/banners',[apiRateLimit(5,20)],handelError(settingsController.getBanners));
 settingsRoutes.post('/banner',[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(settingsController.updateBanner));
 settingsRoutes.post('/delete-banner',[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.deleteBanner));
+settingsRoutes.get('/short-videos',[apiRateLimit(5,20)],handelError(settingsController.getShortVideos));
+settingsRoutes.post('/short-video',[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.updateShortVideo));
+settingsRoutes.post('/delete-short-video',[apiRateLimit(1,5),employeeValidation(1)],handelError(settingsController.deleteShortVideo));
 settingsRoutes.get("/category-doctors",[apiRateLimit(10,30)],handelError(categoriesController.getCategoryDoctors));
 settingsRoutes.post('/update-doctor-score',[apiRateLimit(5,20),employeeValidation(1)],handelError(categoriesController.updateDoctorScore));
 settingsRoutes.get("/category-clinics",[apiRateLimit(10,30)],handelError(categoriesController.getCategoryClinics));

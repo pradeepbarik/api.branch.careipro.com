@@ -151,6 +151,20 @@ const requestParams = {
             banner_redirection_url: Joi.string().allow('')
         })
     }),
+    updateShortVideo: Joi.object({
+        id: Joi.number().allow(null, ''),
+        page: Joi.string().required(),
+        title: Joi.string().required(),
+        video_link: Joi.string().required(),
+        thumbnail: Joi.string().allow(''),
+        display_order: Joi.number().required(),
+        active: Joi.number().valid(0, 1).required(),
+        /* "YYYY-MM-DD HH:MM:SS", or empty for a video with no end date */
+        expire_at: Joi.string().allow('', null)
+    }),
+    deleteShortVideo: Joi.object({
+        id: Joi.number().required()
+    }),
     updateBanner: Joi.object({
         id: Joi.number(),
         alt_text: Joi.string().required(),
@@ -460,6 +474,65 @@ const settingsController = {
         }
         let data = await settingModel.getSiteBannersData({ city: tokenInfo.bd });
         res.json(successResponse(data, "success"))
+    },
+    getShortVideos: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let data = await settingModel.getShortVideosData({ city: tokenInfo.bd });
+        res.json(successResponse(data, "success"))
+    },
+    /* Add or edit one short video for a page. Unlike a banner this carries no file: these are links
+       to youtube shorts and the like, so the body is plain json and there is nothing to clean up on
+       disk when one is removed. */
+    updateShortVideo: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body } = req;
+        const validation: ValidationResult = requestParams.updateShortVideo.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        /* an empty expiry has to reach the column as null, not as "": a datetime column takes the
+           empty string as a zero date, which then reads as long expired */
+        const expire_at = body.expire_at ? body.expire_at : null;
+        if (body.id) {
+            /* the city is in the where clause as well as the id so a branch cannot edit another
+               city's video by guessing an id */
+            await DB.query(
+                "update site_short_videos set page=?,title=?,video_link=?,thumbnail=?,display_order=?,active=?,expire_at=? where id=? and city=?",
+                [body.page, body.title, body.video_link, body.thumbnail || '', body.display_order, body.active, expire_at, body.id, tokenInfo.bd]
+            );
+            res.json(successResponse({}, "Short video updated successfully"));
+            return;
+        }
+        let now = get_current_datetime();
+        await DB.query(
+            "INSERT INTO site_short_videos (city,page,title,video_link,thumbnail,display_order,active,expire_at,branch_id,upload_time) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            [tokenInfo.bd, body.page, body.title, body.video_link, body.thumbnail || '', body.display_order, body.active, expire_at, tokenInfo.bid, now]
+        );
+        res.json(successResponse({}, "Short video added successfully"));
+    },
+    deleteShortVideo: async (req: Request, res: Response) => {
+        const { tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body } = req;
+        const validation: ValidationResult = requestParams.deleteShortVideo.validate(body);
+        if (validation.error) {
+            parameterMissingResponse(validation.error.details[0].message, res);
+            return;
+        }
+        await DB.query("delete from site_short_videos where id = ? and city = ?", [body.id, tokenInfo.bd]);
+        res.json(successResponse({}, "Short video deleted successfully"));
     },
     updateBanner: async (req: FormdataRequest, res: Response) => {
         const { tokenInfo } = res.locals;

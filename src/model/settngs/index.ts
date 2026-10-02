@@ -1,4 +1,19 @@
 import { pageSettingsModel } from "../../mongo-schema/coll_page_settings";
+/* a row of site_short_videos, the per page short video an admin configures for a city */
+export type TShortVideoRow = {
+    id: number,
+    city: string,
+    page: string,
+    title: string,
+    video_link: string,
+    thumbnail: string,
+    display_order: number,
+    active: number,
+    /* when it stops being shown to visitors. null means it runs until someone hides it */
+    expire_at: string | null,
+    branch_id: number,
+    upload_time: string | null
+}
 type TSectionData = {
     heading: string,
     viewType: string,
@@ -262,6 +277,12 @@ const settingModel = {
     },
     getSiteBannersData: async (data: { city: string }) => {
         let rows = await DB.get_rows("select * from site_banners where city = ? order by page,display_order", [data.city.toLowerCase()]);
+        return rows;
+    },
+    /* the whole city's short videos, inactive ones included: this feeds the admin screen, which has
+       to show something before it can let anyone switch it back on */
+    getShortVideosData: async (data: { city: string }) => {
+        let rows = await DB.get_rows<TShortVideoRow>("select * from site_short_videos where city = ? order by page,display_order", [data.city.toLowerCase()]);
         return rows;
     },
     updateSiteBannerData: async (data: {
