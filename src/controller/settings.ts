@@ -50,21 +50,43 @@ const requestParams = {
         page_name: Joi.string().required(),
         popular_specialists: Joi.array().items(Joi.number()),
         sections: Joi.array().items(Joi.object({
-            heading: Joi.string().required(),
-            viewType: Joi.string().required(),
+            // a banner-type section has neither a heading nor a view type, so both are left optional
+            // rather than required, as they are for every other section schema in this file
+            heading: Joi.string().allow(''),
+            viewType: Joi.string().allow(''),
             enable: Joi.boolean().required(),
             specialist_id: Joi.array().items(Joi.number()),
             section_type: Joi.string().required(),
-            doctors_count: Joi.number().allow(0, "")
+            doctors_count: Joi.number().allow(0, ""),
+            banners: Joi.array().items(Joi.object({
+                img_url: Joi.string().allow(''),
+                alt_text: Joi.string().allow(''),
+                redirection_url: Joi.string().allow(''),
+                send_enquiry: Joi.number().valid(0, 1),
+                enquiry_data: Joi.any(),
+                display_style: Joi.any()
+            }))
         })),
         section: Joi.object({
             _id: Joi.string().allow(''),
-            heading: Joi.string().required(),
-            viewType: Joi.string().required(),
+            heading: Joi.string().allow(''),
+            viewType: Joi.string().allow(''),
             enable: Joi.boolean().required(),
             specialist_id: Joi.array().items(Joi.number()),
             section_type: Joi.string().required(),
-            doctors_count: Joi.number().allow(0, "")
+            doctors_count: Joi.number().allow(0, ""),
+            /* a "banners" section carries promotional banners instead of a specialist listing, each
+               with its own enquiry cta; the nested shapes are left open (Joi.any()) the same way
+               saveHomePageSettings.section.cards is, since this content is edited outside this form
+               and the schema should not go stale the next time a field is added to it */
+            banners: Joi.array().items(Joi.object({
+                img_url: Joi.string().allow(''),
+                alt_text: Joi.string().allow(''),
+                redirection_url: Joi.string().allow(''),
+                send_enquiry: Joi.number().valid(0, 1),
+                enquiry_data: Joi.any(),
+                display_style: Joi.any()
+            }))
         })
     }),
     saveClinicsPageSettings: Joi.object({
@@ -104,15 +126,38 @@ const requestParams = {
         page_name: Joi.string().required(),
         categories: Joi.array().items(Joi.number()),
         verticals: Joi.array().items(),
+        /* which position in the stored sections array this edit came from. At least one pair of
+           sections in production share an _id (a pre-existing data defect), so matching the save
+           by _id alone can silently update the wrong one; the array position the row was opened
+           from is unambiguous regardless. Absent (null) when adding a new section. */
+        section_index: Joi.number().min(0).allow(null),
+        /* the home page carries years of sections the current form never grew editors for --
+           top_banner, doctor_category, doctors, banners -- plus layout fields (itemViewType,
+           itemWidth) on specialization sections. Editing any of these only needs to round-trip
+           them unchanged, not validate their shape, so each is left as loose as the equivalent
+           field already is elsewhere in this file (banners mirrors saveDoctorsPageSetting.section). */
         section: Joi.object({
             _id: Joi.string().allow(''),
             name: Joi.string().required(),
             heading: Joi.string().allow(''),
             viewType: Joi.string().allow(''),
+            itemViewType: Joi.string().allow(''),
+            itemWidth: Joi.string().allow(''),
             enable: Joi.boolean().required(),
             verticals: Joi.array().items(Joi.string()),
             specialist_ids: Joi.array().items(Joi.number()),
-            cards: Joi.any()
+            doctor_ids: Joi.array().items(Joi.number()),
+            clinic_ids: Joi.array().items(Joi.number()),
+            specialist_id: Joi.alternatives().try(Joi.string().allow(''), Joi.number()),
+            cards: Joi.any(),
+            banners: Joi.array().items(Joi.object({
+                img_url: Joi.string().allow(''),
+                alt_text: Joi.string().allow(''),
+                redirection_url: Joi.string().allow(''),
+                send_enquiry: Joi.number().valid(0, 1),
+                enquiry_data: Joi.any(),
+                display_style: Joi.any()
+            }))
         })
     }),
     saveCaretakersPageSetting: Joi.object({
@@ -280,7 +325,8 @@ const settingsController = {
                 city: body.city,
                 specialists: body.categories,
                 verticals: body.verticals,
-                section: body.section
+                section: body.section,
+                section_index: body.section_index
             });
         } else if (body.page_name === 'doctors') {
             const validation: ValidationResult = requestParams.saveDoctorsPageSetting.validate(body);

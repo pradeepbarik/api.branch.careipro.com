@@ -7,7 +7,6 @@ import clinicMedicineMongoModel from '../../mongo-schema/coll_clinic_medicines';
 import medicineMongoModel from '../../mongo-schema/coll_medicines';
 import { getGroupCategoryShortName } from '../../helper';
 import mongoose from 'mongoose';
-import { md5 } from '../../services/encryption';
 type TaddNewClinicParams = {
     branch_id: number,
     business_type: string,
@@ -25,8 +24,6 @@ type TaddNewClinicParams = {
     location: string,
     latitude: number,
     longitude: number,
-    user_name: string,
-    password: string,
     partner_type: string,
     category: string,
     emp_info: ILoggedinEmpInfo,
@@ -39,24 +36,13 @@ const clinicModel = {
         }
         return true;
     },
-    checkClinicMobileUnique: async (mobile: number) => {
-        let row = await DB.get_row("select seo_url,city from clinics where mobile=?", [mobile]);
-        if (row) {
-            return false
-        }
-        return true;
-    },
-    checkClinicloginUserNameUnique: async (user_name: string) => {
-        let row = await DB.get_row("select seo_url,city from clinics where username=?", [user_name]);
-        if (row) {
-            return false
-        }
-        return true;
-    },
     addNewClinic: async (params: TaddNewClinicParams) => {
         //C12-ODBHC
-        let q = 'insert into clinics set name=?,username=?,password=?,email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type=?,business_type=?';
-        let insertRes: any = await DB.query(q, [params.clinic_name, params.user_name, md5(params.password), params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type, params.business_type]);
+        /* username/password are written empty: clinic owners sign in with mobile + OTP against the
+           users table and branch employees through clinic_staffs, so nothing ever authenticates
+           against these two columns. They stay in the insert only because both are NOT NULL. */
+        let q = 'insert into clinics set name=?,username="",password="",email=?,mobile=?,location=?,city=?,locality=?,location_lat=?,location_lng=?,status=?,approved=0,verified=0,active=0,seo_url=?,branch_id=?,alt_mob_no=?,state=?,market_name=?,category=?,partner_type=?,business_type=?';
+        let insertRes: any = await DB.query(q, [params.clinic_name, params.contact_email, params.contact_no, params.location, params.dist, params.area_name, params.latitude, params.longitude, 'close', params.clinic_seo_url, params.branch_id, params.alt_contact_no, params.state, params.market, params.category, params.partner_type, params.business_type]);
         if (insertRes && insertRes.affectedRows >= 1) {
             let clinic_id = insertRes.insertId;
             let now = get_current_datetime();

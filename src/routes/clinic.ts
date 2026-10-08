@@ -6,8 +6,6 @@ import doctorController from '../controller/doctor';
 const clinicRoutes=Router();
 clinicRoutes.get('/login-token',[apiRateLimit(2,20),employeeValidation(1),checkUnderBranch],handelError(clinicController.getLoginToken));
 clinicRoutes.get('/seo-url-availability-check',[apiRateLimit(5,20)],handelError(clinicController.checkClinicSeourlAvailability));
-clinicRoutes.get('/mobile-unique-check',[apiRateLimit(5,20)],handelError(clinicController.checkClinicMobileUnique));
-clinicRoutes.get('/username-unique-check',[apiRateLimit(5,20)],handelError(clinicController.checkClinicloginUserNameUnique));
 clinicRoutes.post('/add-new-clinic',[apiRateLimit(1,4),employeeValidation(1)],handelError(clinicController.addNewClinic));
 clinicRoutes.get('/clinic-list',[apiRateLimit(1,4)],handelError(clinicController.getClinicList));
 clinicRoutes.get('/clinic-detail',[apiRateLimit(10,20)],handelError(clinicController.getClinicDetail));

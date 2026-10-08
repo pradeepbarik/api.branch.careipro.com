@@ -71,18 +71,52 @@ const settingModel = {
         city: string,
         specialists?: Array<number>,
         verticals?: Array<TVertical>,
-        section?: THomeSection
+        section?: THomeSection,
+        section_index?: number | null
     }) => {
-        if (data.section?._id) {
-            await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "home", 'sections._id': data.section._id }, {
-                $set: { "sections.$": data.section },
-            }).exec();
+        /* an edit that knows which position it came from updates there directly, bypassing _id
+           matching entirely. At least one pair of sections in production share an _id (a
+           pre-existing data defect), so the $ positional match below can silently update the
+           wrong one when it is reached; a known array position never has that ambiguity. */
+        if (data.section && typeof data.section_index === "number") {
+            await pageSettingsModel.updateOne(
+                { state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "home" },
+                { $set: { [`sections.${data.section_index}`]: data.section } }
+            ).exec();
             return;
         }
-        let document = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "home" }).select('_id');
+        if (data.section?._id) {
+            const matched = await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "home", 'sections._id': data.section._id }, {
+                $set: { "sections.$": data.section },
+            }).exec();
+            /* a section created through this form always gets a real persisted _id (mongoose casts
+               and generates one on $push below), so this is the common case. A section seeded outside
+               this form may not have one -- a subdocument's _id defaults on every hydration it goes
+               through, so the frontend is still handed one on each GET, just a fresh one that was
+               never written to the database and so can never match this query. Those fall through to
+               the content match below instead of silently updating nothing; see the doctors page
+               equivalent for how this was found. */
+            if (matched) return;
+        }
+        let document = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "home" });
         if (document) {
             if (data.section) {
                 let { _id, ...sectionData } = data.section
+                const raw = await pageSettingsModel.findOne({ _id: document._id }).lean<{ sections: any[] }>().exec();
+                const withoutEnable = (section: any) => {
+                    const { enable, _id, ...rest } = section || {};
+                    return JSON.stringify(rest);
+                };
+                const incomingKey = withoutEnable(sectionData);
+                const existingIndex = (raw?.sections || []).findIndex((existing: any) =>
+                    !existing._id && withoutEnable(existing) === incomingKey
+                );
+                if (existingIndex !== -1) {
+                    await pageSettingsModel.updateOne({ _id: document._id }, {
+                        $set: { [`sections.${existingIndex}`]: sectionData }
+                    }).exec();
+                    return;
+                }
                 await pageSettingsModel.updateOne({ _id: document._id }, {
                     $push: {
                         sections: sectionData
@@ -118,16 +152,42 @@ const settingModel = {
         section?: TSectionData & { _id: string }
     }) => {
         if (data.section?._id) {
-            await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "doctors", 'sections._id': data.section._id }, {
+            const matched = await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "doctors", 'sections._id': data.section._id }, {
                 $set: { "sections.$": data.section },
             }).exec();
-            return;
+            /* a real, previously saved section's _id always matches here. A handful of sections were
+               seeded outside this form (such as a "banners" section of promotional banners) and were
+               never given a persisted _id in mongo -- a subdocument's _id defaults on every hydration
+               it goes through, so the frontend is still handed one on each GET, just a fresh one that
+               was never written to the database and so can never match this query. Those fall through
+               to the content match below instead of silently updating nothing. */
+            if (matched) return;
         }
         if (data.sections || data.popular_specialists || data.section) {
-            let document = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "doctors" }).select('_id');
+            let document = await pageSettingsModel.findOne({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "doctors" });
             if (document) {
                 if (data.section) {
                     let { _id, ...sectionData } = data.section
+                    /* .lean() is used here, not the hydrated document above, because a hydrated
+                       subdocument's _id default would mask exactly the gap being searched for --
+                       every section would appear to have one. Match on content with `enable` (the
+                       only field the worklist's checkbox ever changes) stripped from both sides, so
+                       an equal remainder is the same section rather than a coincidence. */
+                    const raw = await pageSettingsModel.findOne({ _id: document._id }).lean<{ sections: any[] }>().exec();
+                    const withoutEnable = (section: any) => {
+                        const { enable, _id, ...rest } = section || {};
+                        return JSON.stringify(rest);
+                    };
+                    const incomingKey = withoutEnable(sectionData);
+                    const existingIndex = (raw?.sections || []).findIndex((existing: any) =>
+                        !existing._id && withoutEnable(existing) === incomingKey
+                    );
+                    if (existingIndex !== -1) {
+                        await pageSettingsModel.updateOne({ _id: document._id }, {
+                            $set: { [`sections.${existingIndex}`]: sectionData }
+                        }).exec();
+                        return;
+                    }
                     await pageSettingsModel.updateOne({ _id: document._id }, {
                         $push: {
                             sections: sectionData

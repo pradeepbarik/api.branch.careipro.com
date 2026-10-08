@@ -22,12 +22,6 @@ const requestParams = {
         seourl: Joi.string().required(),
         city: Joi.string().required()
     }),
-    checkClinicMobileUnique: Joi.object({
-        mobile: Joi.number().required()
-    }),
-    checkClinicloginUserNameUnique: Joi.object({
-        user_name: Joi.string().required()
-    }),
     addNewClinic: Joi.object({
         business_type: Joi.string().required(),
         clinic_name: Joi.string().required(),
@@ -44,8 +38,6 @@ const requestParams = {
         location: Joi.string().required(),
         latitude: Joi.number().allow(''),
         longitude: Joi.number().allow(''),
-        user_name: Joi.string().allow(""),
-        password: Joi.string().allow(""),
         partner_type: Joi.string().required(),
         //category: Joi.alternatives().conditional("business_type",{is:"CLINIC",then:Joi.string().required()})
         //category:Joi.string().when("business_type",{is:"CLINIC",then:Joi.required(),otherwise:Joi.optional()})
@@ -613,44 +605,6 @@ const clinicController = {
             serviceNotAcceptable("Seo url not avialbe", res);
         }
     },
-    checkClinicMobileUnique: async (req: Request, res: Response) => {
-        const { query }: { query: any } = req;
-        const validation: ValidationResult = requestParams.checkClinicMobileUnique.validate(query);
-        if (validation.error) {
-            parameterMissingResponse(validation.error.details[0].message, res);
-            return;
-        }
-        const { tokenInfo } = res.locals;
-        if (typeof tokenInfo === 'undefined') {
-            unauthorizedResponse("permission denied! Please login to access", res);
-            return
-        }
-        let avl = await cliniModel.checkClinicMobileUnique(query.mobile);
-        if (avl) {
-            res.json(successResponse(null, "Available"));
-        } else {
-            serviceNotAcceptable("Mobile no already exist", res);
-        }
-    },
-    checkClinicloginUserNameUnique: async (req: Request, res: Response) => {
-        const { query }: { query: any } = req;
-        const validation: ValidationResult = requestParams.checkClinicloginUserNameUnique.validate(query);
-        if (validation.error) {
-            parameterMissingResponse(validation.error.details[0].message, res);
-            return;
-        }
-        const { tokenInfo } = res.locals;
-        if (typeof tokenInfo === 'undefined') {
-            unauthorizedResponse("permission denied! Please login to access", res);
-            return
-        }
-        let avl = await cliniModel.checkClinicloginUserNameUnique(query.user_name);
-        if (avl) {
-            res.json(successResponse(null, "Available"));
-        } else {
-            serviceNotAcceptable("username already exist", res);
-        }
-    },
     addNewClinic: async (req: Request, res: Response) => {
         const { body }: { body: any } = req;
         const validation: ValidationResult = requestParams.addNewClinic.validate(body);
@@ -669,16 +623,8 @@ const clinicController = {
             serviceNotAcceptable("clinic seo url already exist", res);
             return;
         }
-        let mobileAvailable = await cliniModel.checkClinicMobileUnique(body.contact_no);
-        if (!mobileAvailable) {
-            serviceNotAcceptable("contact no already exist", res);
-            return;
-        }
-        let userAvailable = await cliniModel.checkClinicloginUserNameUnique(body.user_name);
-        if (!userAvailable) {
-            serviceNotAcceptable("Username is already exit", res);
-            return;
-        }
+        /* contact_no is deliberately not checked for uniqueness: one owner can run several
+           businesses off a single phone number. Clinics are identified by seo_url, which is. */
         let addres = await cliniModel.addNewClinic({
             business_type: body.business_type,
             branch_id: tokenInfo.bid,
@@ -696,8 +642,6 @@ const clinicController = {
             location: body.location,
             latitude: body.latitude,
             longitude: body.longitude,
-            user_name: body.user_name,
-            password: body.password,
             category: "",
             partner_type: body.partner_type,
             emp_info: emp_info
