@@ -3,7 +3,11 @@ import {apiRateLimit,handelError,employeeValidation,checkUnderBranch,parseFormDa
 import clinicController from '../controller/clinic';
 import clinicAppointmentsController from '../controller/clinic/appointments';
 import doctorController from '../controller/doctor';
+import ambulanceController from '../controller/ambulance';
 const clinicRoutes=Router();
+clinicRoutes.get('/ambulances',[apiRateLimit(5,20)],handelError(ambulanceController.getClinicAmbulances));
+clinicRoutes.post('/save-ambulance',[apiRateLimit(1,5),employeeValidation(1),parseFormData],handelError(ambulanceController.saveAmbulance));
+clinicRoutes.post('/delete-ambulance',[apiRateLimit(1,5),employeeValidation(1)],handelError(ambulanceController.deleteAmbulance));
 clinicRoutes.get('/login-token',[apiRateLimit(2,20),employeeValidation(1),checkUnderBranch],handelError(clinicController.getLoginToken));
 clinicRoutes.get('/seo-url-availability-check',[apiRateLimit(5,20)],handelError(clinicController.checkClinicSeourlAvailability));
 clinicRoutes.post('/add-new-clinic',[apiRateLimit(1,4),employeeValidation(1)],handelError(clinicController.addNewClinic));

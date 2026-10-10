@@ -1538,20 +1538,34 @@ const clinicController = {
             clinic_logo = clinic_logo.replace(/[^a-zA-Z0-9\s-]/g, '');
             clinic_logo = clinic_logo.replace(/\s/g, '-');
             clinic_logo = clinic_logo + path.extname(files.logo.originalFilename);
+            /* The file name is derived from the clinic name and city so that it stays the same
+               across re-uploads: a logo url google has already indexed keeps resolving, it just
+               serves the new picture. So the previous file is replaced in place, and is only
+               deleted when that derived name actually changed (the clinic was renamed or moved).
+               This comparison has to happen before the cache-busting suffix is added, otherwise it
+               never matches and the upload deletes the file it has just written. */
+            const previous_logo = (body.old_logo || '').split('?')[0];
+            const replaced_in_place = previous_logo === clinic_logo;
             try {
-                uploadFileToServer(oldPath, `${clinic_logo_path}/${clinic_logo}`);
-                const now = new Date(get_current_datetime());
-                clinic_logo = clinic_logo + "?t=" + now.getSeconds();
-                await DB.query("update clinics set logo=? where id=?", [clinic_logo, body.clinic_id]);
-                if (body.old_logo !== clinic_logo) {
-                    deleteFile(`${clinic_logo_path}/${body.old_logo}`)
+                //copyFile fails outright when the destination folder is not there yet
+                if (fs.existsSync(clinic_logo_path) === false) {
+                    fs.mkdirSync(clinic_logo_path, { recursive: true });
                 }
-                res.json(successResponse({ logo: clinic_logo }, "Logo updated successfully"));
+                await uploadFileToServer(oldPath, `${clinic_logo_path}/${clinic_logo}`);
+                /* milliseconds, not seconds: the url is unchanged on a re-upload, so the suffix is
+                   the only thing telling a browser the picture behind it is new */
+                const versioned_logo = clinic_logo + "?t=" + new Date(get_current_datetime()).getTime();
+                await DB.query("update clinics set logo=? where id=?", [versioned_logo, body.clinic_id]);
+                if (previous_logo !== '' && !replaced_in_place) {
+                    deleteFile(`${clinic_logo_path}/${previous_logo}`)
+                }
+                res.json(successResponse({ logo: versioned_logo }, "Logo updated successfully"));
             } catch (err: any) {
-                res.json(internalServerError("Something went wrong", res));
+                //these helpers send the response themselves, so their return value must not be re-sent
+                internalServerError(err.message || "Something went wrong", res);
             }
         } else {
-            res.json(parameterMissingResponse("Please select an image", res));
+            parameterMissingResponse("Please select an image", res);
         }
     },
     updateDoctorProfilePic: async (req: FormdataRequest, res: Response) => {

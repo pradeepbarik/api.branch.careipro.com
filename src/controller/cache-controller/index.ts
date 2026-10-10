@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import Joi, { ValidationResult } from 'joi';
 import { parameterMissingResponse, internalServerError, successResponse, unauthorizedResponse } from '../../services/response';
 import { cache_directory, clinic_management_cache } from '../../config';
-import { HOME_PAGE_CACHE_FILE, CARETAKER_SERVICE_HOMEPAGE_CACHE_FILE, CLINICS_PAGE_CACHE_FILE, DOCTORS_PAGE_CACHE_FILE, DOCTORS_DETAIL_CACHE_DIR, CLINICS_DETAIL_CACHE_DIR, MASSAGE_SERVICE_HOMEPAGE_CACHE_FILE, MASSAGE_SERVICE_CACHE_DIR, PHYSIOTHERAPY_SERVICE_HOMEPAGE_CACHE_FILE, PETCARE_SERVICE_HOMEPAGE_CACHE_FILE } from '../../constants';
+import { HOME_PAGE_CACHE_FILE, CARETAKER_SERVICE_HOMEPAGE_CACHE_FILE, CLINICS_PAGE_CACHE_FILE, DOCTORS_PAGE_CACHE_FILE, DOCTORS_DETAIL_CACHE_DIR, CLINICS_DETAIL_CACHE_DIR, MASSAGE_SERVICE_HOMEPAGE_CACHE_FILE, MASSAGE_SERVICE_CACHE_DIR, PHYSIOTHERAPY_SERVICE_HOMEPAGE_CACHE_FILE, PETCARE_SERVICE_HOMEPAGE_CACHE_FILE, AMBULANCE_SERVICE_HOMEPAGE_CACHE_FILE } from '../../constants';
 const requestParams = {
     initClinicCacheDirectory: Joi.object({
         clinic_id: Joi.number().required(),
@@ -162,6 +162,14 @@ const cacheController = {
             try {
                 fs.accessSync(`${cache_directory}/${tokenInfo.bs.toLowerCase()}/${tokenInfo.bd}/${PETCARE_SERVICE_HOMEPAGE_CACHE_FILE}`);
                 fs.unlink(`${cache_directory}/${tokenInfo.bs.toLowerCase()}/${tokenInfo.bd}/${PETCARE_SERVICE_HOMEPAGE_CACHE_FILE}`, () => { })
+            } catch (err) {
+                internalServerError("Something went wrong", res);
+                return
+            }
+        } else if (req.query.cache_type === "ambulance_home_page") {
+            try {
+                fs.accessSync(`${cache_directory}/${tokenInfo.bs.toLowerCase()}/${tokenInfo.bd}/${AMBULANCE_SERVICE_HOMEPAGE_CACHE_FILE}`);
+                fs.unlink(`${cache_directory}/${tokenInfo.bs.toLowerCase()}/${tokenInfo.bd}/${AMBULANCE_SERVICE_HOMEPAGE_CACHE_FILE}`, () => { })
             } catch (err) {
                 internalServerError("Something went wrong", res);
                 return
