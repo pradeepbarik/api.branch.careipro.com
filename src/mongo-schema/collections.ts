@@ -23,3 +23,4 @@ export const COLL_CLINIC_MEDICINES="coll_clinic_medicines";
 export const COLL_PG_ORDERS="coll_pg_orders";
 export const COLL_SEARCH_TEXTS="coll_search_texts";
 export const COLL_PATIENT_ENQUIRES="coll_patient_enquires";
+export const COLL_ANNOUNCEMENTS='coll_announcements';
