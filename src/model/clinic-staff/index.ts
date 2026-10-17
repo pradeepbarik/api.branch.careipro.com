@@ -7,7 +7,7 @@ type staffListParams = {
 }
 export const staffList = async (params: staffListParams) => {
     let rows = await DB.get_rows(`select t1.*,t2.clinic_name, t3.assigned_doctors from (
-        select clinic_id,mobile,name,join_date,status,role,token,email,user_id,clinic_staff_type,display_role from clinic_staffs where clinic_id=?
+        select clinic_id,mobile,name,join_date,status,role,token,email,user_id,clinic_staff_type,display_role,session_expired_time from clinic_staffs where clinic_id=?
         ) as t1 left join (select user_id,group_concat(doctor_id) as assigned_doctors from clinic_staff_service_locations where clinic_id=? group by user_id) as t3 on t1.user_id = t3.user_id join (
         select id,name as clinic_name from clinics where id=? and branch_id=?
         ) as t2 on t1.clinic_id=t2.id order by FIELD(t1.clinic_staff_type,'registered','non_registered')`, [params.clinic_id, params.clinic_id, params.clinic_id, params.branch_id]);
@@ -24,7 +24,10 @@ type TAddClinicStaffParam = {
     display_role: string,
     clinic_staff_type:'registered'|'non_registered',
     assigned_doctors?: number[],
-    user_id?: number | null
+    user_id?: number | null,
+    /* how many hours a login lasts. the column is NOT NULL DEFAULT 24, so this is never written as
+       null, an empty choice is stored as that same 24 */
+    session_expired_time?: number
 }
 export const addClinicStaff = async (params: TAddClinicStaffParam) => {
     let now = get_current_datetime();
@@ -43,9 +46,9 @@ export const addClinicStaff = async (params: TAddClinicStaffParam) => {
             let is_clinic_owner = params.role === 'admin' ? 1 : 0;
             
             // Update clinic staff record
-            let updateQuery = "UPDATE clinic_staffs SET name=?, email=?, status=?, role=?,display_role=? ";
-            let updateParams: any[] = [params.name, params.email, params.status, params.role, params.display_role];
-            
+            let updateQuery = "UPDATE clinic_staffs SET name=?, email=?, status=?, role=?,display_role=?, session_expired_time=? ";
+            let updateParams: any[] = [params.name, params.email, params.status, params.role, params.display_role, params.session_expired_time || 24];
+
             if (params.password) {
                 updateQuery += ", password=? ";
                 updateParams.push(md5(params.password));
@@ -96,7 +99,7 @@ export const addClinicStaff = async (params: TAddClinicStaffParam) => {
             userid = user.id;
             await DB.query("update users set user_type=?,is_clinic_owner=?,clinic_id=? where id=?", ['clinic_staff', is_clinic_owner, params.clinic_id,userid]);
         }
-        await DB.query("insert into clinic_staffs set clinic_id=?,mobile=?,name=?,join_date=?,status=?,password=?,role=?,user_id=?,clinic_staff_type=?", [params.clinic_id, params.mobile_no, params.name,now,params.status,md5(params.password),params.role,userid,params.clinic_staff_type]);
+        await DB.query("insert into clinic_staffs set clinic_id=?,mobile=?,name=?,join_date=?,status=?,password=?,role=?,user_id=?,clinic_staff_type=?,session_expired_time=?", [params.clinic_id, params.mobile_no, params.name,now,params.status,md5(params.password),params.role,userid,params.clinic_staff_type,params.session_expired_time || 24]);
         
         // Handle assigned doctors for new staff
         if (params.assigned_doctors && params.assigned_doctors.length > 0) {

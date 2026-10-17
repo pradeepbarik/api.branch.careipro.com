@@ -463,7 +463,12 @@ const requestParams = {
         display_role: Joi.string().allow(''),
         clinic_staff_type: Joi.string().required(),
         assigned_doctors: Joi.array().items(Joi.number()).optional(),
-        user_id: Joi.number().optional()
+        user_id: Joi.number().optional(),
+        /* how long a login lasts, in hours. the column is NOT NULL DEFAULT 24, so an empty value is
+           stored as 24 rather than null, which strict mode would reject outright.
+           the ceiling is a year: long sessions are normal here, rows of 2400 and 8760 are already
+           saved, but an unbounded field would let someone type a session that never ends */
+        session_expired_time: Joi.number().integer().min(1).max(8760).allow(null, '').optional()
     }),
     addClinicStaffNonRegistered: Joi.object({
         clinic_id: Joi.number().required(),
@@ -1421,7 +1426,9 @@ const clinicController = {
             password: body.password ? body.password : '',
             clinic_staff_type: body.clinic_staff_type,
             assigned_doctors: body.assigned_doctors || [],
-            user_id: body.user_id || null
+            user_id: body.user_id || null,
+            //the column will not take null, so an empty value falls back to its own default of 24
+            session_expired_time: body.session_expired_time ? Number(body.session_expired_time) : 24
         });
         res.status(resonse.code).json(resonse);
     },
