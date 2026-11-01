@@ -49,13 +49,21 @@ const requestParams = {
         city: Joi.string().required(),
         page_name: Joi.string().required(),
         popular_specialists: Joi.array().items(Joi.number()),
+        /* which position in the stored sections array this edit came from. Some sections (e.g.
+           popular_doctors) have no persisted _id -- see saveHomePageSettings.section_index for why
+           that makes matching by _id or content ambiguous, and position does not have that problem.
+           Absent (null) when adding a new section. */
+        section_index: Joi.number().min(0).allow(null),
         sections: Joi.array().items(Joi.object({
             // a banner-type section has neither a heading nor a view type, so both are left optional
             // rather than required, as they are for every other section schema in this file
             heading: Joi.string().allow(''),
             viewType: Joi.string().allow(''),
             enable: Joi.boolean().required(),
-            specialist_id: Joi.array().items(Joi.number()),
+            /* specialist_ids, plural: that is the field the stored sections carry and the field the
+               form sends. it was declared singular here, and since joi rejects what it does not
+               know, every save of a doctors section was coming back "specialist_ids is not allowed" */
+            specialist_ids: Joi.array().items(Joi.number()),
             section_type: Joi.string().required(),
             doctors_count: Joi.number().allow(0, ""),
             banners: Joi.array().items(Joi.object({
@@ -72,7 +80,8 @@ const requestParams = {
             heading: Joi.string().allow(''),
             viewType: Joi.string().allow(''),
             enable: Joi.boolean().required(),
-            specialist_id: Joi.array().items(Joi.number()),
+            //plural, as above: the stored sections and the form both use specialist_ids
+            specialist_ids: Joi.array().items(Joi.number()),
             section_type: Joi.string().required(),
             doctors_count: Joi.number().allow(0, ""),
             /* a "banners" section carries promotional banners instead of a specialist listing, each
@@ -339,7 +348,8 @@ const settingsController = {
                 city: body.city,
                 popular_specialists: body.popular_specialists,
                 sections: body.sections,
-                section: body.section
+                section: body.section,
+                section_index: body.section_index
             });
         } else if (body.page_name === 'clinics') {
             const validation: ValidationResult = requestParams.saveClinicsPageSettings.validate(body);

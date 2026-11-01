@@ -149,8 +149,19 @@ const settingModel = {
         city: string,
         popular_specialists: Array<number>,
         sections?: Array<TSectionData>,
-        section?: TSectionData & { _id: string }
+        section?: TSectionData & { _id: string },
+        section_index?: number | null
     }) => {
+        /* an edit that knows which position it came from updates there directly, bypassing both
+           the _id match and the content-match fallback below -- see saveHomePageData for why
+           those can target the wrong section when a section has no persisted _id. */
+        if (data.section && typeof data.section_index === "number") {
+            await pageSettingsModel.updateOne(
+                { state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "doctors" },
+                { $set: { [`sections.${data.section_index}`]: data.section } }
+            ).exec();
+            return;
+        }
         if (data.section?._id) {
             const matched = await pageSettingsModel.findOneAndUpdate({ state: data.state.toLowerCase(), city: data.city.toLowerCase(), page: "doctors", 'sections._id': data.section._id }, {
                 $set: { "sections.$": data.section },

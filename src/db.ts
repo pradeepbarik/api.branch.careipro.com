@@ -116,55 +116,87 @@ const getDB = (dbconfig: DBCONFIG) => {
         }
     }
 }
-const getMongoDB = (connectionString: string) => {
-    var mongoConnection: any;
-    return () => {
-        if (mongoConnection) {
-            console.log('already connected to mongdb...');
+let mongoConnection: any = null;
+// 2. Setup global event listeners ONCE (prevents log spam and memory leaks)
+mongoose.connection.on('error', (err: any) => {
+    console.error('MongoDB global connection error:', err);
+});
+
+mongoose.connection.once('open', () => {
+    console.log("MongoDB database connection successfully established globally");
+});
+export const getMongoDB = (connectionString: string) => {
+    return async () => {
+        if (!connectionString) {
+            console.log('MongoDB connection string is empty');
+            return null;
+        }
+
+        // Check if mongoose is already connected or connecting (1 = connected, 2 = connecting)
+        if (mongoConnection && (mongoose.connection.readyState === 1 || mongoose.connection.readyState === 2)) {
+            console.log('Reusing existing MongoDB connection...');
             return mongoConnection;
-        } else {
-            console.log('connecting to mongdb...');
-            mongoose.connect(connectionString, {});
-            mongoConnection = mongoose.connection;
-            mongoConnection.on('error', (err: any) => {
-                console.log(err);
+        }
+
+        try {
+            console.log('Connecting to MongoDB...');
+            
+            // Explicitly pass pooling parameters to maximize connection reuse
+            await mongoose.connect(connectionString, { 
+                serverSelectionTimeoutMS: 10000,
+                maxPoolSize: 10, // Allows up to 10 parallel queries over the same socket pool
+                minPoolSize: 2   // Keeps 2 sockets alive to avoid connection lag
             });
-            mongoConnection.once('open', () => {
-                console.log("mongodb database connection established");
-            })
+
+            mongoConnection = mongoose.connection;
+            return mongoConnection;
+        } catch (err: any) {
+            console.error('MongoDB connection failed:', err?.message || err);
+            return null;
         }
     }
 }
-const connectToDb = (url: string) => new Promise((resolve, reject) => {
-    const mongoConnection = mongoose.createConnection(url, {});
-    mongoConnection.on('error', (err: any) => {
-        console.log(err);
-        reject(err);
-    });
-    mongoConnection.once('connected', () => {
-        console.log("management mongodb database connection established");
-        resolve(mongoConnection);
-    })
-})
+/* The management database is a second mongo database, so it gets its own mongoose instance rather
+   than the default one getMongoDB uses. The state is kept per factory, not at module level, so the
+   dev and the production connection stay separate.
+
+   This one stays synchronous on purpose, unlike getMongoDB: the lead dashboard schemas call
+   MANAGEMENT_DB.model(...) at import time, and awaiting here would mean a promise where every one
+   of them expects a connection. Handing the connection back before it is up is safe, mongoose
+   queues what is asked of it until the socket is ready. */
 const getManagementMongoDb = (connectionString: string) => {
     let mongoConnection: any;
-    return ()=>{
+    return () => {
         if (mongoConnection) {
-            console.log('already connected to management mongdb...');
-            return mongoConnection;
-        } else {
-            console.log('connecting to management mongdb...');
-            var instance = new mongoose.Mongoose();
-            instance.connect(connectionString, {});
-            mongoConnection = instance.connection;
-            mongoConnection.on('error', (err: any) => {
-                console.log(err);
-            });
-            mongoConnection.once('open', () => {
-                console.log("management mongodb database connection established");
-            })
+            /* returned even while it is still connecting or has dropped: mongoose reconnects on its
+               own and buffers in the meantime, and a second instance would leak the first */
             return mongoConnection;
         }
+        if (!connectionString) {
+            console.log('Management MongoDB connection string is empty');
+            return null;
+        }
+        console.log('Connecting to management MongoDB...');
+        const instance = new mongoose.Mongoose();
+        mongoConnection = instance.connection;
+        mongoConnection.on('error', (err: any) => {
+            console.error('Management MongoDB connection error:', err?.message || err);
+        });
+        mongoConnection.once('open', () => {
+            console.log("management mongodb database connection established");
+        });
+        /* the same pooling getMongoDB uses: parallel queries share one socket pool, and a couple of
+           sockets are held open so the first query after a quiet spell does not pay to dial out */
+        instance.connect(connectionString, {
+            serverSelectionTimeoutMS: 10000,
+            maxPoolSize: 10,
+            minPoolSize: 2,
+        }).catch((err: any) => {
+            /* connect() rejects separately from the error event above. without this the rejection
+               is unhandled, which newer node treats as fatal */
+            console.error('Management MongoDB connection failed:', err?.message || err);
+        });
+        return mongoConnection;
     }
 }
 export const getDevelopmentDb = getDB(DEVELOPMENT_DB);
