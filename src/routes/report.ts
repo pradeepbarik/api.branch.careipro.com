@@ -3,7 +3,10 @@ import {apiRateLimit,handelError} from '../middleware';
 import AppointmentController from '../controller/appointment';
 import pageVisiterController from '../controller/page-visiter';
 import reportController from '../controller/report';
+import doctorAvailabilityController from '../controller/doctor-availability';
+import userFeedReportController from '../controller/user-feed-report';
 const reportRouter = Router();
+reportRouter.get('/doctor-availability', [apiRateLimit(10, 30)], handelError(doctorAvailabilityController.getDoctorAvailability));
 reportRouter.get("/business-listing-summary",[apiRateLimit(10,10)],handelError(reportController.businessListingSummary));
 reportRouter.get('/todays-booked-appointment-doctors', [apiRateLimit(10, 30)], handelError(AppointmentController.getTodaysAppointmentBookedDoctors));
 reportRouter.get('/patients-doctor-list', [apiRateLimit(10, 30)], handelError(AppointmentController.getTodaysPatientsDoctorList));
@@ -11,6 +14,7 @@ reportRouter.get('/appointments-dashboard', [apiRateLimit(10, 30)], handelError(
 reportRouter.get("/page-visit-graph-data",[apiRateLimit(10,10)],handelError(pageVisiterController.getPageVisitReport));
 reportRouter.get("/site-visiters",[apiRateLimit(10,10)],handelError(pageVisiterController.getPageVisiters));
 reportRouter.get("/site-traffic-dashboard",[apiRateLimit(10,30)],handelError(pageVisiterController.getSiteTrafficDashboard));
+reportRouter.get("/clinic-user-feed",[apiRateLimit(10,30)],handelError(userFeedReportController.getClinicUserFeed));
 reportRouter.get("/clinic-traffic",[apiRateLimit(10,30)],handelError(pageVisiterController.getClinicTraffic));
 reportRouter.get("/generate-clinic-daily-report",[apiRateLimit(10,10)],handelError(reportController.generateClinicDailyReport));
 reportRouter.get("/generate-doctors-rating-review-report",[apiRateLimit(10,10)],handelError(reportController.generateRatingReviewReport));

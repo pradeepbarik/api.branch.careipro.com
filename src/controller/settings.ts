@@ -20,6 +20,9 @@ const requestParams = {
         city: Joi.string().required(),
         patient_support_contact_no: Joi.string().allow(''),
         patient_support_staff_name: Joi.string().allow(''),
+        patient_support_email: Joi.string().trim().email().allow('').messages({
+            'string.email': "Please enter a valid support email"
+        }),
         support_time_message: Joi.string().allow(''),
         city_manager_name: Joi.string().allow(''),
         city_manager_contact_no: Joi.string().allow('')
@@ -258,7 +261,9 @@ const settingsController = {
     },
     saveCitySettings: async (req: Request, res: Response) => {
         const { body }: { body: any } = req;
-        const validation: ValidationResult = requestParams.saveCitySettings.validate(body);
+        /* stripUnknown: a client posting back the loaded document (_id, createdAt, __v) still saves,
+           and only the fields listed in the schema are ever written */
+        const validation: ValidationResult = requestParams.saveCitySettings.validate(body, { stripUnknown: true });
         if (validation.error) {
             parameterMissingResponse(validation.error.details[0].message, res);
             return;
@@ -271,6 +276,7 @@ const settingsController = {
                     state: body.state.toLowerCase(),
                     patient_support_contact_no: body.patient_support_contact_no,
                     patient_support_staff_name: body.patient_support_staff_name,
+                    patient_support_email: (body.patient_support_email || "").trim().toLowerCase(),
                     support_time_message: body.support_time_message,
                     city_manager_name: body.city_manager_name,
                     city_manager_contact_no: body.city_manager_contact_no

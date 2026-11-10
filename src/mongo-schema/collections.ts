@@ -25,3 +25,4 @@ export const COLL_SEARCH_TEXTS="coll_search_texts";
 export const COLL_PATIENT_ENQUIRES="coll_patient_enquires";
 export const COLL_ANNOUNCEMENTS='coll_announcements';
 export const COLL_CLINIC_SETTINGS='coll_clinic_settings';
+export const COLL_USER_FEED_DOCTORS='coll_user_feed_doctors';
