@@ -304,6 +304,41 @@ const employeeController = {
         });
         res.json(successResponse({}, "Profile deactivated successfully"));
     },
+    sessionStatus: async (_req: Request, res: Response) => {
+        const { emp_info } = res.locals;
+        if (typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        let employee = await DB.get_row<{ status: string }>("select status from employee where id=?", [emp_info.id]);
+        if (!employee) { unauthorizedResponse("invalid employee info", res); return; }
+        res.json(successResponse({ status: employee.status }, "Session status fetched successfully"));
+    },
+    resetPassword: async (req: Request, res: Response) => {
+        //same length bounds as the login validator, otherwise the new password could never be used to log in
+        const schema = Joi.object({
+            emp_code: Joi.string().required(),
+            new_password: Joi.string().required().min(5).max(15),
+        });
+        const { error } = schema.validate(req.body);
+        if (error) { serviceNotAcceptable(error.details[0].message, res); return; }
+        const { emp_info, tokenInfo } = res.locals;
+        if (typeof tokenInfo === 'undefined' || typeof emp_info === 'undefined') {
+            unauthorizedResponse("permission denied! Please login to access", res);
+            return
+        }
+        const { body } = req;
+        let employee = await DB.get_row<{ id: number }>("select id from employee where emp_code=?", [body.emp_code]);
+        if (!employee) { serviceNotAcceptable("Employee not found", res); return; }
+        let now = get_current_datetime();
+        await DB.query("update employee set password=? where id=?", [md5(body.new_password), employee.id]);
+        const EmployeesModel = getEmployeesModel();
+        await EmployeesModel.updateOne({ emp_code: body.emp_code }, {
+            $set: { updated_at: new Date() },
+            $push: { profile_change_log: { time: new Date(now), changed_by: { emp_id: emp_info.id, emp_code: emp_info.emp_code, name: `${emp_info.first_name}` }, message: `Password reset` } }
+        });
+        res.json(successResponse({}, "Password reset successfully"));
+    },
     uploadProfilePicture: async (req: FormdataRequest, res: Response) => {
         const { body, files } = req;
         let emp_code = body.emp_code;

@@ -32,6 +32,10 @@ export const login = async (params: ILoginParams): Promise<Iresponse<LoginRespon
     let employee: any = await DB.get_row(`select employee.*,branch.name as branch_name,branch.district as branch_dist,branch.state as branch_state,branch.location as branch_location,dept.name as dept_name,dept.department_code as dept_code from (
         select id as emp_id,first_name,last_name,emp_code,branch_id,department_id as dept_id,photo,mobile_no as mob_no,email_id,status from employee where username=? and password=? and branch_id=?
         ) as employee join branch on employee.branch_id=branch.id join department as dept on employee.dept_id=dept.id`, [params.user_name, md5(params.password), params.branch_id]);
+    if (employee && employee.status !== 'active') {
+        //without this a deactivated employee logs in, gets force-logged-out by the session check, and loops
+        return unauthorizedResponse("Your account has been deactivated. Please contact your branch manager.");
+    }
     if (employee) {
         // Read sales_role from MongoDB so the dashboard knows the rep's role within the sales team
         const EmployeesModel = getEmployeesModel();
