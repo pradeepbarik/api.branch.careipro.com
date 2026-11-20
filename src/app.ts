@@ -24,6 +24,7 @@ import leadDashboardRouter from './lead-dashboard/routes/index';
 import attendanceRoutes from './routes/attendance';
 import walletTransactionRoutes from './routes/wallet-transaction';
 import walletInvoiceRoutes from './routes/wallet-invoice';
+import smsTemplateRoutes from './routes/sms-template';
 const APP: Application = express();
 APP.set('trust proxy', 1);
 APP.use(compression({ filter: shouldCompress, level: 1 }))
@@ -56,4 +57,5 @@ APP.use("/lead-dashboard",[xApiKeyValidation],leadDashboardRouter);
 APP.use("/attendance",[xApiKeyValidation],attendanceRoutes);
 APP.use("/wallet-transaction",[xApiKeyValidation],walletTransactionRoutes);
 APP.use("/wallet-invoice",[xApiKeyValidation],walletInvoiceRoutes);
+APP.use("/sms-template",[xApiKeyValidation],smsTemplateRoutes);
 export default APP;
