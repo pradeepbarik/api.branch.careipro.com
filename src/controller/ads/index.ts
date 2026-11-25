@@ -42,7 +42,7 @@ const requestParams = {
         end_time: Joi.string().required(),
         target_impression: Joi.number().min(0).default(0),
         target_click: Joi.number().min(0).default(0),
-        page_types: Joi.array().items(Joi.string().valid('all', 'home', 'doctor_list', 'doctor_detail', 'clinic_list', 'clinic_detail')).default(['all']),
+        page_types: Joi.array().items(Joi.string().valid('all', 'home', 'doctor_list', 'doctor_detail', 'clinic_list', 'clinic_detail', 'medicine_store_list')).default(['all']),
         banner_categories: Joi.array().items(Joi.number()).default([]),
         target_cities: Joi.array().items(Joi.string()).default([]),
         banner_link: Joi.string().uri().required(),

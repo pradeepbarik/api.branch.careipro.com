@@ -111,6 +111,7 @@ const clinicModel = {
         medicine_min_order_tag?:string|null,
         open_time?:string|null,
         recommended_doctors?:string|null,
+        about_clinic?:string|null,
         discount_msg?:string|null,
         sample_home_collection?:number,
         sample_home_collection_charge?:number,
@@ -257,6 +258,10 @@ const clinicModel = {
             if (params.recommended_doctors !== undefined) {
                 updateFields.push("recommended_doctors=?");
                 sql_params.push(params.recommended_doctors);
+            }
+            if (params.about_clinic !== undefined) {
+                updateFields.push("about_clinic=?");
+                sql_params.push(params.about_clinic || null);
             }
             if (params.discount_msg !== undefined) {
                 updateFields.push("discount_msg=?");

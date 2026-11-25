@@ -23,6 +23,7 @@ export const PETCARE_SERVICE_CACHE_DIR = "petcare";
 export const CARETAKER_SERVICE_CACHE_DIR = "caretaker-service";
 export const CARETAKER_SERVICE_HOMEPAGE_CACHE_FILE = "caretaker-home-page.json";
 export const AMBULANCE_SERVICE_HOMEPAGE_CACHE_FILE = "ambulance-home-page.json";
+export const TESTS_SCANS_PAGE_CACHE_FILE = "tests-scans-page.json";
 export const CLINICS_TOP_DOCTORS = "clinics-top-doctors.json";
 export const DOCTORS_DETAIL_CACHE_DIR = "doctor-details";
 export const CLINICS_DETAIL_CACHE_DIR = "clinic-details";
