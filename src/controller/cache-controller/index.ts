@@ -247,6 +247,24 @@ const cacheController = {
             } else {
                 parameterMissingResponse("service_loc_id is required", res);
             }
+        } else if (req.query.cache_type === "medicine-store") {
+            /* api.careipro.com builds this path with getCityCacheDir, which lowercases state and
+               city and swaps the first space for "-". it holds one sub folder per market and
+               catid, so everything inside goes but the medicine-store folder itself stays.
+               nothing cached yet means there is nothing to clear, not a failure. */
+            let city = tokenInfo.bd.toLowerCase().replace(" ", "-");
+            let state = tokenInfo.bs.toLowerCase().replace(" ", "-");
+            try {
+                let medicineStoreCacheDir = `${cache_directory}/${state}/${city}/medicine-store`;
+                if (fs.existsSync(medicineStoreCacheDir)) {
+                    for (let entry of fs.readdirSync(medicineStoreCacheDir)) {
+                        await fs.promises.rm(`${medicineStoreCacheDir}/${entry}`, { recursive: true, force: true });
+                    }
+                }
+            } catch (err) {
+                internalServerError("Something went wrong", res);
+                return
+            }
         } else {
             parameterMissingResponse("Invalid cache type", res);
             return
