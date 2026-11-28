@@ -855,7 +855,7 @@ const clinicController = {
         let clinicDetail=await DB.get_row<{city:string,market_name:string}>("select city,market_name from clinics where id=?",[body.clinic_id]);
         let city=clinicDetail?.city||"";
         let market_name=clinicDetail?.market_name||"";
-        let query = "insert into clinic_specialization (clinic_id,specialist_id,specialist_business_type,score,service_price,service_price_display,city,market_name=?) values ?";
+        let query = "insert into clinic_specialization (clinic_id,specialist_id,specialist_business_type,score,service_price,service_price_display,city,market_name) values ?";
         let sqlParams: any = [];
         for (let specialization of body.specializations) {
             sqlParams.push([body.clinic_id, specialization.specialist_id, body.specilization_business_type, specialization.score || null, specialization.service_price || null, specialization.service_price_display,city,market_name]);
